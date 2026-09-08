@@ -40,10 +40,6 @@ const documentSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
-        parsedContext: {
-            type: mongoose.Schema.Types.Mixed,
-            default: null,
-        },
         department: {
             type: String,
             default: "Pending",

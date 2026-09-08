@@ -2,7 +2,6 @@ const express = require("express");
 const multer = require("multer");
 const { connectdb } = require("./database/mongo");
 const pool = require("./database/pg");
-const { processDocument } = require("./services/DocumentService");
 
 require("dotenv").config();
 
@@ -10,10 +9,6 @@ require("dotenv").config();
 // ==================== APP SETUP ====================
 
 const app = express();
-
-// Make the document-processing pipeline available to upload routes.
-// The controller awaits it after Multer has saved the uploaded file.
-app.locals.processDocument = processDocument;
 
 const PORT = process.env.PORT || 5000;
 
@@ -60,7 +55,7 @@ app.use((error, req, res, next) => {
         });
     }
 
-    if (error && error.message === "Only PDF files are allowed.") {
+    if (error && error.message === "Only PDF, DOC, DOCX and TXT files are allowed.") {
         return res.status(400).json({ message: error.message });
     }
 

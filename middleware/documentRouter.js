@@ -19,15 +19,14 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
+    const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".txt"]);
     const extension = path.extname(file.originalname).toLowerCase();
 
-    // DocumentService currently extracts text with PyMuPDF, which only
-    // supports the PDF upload pipeline used by this endpoint.
-    if (extension === ".pdf") {
+    if (allowedExtensions.has(extension)) {
         return cb(null, true);
     }
 
-    return cb(new Error("Only PDF files are allowed."));
+    return cb(new Error("Only PDF, DOC, DOCX and TXT files are allowed."));
 };
 
 const upload = multer({

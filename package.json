@@ -1,0 +1,28 @@
+{
+  "name": "sifguard",
+  "version": "1.0.0",
+  "description": "> AI-powered safety intelligence for identifying Serious Injury and Fatality (SIF) precursors before incidents occur.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Star90lord/SIFguard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Star90lord/SIFguard/issues"
+  },
+  "homepage": "https://github.com/Star90lord/SIFguard#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "nodemon": "^3.1.14"
+  }
+}

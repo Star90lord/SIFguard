@@ -1,38 +1,29 @@
-const { spawn } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+import { spawn } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const projectRoot = path.resolve(__dirname, "..");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const processDocument = (pdfPath) => {
+export const processDocument = (pdfPath) => {
     return new Promise((resolve, reject) => {
 
         // Path to Python environment
-        const virtualEnvironmentPython = path.join(
-            projectRoot,
-            "nlp-services",
-            "venv",
-            "Scripts",
-            "python.exe"
+        const pythonExecutable = path.join(
+            __dirname,
+            "../../../nlp-services/venv/Scripts/python.exe"
         );
-        const pythonExecutable = fs.existsSync(virtualEnvironmentPython)
-            ? virtualEnvironmentPython
-            : "python";
 
         // Path to PDF extractor
         const pdfExtractor = path.join(
-            projectRoot,
-            "nlp-services",
-            "app",
-            "pdf_extractor.py"
+            __dirname,
+            "../../../nlp-services/app/pdf_extractor.py"
         );
 
         // Path to NLP service
         const nlpScript = path.join(
-            projectRoot,
-            "nlp-services",
-            "app",
-            "nlp_service.py"
+            __dirname,
+            "../../../nlp-services/app/nlp_service.py"
         );
 
         // =====================================================
@@ -41,7 +32,7 @@ const processDocument = (pdfPath) => {
 
         const pdfProcess = spawn(
             pythonExecutable,
-            [pdfExtractor, path.resolve(pdfPath)]
+            [pdfExtractor, pdfPath]
         );
 
         let extractedText = "";
@@ -145,5 +136,3 @@ const processDocument = (pdfPath) => {
         });
     });
 };
-
-module.exports = { processDocument };

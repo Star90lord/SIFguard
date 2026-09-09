@@ -23,8 +23,7 @@ pnpm-debug.log*
 .SIFvenv
 !.venv.example
 !.SIFvenv.example
-.gitignore
-.gitignore.example
+
 
 # ==============================
 # Build / Production
@@ -93,6 +92,8 @@ Desktop.ini
 *.swp
 *.swo
 
-venv/
+node_modules/
+.env
+SIFvenv/
 __pycache__/
 *.pyc

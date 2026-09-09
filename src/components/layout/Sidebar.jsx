@@ -6,150 +6,164 @@ import {
   ClipboardList,
   ShieldCheck,
   Building2,
-  Radio,
+  Settings,
   Palette,
+  Radio,
+  X,
 } from 'lucide-react';
 
-const MAIN_NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/submit', label: 'Analyze Reports', icon: FileSearch },
-  { to: '/reports', label: 'Safety Reports', icon: ClipboardList },
-  { to: '/reports?view=by-site', label: 'Site Intelligence', icon: Building2 },
+const NAV_SECTIONS = [
+  {
+    title: 'Overview',
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: 'Analysis',
+    items: [
+      { to: '/submit', label: 'Analyze Reports', icon: FileSearch },
+    ],
+  },
+  {
+    title: 'Monitoring',
+    items: [
+      { to: '/reports', label: 'Reports', icon: ClipboardList },
+      { to: '/sites', label: 'Sites', icon: Building2 },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { to: '/settings', label: 'Settings', icon: Settings },
+      { to: '/design-system', label: 'Design System', icon: Palette },
+    ],
+  },
 ];
 
-const SYSTEM_NAV = [
-  { to: '/design-system', label: 'Design System', icon: Palette },
-];
-
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
   return (
-    <aside
-      className="app-sidebar fixed top-0 left-0 h-screen bg-white text-slate-900 flex flex-col z-30 border-r border-slate-200 select-none shadow-xs"
-      style={{ width: '240px', maxWidth: '240px', minWidth: '240px' }}
-      aria-label="Main Navigation"
-    >
-      {/* Brand Header */}
-      <div className="h-16 px-5 flex items-center border-b border-slate-200 bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
-            <ShieldCheck size={18} className="text-blue-600" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm tracking-tight text-slate-950">SIFguard</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-1 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 rounded">v2.5</span>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium">Safety Intelligence</p>
-          </div>
-        </div>
-      </div>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-slate-950/45 z-40 lg:hidden transition-opacity duration-200"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Navigation Sections */}
-      <div className="flex-1 px-3 py-4 overflow-y-auto space-y-6">
-        <div>
-          <div className="px-2.5 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Intelligence Engine
+      <aside
+        className={`app-sidebar fixed top-0 left-0 h-screen bg-white text-slate-900 flex flex-col z-50 lg:z-30 border-r border-slate-200 select-none shadow-xs transition-transform duration-200 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+        style={{ width: '240px', maxWidth: '240px', minWidth: '240px' }}
+        aria-label="Main Navigation"
+      >
+        {/* Brand Header */}
+        <div className="h-16 px-5 flex items-center justify-between border-b border-slate-200 bg-white shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+              <ShieldCheck size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-sm tracking-tight text-slate-950">SIFguard</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-1 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                  OIL
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">Safety Intelligence</p>
+            </div>
           </div>
-          <nav className="space-y-1">
-            {MAIN_NAV.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 relative ${
-                    isActive
-                      ? 'bg-slate-100 text-slate-950 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
+
+          {/* Close button for mobile drawer */}
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            aria-label="Close navigation"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Navigation Sections */}
+        <div className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.title}>
+              <div className="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {section.title}
+              </div>
+              <nav className="space-y-0.5">
+                {section.items.map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={() => onCloseMobile && onCloseMobile()}
+                    className={({ isActive }) =>
+                      `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 relative ${
+                        isActive
+                          ? 'bg-slate-100 text-slate-950 shadow-2xs font-semibold'
+                          : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive && (
+                          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
+                        )}
+                        <Icon
+                          size={16}
+                          className={isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'}
+                        />
+                        <span>{label}</span>
+                      </>
                     )}
-                    <Icon
-                      size={16}
-                      className={isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'}
-                    />
-                    <span>{label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        <div>
-          <div className="px-2.5 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Design & Standards
-          </div>
-          <nav className="space-y-1">
-            {SYSTEM_NAV.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 relative ${
-                    isActive
-                      ? 'bg-slate-100 text-slate-950 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 rounded-r-full" />
-                    )}
-                    <Icon
-                      size={16}
-                      className={isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'}
-                    />
-                    <span>{label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        {/* Operational Context Card */}
-        <div className="pt-2 border-t border-slate-200">
-          <div className="px-2.5 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Active Facility Scope
-          </div>
-          <div className="px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 flex items-center gap-1.5">
-                <Building2 size={13} className="text-slate-400" /> Monitored Sites
-              </span>
-              <span className="text-slate-900 font-bold">5 Industrial</span>
+                  </NavLink>
+                ))}
+              </nav>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 flex items-center gap-1.5">
-                <Radio size={13} className="text-emerald-600 animate-pulse" /> Live Telemetry
-              </span>
-              <span className="text-emerald-700 font-semibold text-[11px] bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                Active
-              </span>
+          ))}
+
+          {/* Operational Context Card */}
+          <div className="pt-2 border-t border-slate-200">
+            <div className="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Active Scope
+            </div>
+            <div className="px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <Building2 size={13} className="text-slate-400" /> Monitored Sites
+                </span>
+                <span className="text-slate-900 font-bold">5 Industrial</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <Radio size={13} className="text-emerald-600 animate-pulse" /> Telemetry
+                </span>
+                <span className="text-emerald-700 font-semibold text-[10px] bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                  Active
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Operator Profile Footer */}
-      <div className="p-3 border-t border-slate-200 bg-slate-50/60">
-        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors">
-          <div className="w-8 h-8 rounded-lg bg-slate-200 border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-800">
-            SO
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-slate-900 truncate">Lead Safety Officer</p>
-            <p className="text-[11px] text-slate-500 truncate">HSE Operations Division</p>
+        {/* Operator Profile Footer */}
+        <div className="p-3 border-t border-slate-200 bg-slate-50/60 shrink-0">
+          <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-slate-200 border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-800">
+              SO
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-slate-900 truncate">Safety Officer</p>
+              <p className="text-[11px] text-slate-500 truncate">HSE Team · OIL</p>
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -10,12 +10,48 @@ export default function Skeleton({ className = '', ...props }) {
   );
 }
 
-export function ChartSkeleton() {
+export function KpiSkeleton({ count = 1 }) {
   return (
-    <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4">
+    <>
+      {[...Array(count)].map((_, i) => (
+        <div
+          key={i}
+          className="p-4 sm:p-4.5 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-2xs"
+        >
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-2 w-2 rounded-full" />
+          </div>
+          <Skeleton className="h-7 w-16" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function CardSkeleton({ lines = 3, className = '' }) {
+  return (
+    <div className={`p-5 bg-white border border-slate-200 rounded-xl space-y-3.5 shadow-2xs ${className}`}>
+      <div className="space-y-1.5 border-b border-slate-100 pb-3">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-60" />
+      </div>
+      <div className="space-y-2 pt-1">
+        {[...Array(lines)].map((_, i) => (
+          <Skeleton key={i} className={`h-3 ${i === lines - 1 ? 'w-3/4' : 'w-full'}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ChartSkeleton({ className = '' }) {
+  return (
+    <div className={`p-5 bg-white border border-slate-200 rounded-xl space-y-4 shadow-2xs ${className}`}>
       <div className="space-y-1">
-        <Skeleton className="h-5 w-44" />
-        <Skeleton className="h-3 w-64" />
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-3 w-56" />
       </div>
       <Skeleton className="h-60 w-full rounded-lg" />
     </div>
@@ -33,13 +69,7 @@ export function DashboardSkeleton() {
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="p-4 bg-white border border-slate-200 rounded-xl space-y-2">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-8 w-14" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        ))}
+        <KpiSkeleton count={5} />
       </div>
 
       {/* Attention panel skeleton */}

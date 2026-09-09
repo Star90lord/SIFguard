@@ -10,6 +10,7 @@ import {
   mockAnalysisResult,
   mockSampleBatch,
   getMockSites,
+  addMockSite,
 } from '../data/mockData';
 
 // ─── Mock helpers ───────────────────────────────────────────────────
@@ -226,19 +227,29 @@ export async function analyzeFiles(files, options = {}, onProgress = null) {
   return res.json();
 }
 
+import {
+  filterReports,
+  getReportSummary,
+  getRiskTrendSeries,
+  getAttentionReports,
+  getSiteRiskOverview,
+} from '../utils/filterReports';
+
 // ─── Query Endpoints ────────────────────────────────────────────────
 
-export async function getReports() {
+export async function getReports(filters = {}) {
   if (USE_MOCK) {
-    await delay(300);
-    return [...mockReports];
+    await delay(200);
+    const results = filterReports(mockReports, filters);
+    return results;
   }
-  return request('/reports');
+  const query = new URLSearchParams(filters).toString();
+  return request(`/reports${query ? `?${query}` : ''}`);
 }
 
 export async function getReport(reportId) {
   if (USE_MOCK) {
-    await delay(200);
+    await delay(150);
     const report = mockReports.find((r) => String(r.id) === String(reportId));
     if (!report) throw new Error(`Report ${reportId} not found`);
 
@@ -257,29 +268,171 @@ export async function getReport(reportId) {
 
 export async function getSites() {
   if (USE_MOCK) {
-    await delay(300);
+    await delay(200);
     return getMockSites();
   }
   return request('/sites');
 }
 
-export async function getSiteReports(siteId) {
+export async function getSiteReports(siteId, filters = {}) {
   if (USE_MOCK) {
-    await delay(250);
+    await delay(200);
     const sites = getMockSites();
     const site = sites.find(
       (s) => s.id === siteId || s.name.toLowerCase().replace(/\s+/g, '-') === siteId
     );
     if (!site) throw new Error(`Site ${siteId} not found`);
-    return site;
+
+    const filteredReports = filterReports(site.reports || [], {
+      ...filters,
+      siteId: site.id,
+    });
+
+    return {
+      ...site,
+      reports: filteredReports,
+      filteredSummary: getReportSummary(filteredReports),
+    };
   }
-  return request(`/sites/${siteId}`);
+  const query = new URLSearchParams(filters).toString();
+  return request(`/sites/${siteId}${query ? `?${query}` : ''}`);
 }
+
+export async function addSite(siteData) {
+  if (USE_MOCK) {
+    await delay(250);
+    return addMockSite(siteData);
+  }
+  return request('/sites', {
+    method: 'POST',
+    body: JSON.stringify(siteData),
+  });
+}
+
+export async function getSite(siteId) {
+  return getSiteReports(siteId);
+}
+
+export async function getSiteHistory(siteId, filters = {}) {
+  if (USE_MOCK) {
+    await delay(150);
+    const site = await getSiteReports(siteId, filters);
+    const sorted = site.reports || [];
+
+    const groups = {};
+    sorted.forEach((report) => {
+      const d = new Date(report.date || report.timestamp);
+      const monthYear = isNaN(d.getTime())
+        ? 'Recent Activity'
+        : new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d);
+      if (!groups[monthYear]) {
+        groups[monthYear] = [];
+      }
+      groups[monthYear].push(report);
+    });
+
+    return Object.entries(groups).map(([period, events]) => ({
+      period,
+      events,
+    }));
+  }
+  const query = new URLSearchParams(filters).toString();
+  return request(`/sites/${siteId}/history${query ? `?${query}` : ''}`);
+}
+
+export async function getRiskTrend(filters = {}) {
+  if (USE_MOCK) {
+    await delay(150);
+    const filtered = filterReports(mockReports, filters);
+    return getRiskTrendSeries(filtered);
+  }
+  const query = new URLSearchParams(filters).toString();
+  return request(`/trends/risk${query ? `?${query}` : ''}`);
+}
+
+export async function getHazardSummary(filters = {}) {
+  if (USE_MOCK) {
+    await delay(150);
+    const filtered = filterReports(mockReports, filters);
+    const summary = getReportSummary(filtered);
+    return summary.topHazards;
+  }
+  const query = new URLSearchParams(filters).toString();
+  return request(`/trends/hazards${query ? `?${query}` : ''}`);
+}
+
+export async function getActivitySummary(filters = {}) {
+  if (USE_MOCK) {
+    await delay(150);
+    const filtered = filterReports(mockReports, filters);
+    const summary = getReportSummary(filtered);
+    return summary.topActivities;
+  }
+  const query = new URLSearchParams(filters).toString();
+  return request(`/trends/activities${query ? `?${query}` : ''}`);
+}
+
+export async function getBarrierFailureSummary(filters = {}) {
+  if (USE_MOCK) {
+    await delay(150);
+    const filtered = filterReports(mockReports, filters);
+    const summary = getReportSummary(filtered);
+    return summary.barrierFailures;
+  }
+  const query = new URLSearchParams(filters).toString();
+  return request(`/trends/barriers${query ? `?${query}` : ''}`);
+}
+
+export async function getSifPrecursors(filters = {}) {
+  if (USE_MOCK) {
+    await delay(150);
+    const filtered = filterReports(mockReports, {
+      ...filters,
+      riskLevel: 'SIF-Precursor',
+    });
+    return filtered;
+  }
+  const query = new URLSearchParams(filters).toString();
+  return request(`/reports/sif-precursors${query ? `?${query}` : ''}`);
+}
+
+export async function getDashboardSummary(filters = {}) {
+  if (USE_MOCK) {
+    await delay(200);
+    const filtered = filterReports(mockReports, filters);
+    const summary = getReportSummary(filtered);
+    const attentionReports = getAttentionReports(filtered, 5);
+    const riskTrend = getRiskTrendSeries(filtered);
+    const sites = getMockSites();
+    const siteOverview = getSiteRiskOverview(filtered, sites);
+    const sifPrecursors = filtered.filter(
+      (r) => r.risk_level === 'SIF-Precursor' || r.sif_precursor === true
+    );
+    const recentReports = [...filtered].slice(0, 5);
+
+    return {
+      summary,
+      attentionReports,
+      riskTrend,
+      siteOverview,
+      sifPrecursors,
+      recentReports,
+      totalReportsCount: filtered.length,
+    };
+  }
+  const query = new URLSearchParams(filters).toString();
+  return request(`/dashboard/summary${query ? `?${query}` : ''}`);
+}
+
+// Alias analyzeReports to analyzeFiles for seamless backend contract compatibility
+export const analyzeReports = analyzeFiles;
 
 export async function getTrends() {
   if (USE_MOCK) {
-    await delay(300);
+    await delay(200);
     return { ...mockTrends };
   }
   return request('/trends');
 }
+
+

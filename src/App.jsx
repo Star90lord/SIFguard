@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import SubmitReport from './pages/SubmitReport';
 import Reports from './pages/Reports';
+import Sites from './pages/Sites';
 import SiteDetail from './pages/SiteDetail';
+import Settings from './pages/Settings';
 import DesignSystem from './pages/DesignSystem';
 
 export default function App() {
@@ -13,8 +15,11 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/submit" element={<SubmitReport />} />
+        <Route path="/analyze" element={<Navigate to="/submit" replace />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/sites" element={<Sites />} />
         <Route path="/sites/:siteId" element={<SiteDetail />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/design-system" element={<DesignSystem />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

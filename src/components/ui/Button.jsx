@@ -13,34 +13,36 @@ export default function Button({
   ...props
 }) {
   const baseStyles =
-    'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 select-none whitespace-nowrap';
+    'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 select-none whitespace-nowrap active:scale-[0.99]';
 
   const sizeStyles = {
-    sm: 'px-3 py-1.5 text-xs gap-1.5',
-    md: 'px-4 py-2 text-sm gap-2',
-    lg: 'px-5 py-2.5 text-[15px] gap-2.5 font-semibold',
+    sm: 'h-8 px-3 text-xs gap-1.5',
+    md: 'h-9 px-4 text-xs sm:text-sm gap-2',
+    lg: 'h-10 px-5 text-sm sm:text-base gap-2.5 font-semibold',
   };
 
   const variantStyles = {
     primary:
-      'bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 shadow-xs border border-slate-900/10 focus-visible:outline-slate-900',
+      'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-2xs border border-blue-700/20 focus-visible:outline-blue-600',
     secondary:
-      'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 shadow-2xs focus-visible:outline-slate-700',
+      'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 hover:text-slate-950 active:bg-slate-100 shadow-2xs focus-visible:outline-slate-700',
     ghost:
       'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200 focus-visible:outline-slate-600',
     danger:
-      'bg-red-700 text-white hover:bg-red-800 active:bg-red-900 shadow-xs focus-visible:outline-red-700',
+      'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-2xs border border-red-700/20 focus-visible:outline-red-600',
+    outline:
+      'bg-transparent text-blue-600 border border-blue-600 hover:bg-blue-50 active:bg-blue-100 focus-visible:outline-blue-600',
   };
 
-  const disabledStyles = 'opacity-50 cursor-not-allowed pointer-events-none';
+  const disabledStyles = 'opacity-50 cursor-not-allowed pointer-events-none active:scale-100';
 
   return (
     <button
       type={type}
       disabled={disabled || loading}
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${
-        disabled || loading ? disabledStyles : ''
-      } ${className}`}
+      className={`${baseStyles} ${sizeStyles[size] || sizeStyles.md} ${
+        variantStyles[variant] || variantStyles.primary
+      } ${disabled || loading ? disabledStyles : ''} ${className}`}
       {...props}
     >
       {loading ? (

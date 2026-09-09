@@ -1,11 +1,11 @@
 import React from 'react';
-import { Upload, FileText, Sparkles } from 'lucide-react';
+import { Upload, FileText, Layers } from 'lucide-react';
 
 export default function AnalysisModeSwitch({ mode, onChange, className = '' }) {
   const modes = [
     { id: 'upload', label: 'Upload Files', icon: Upload },
     { id: 'paste', label: 'Paste Multiple Reports', icon: FileText },
-    { id: 'sample', label: 'Sample Reports', icon: Sparkles },
+    { id: 'sample', label: 'Sample Reports', icon: Layers },
   ];
 
   return (

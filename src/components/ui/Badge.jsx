@@ -1,59 +1,39 @@
 import React from 'react';
+import RiskBadge from './RiskBadge';
 
-const RISK_MAP = {
-  Low: {
-    label: 'LOW',
-    dot: 'bg-emerald-600',
-    className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    meaning: 'Standard operational risk',
-  },
-  Medium: {
-    label: 'MEDIUM',
-    dot: 'bg-amber-600',
-    className: 'bg-amber-50 text-amber-900 border-amber-200',
-    meaning: 'Moderate hazard requiring standard controls',
-  },
-  High: {
-    label: 'HIGH',
-    dot: 'bg-orange-600',
-    className: 'bg-orange-50 text-orange-950 border-orange-200',
-    meaning: 'Elevated safety risk requiring verification',
-  },
-  'SIF-Precursor': {
-    label: 'SIF-PRECURSOR',
-    dot: 'bg-red-600',
-    className: 'bg-red-50 text-red-950 border-red-200',
-    meaning: 'Potential Serious Injury or Fatality precursor',
-  },
-};
+export { RiskBadge };
 
-export default function Badge({ level = 'Low', size = 'sm', showDot = true, className = '' }) {
-  const config = RISK_MAP[level] || RISK_MAP.Low;
-  const isLg = size === 'lg' || size === 'md';
+// ─── General Semantic / Status Badge ────────────────────────────────
+export default function Badge({
+  children,
+  variant = 'default',
+  size = 'sm',
+  className = '',
+}) {
+  const variantStyles = {
+    default: 'bg-slate-100 text-slate-800 border-slate-200',
+    primary: 'bg-blue-50 text-blue-700 border-blue-200',
+    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    warning: 'bg-amber-50 text-amber-900 border-amber-200',
+    danger: 'bg-red-50 text-red-900 border-red-200',
+    outline: 'bg-transparent text-slate-700 border-slate-300',
+  };
+
+  const sizeStyles = {
+    sm: 'px-2 py-0.5 text-[11px] font-medium rounded',
+    md: 'px-2.5 py-1 text-xs font-semibold rounded-md',
+  };
 
   return (
     <span
-      className={`inline-flex items-center border font-semibold rounded-md tracking-wider transition-colors ${
-        isLg
-          ? 'px-2.5 py-1 text-xs gap-1.5'
-          : 'px-2 py-0.5 text-[11px] gap-1.5'
-      } ${config.className} ${className}`}
-      role="status"
-      aria-label={`Risk level: ${config.label}`}
-      title={config.meaning}
+      className={`inline-flex items-center border select-none ${sizeStyles[size] || sizeStyles.sm} ${
+        variantStyles[variant] || variantStyles.default
+      } ${className}`}
     >
-      {showDot && (
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${config.dot} shrink-0`}
-          aria-hidden="true"
-        />
-      )}
-      <span>{config.label}</span>
+      {children}
     </span>
   );
 }
-
-export { Badge as RiskBadge };
 
 // ─── Site Health Status Badge ───────────────────────────────────────
 const SITE_HEALTH_MAP = {
@@ -83,13 +63,18 @@ const SITE_HEALTH_MAP = {
   },
 };
 
-export function SiteHealthBadge({ status = 'Stable', size = 'sm', showDot = true, className = '' }) {
+export function SiteHealthBadge({
+  status = 'Stable',
+  size = 'sm',
+  showDot = true,
+  className = '',
+}) {
   const config = SITE_HEALTH_MAP[status] || SITE_HEALTH_MAP.Stable;
   const isLg = size === 'lg' || size === 'md';
 
   return (
     <span
-      className={`inline-flex items-center border font-semibold rounded-md tracking-normal transition-colors ${
+      className={`inline-flex items-center border font-semibold rounded-md tracking-normal select-none transition-colors ${
         isLg
           ? 'px-2.5 py-1 text-xs gap-1.5'
           : 'px-2 py-0.5 text-[11px] gap-1.5'

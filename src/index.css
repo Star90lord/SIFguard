@@ -86,10 +86,21 @@
     max-width: 240px;
   }
 
-  .app-main {
-    margin-left: 240px;
-    width: calc(100vw - 240px);
-    max-width: calc(100vw - 240px);
-    min-width: 0;
+  @media (min-width: 1024px) {
+    .app-main {
+      margin-left: 240px;
+      width: calc(100vw - 240px);
+      max-width: calc(100vw - 240px);
+      min-width: 0;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .app-main {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
   }
 }

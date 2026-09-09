@@ -1,17 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
 export default function AppShell({ children, title, subtitle }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
-      {/* Fixed 240px Sidebar */}
-      <Sidebar />
+      {/* Sidebar with responsive mobile drawer support */}
+      <Sidebar
+        mobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)}
+      />
 
-      {/* Main Workspace Area with offset */}
+      {/* Main Workspace Area */}
       <div className="app-main flex-1 flex flex-col min-w-0">
-        <Topbar title={title} subtitle={subtitle} />
-        <main className="flex-1 px-8 py-7 sm:px-10 sm:py-8 lg:px-12 lg:py-8 max-w-[1600px] w-full mx-auto">
+        <Topbar
+          title={title}
+          subtitle={subtitle}
+          onOpenMobileNav={() => setMobileNavOpen(true)}
+        />
+        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 max-w-[1600px] w-full mx-auto">
           {children}
         </main>
       </div>

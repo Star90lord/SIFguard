@@ -3,12 +3,15 @@ import React from 'react';
 export default function Input({
   label,
   icon: Icon,
+  prefixIcon: PrefixIcon,
+  suffixIcon: SuffixIcon,
   error,
   helperText,
   id,
   className = '',
   ...props
 }) {
+  const LeadingIcon = PrefixIcon || Icon;
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
   return (
@@ -22,15 +25,15 @@ export default function Input({
         </label>
       )}
       <div className="relative flex items-center">
-        {Icon && (
+        {LeadingIcon && (
           <div className="absolute left-3 pointer-events-none text-slate-400 flex items-center justify-center">
-            <Icon size={16} />
+            <LeadingIcon size={16} />
           </div>
         )}
         <input
           id={inputId}
           className={`w-full bg-white text-slate-900 placeholder:text-slate-400 text-sm border rounded-lg transition-colors duration-150 py-2 ${
-            Icon ? 'pl-9 pr-3.5' : 'px-3.5'
+            LeadingIcon ? 'pl-9 pr-3.5' : 'px-3.5'
           } ${
             error
               ? 'border-red-300 focus:border-red-600 focus:ring-1 focus:ring-red-600'
@@ -38,6 +41,11 @@ export default function Input({
           } outline-none ${className}`}
           {...props}
         />
+        {SuffixIcon && (
+          <div className="absolute right-3 pointer-events-none text-slate-400 flex items-center justify-center">
+            <SuffixIcon size={16} />
+          </div>
+        )}
       </div>
       {error ? (
         <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>

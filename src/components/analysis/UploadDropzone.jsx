@@ -66,25 +66,22 @@ export default function UploadDropzone({ onFilesSelect, className = '' }) {
         aria-hidden="true"
       />
 
-      <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-600 mb-3.5">
-        <Upload size={22} className="text-slate-700" />
+      <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-700 mb-2.5">
+        <Upload size={20} className="text-slate-700" />
       </div>
 
-      <h4 className="text-sm font-semibold text-slate-900 mb-1">
-        Drop multiple safety reports here
+      <h4 className="text-sm font-bold text-slate-900 mb-1">
+        Upload safety reports
       </h4>
-      <p className="text-xs text-slate-500 max-w-sm mx-auto mb-3">
-        or{' '}
+      <p className="text-xs text-slate-500 max-w-sm mx-auto mb-2.5">
+        Drop multiple files here or{' '}
         <span className="text-blue-600 font-semibold underline underline-offset-2">
-          browse files
-        </span>{' '}
-        from your computer
+          browse
+        </span>
       </p>
 
-      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200/80 text-[11px] font-medium text-slate-500">
-        <span>PDF, DOCX, TXT</span>
-        <span>•</span>
-        <span>Multiple files supported</span>
+      <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-mono font-medium border border-slate-200/80">
+        <span>PDF · DOCX · TXT</span>
       </div>
     </div>
   );

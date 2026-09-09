@@ -16,7 +16,10 @@ export const mockSampleBatch = [
     filename: 'rig-a-incident-01.pdf',
     size: '2.4 MB',
     date: '2026-09-09',
+    time: '09:15',
     site: 'Rig Site A',
+    siteId: 'rig-site-a',
+    siteName: 'Rig Site A',
     location: 'Rig Site A - Mast Section',
     report_text:
       'During derrick inspection on Rig Site A, a loose 4-inch steel casing clamp was found suspended 18 meters above the active drill floor. Vibration dampers were completely deteriorated. Drill crew was operating directly below without overhead safety netting.',
@@ -33,7 +36,10 @@ export const mockSampleBatch = [
     filename: 'rig-a-incident-02.pdf',
     size: '1.8 MB',
     date: '2026-09-08',
+    time: '11:00',
     site: 'Rig Site A',
+    siteId: 'rig-site-a',
+    siteName: 'Rig Site A',
     location: 'Rig Site A - Mud Tank 3',
     report_text:
       'Confined space entry performed inside Mud Tank 3 for routine sludge desilting. Atmospheric testing log was missing calibration stamps, and the emergency retrieval tripod had not been anchored prior to entry.',
@@ -50,7 +56,10 @@ export const mockSampleBatch = [
     filename: 'rig-a-incident-03.pdf',
     size: '1.5 MB',
     date: '2026-09-07',
+    time: '16:45',
     site: 'Rig Site A',
+    siteId: 'rig-site-a',
+    siteName: 'Rig Site A',
     location: 'Rig Site A - Generator Room',
     report_text:
       'Electrician performing terminal torque verification noticed damaged primary insulation on 480V distribution bus. Breaker was locked out correctly but secondary standby circuit was energized.',
@@ -67,7 +76,10 @@ export const mockSampleBatch = [
     filename: 'rig-b-safety-report.docx',
     size: '1.2 MB',
     date: '2026-09-09',
+    time: '08:30',
     site: 'Rig Site B',
+    siteId: 'rig-site-b',
+    siteName: 'Rig Site B',
     location: 'Rig Site B - Substructure',
     report_text:
       'Welder was operating on suspended scaffold at 9 meters. Lanyard was secured to a non-engineered structural beam rather than the designated overhead lifeline. Guardrail kickplate was absent.',
@@ -84,7 +96,10 @@ export const mockSampleBatch = [
     filename: 'warehouse-inspection.txt',
     size: '18 KB',
     date: '2026-09-06',
+    time: '11:00',
     site: 'Warehouse',
+    siteId: 'warehouse',
+    siteName: 'Warehouse',
     location: 'Warehouse - Aisle 4',
     report_text:
       'Electric forklift driver observed pedestrian walking through marked heavy-traffic transit corridor without high-visibility vest. Driver sounded horn and braked smoothly with 4 meters clearance.',
@@ -833,6 +848,81 @@ export const mockReports = [
   },
 ];
 
+// Ensure all reports in mockReports strictly reference siteId and siteName
+mockReports.forEach((r) => {
+  if (!r.siteId && r.site) {
+    r.siteId = r.site.toLowerCase().replace(/\s+/g, '-');
+  }
+  if (!r.siteName && r.site) {
+    r.siteName = r.site;
+  }
+});
+
+// ─── Canonical Industrial Site Definitions ──────────────────────────
+export const initialSites = [
+  {
+    id: 'rig-site-b',
+    name: 'Rig Site B',
+    code: 'RSB-002',
+    location: 'Assam',
+    type: 'Rig Site',
+    status: 'Active',
+  },
+  {
+    id: 'rig-site-a',
+    name: 'Rig Site A',
+    code: 'RSA-001',
+    location: 'Assam',
+    type: 'Rig Site',
+    status: 'Active',
+  },
+  {
+    id: 'processing-unit',
+    name: 'Processing Unit',
+    code: 'PU-010',
+    location: 'Duliajan',
+    type: 'Processing Unit',
+    status: 'Active',
+  },
+  {
+    id: 'warehouse',
+    name: 'Warehouse',
+    code: 'WH-004',
+    location: 'Duliajan',
+    type: 'Warehouse',
+    status: 'Active',
+  },
+  {
+    id: 'workshop',
+    name: 'Workshop',
+    code: 'WS-005',
+    location: 'Duliajan',
+    type: 'Workshop',
+    status: 'Active',
+  },
+];
+
+// In-memory custom sites added via Add Site modal during the session
+let sessionSites = [];
+
+export function addMockSite(siteData) {
+  const id = siteData.id || siteData.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+  const existing = [...initialSites, ...sessionSites].find((s) => s.id === id);
+  if (existing) {
+    return existing;
+  }
+  const newSite = {
+    id,
+    name: siteData.name,
+    code: siteData.code || `${siteData.name.slice(0, 3).toUpperCase()}-00${sessionSites.length + 6}`,
+    location: siteData.location || 'Assam',
+    type: siteData.type || 'Rig Site',
+    status: siteData.status || 'Active',
+  };
+  sessionSites.push(newSite);
+  return newSite;
+}
+
 // ─── Deterministic Site Health Calculation ──────────────────────────
 export function calculateSiteHealth(reports) {
   const sifCount = reports.filter((r) => r.risk_level === 'SIF-Precursor').length;
@@ -867,13 +957,27 @@ export function calculateSiteHealth(reports) {
   };
 }
 
+function formatReportDate(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(d);
+  } catch {
+    return dateStr;
+  }
+}
+
 // ─── Pre-Aggregated Site Profiles ───────────────────────────────────
 export function getMockSites() {
-  const siteNames = ['Rig Site A', 'Rig Site B', 'Processing Unit', 'Warehouse', 'Workshop'];
+  const allSiteDefinitions = [...initialSites, ...sessionSites];
 
-  return siteNames.map((name) => {
+  return allSiteDefinitions.map((def) => {
     const siteReports = mockReports
-      .filter((r) => r.site === name)
+      .filter((r) => r.siteId === def.id || r.site === def.name)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const health = calculateSiteHealth(siteReports);
@@ -901,9 +1005,16 @@ export function getMockSites() {
       .sort((a, b) => b.count - a.count);
 
     return {
-      id: name.toLowerCase().replace(/\s+/g, '-'),
-      name,
+      id: def.id,
+      name: def.name,
+      code: def.code,
+      location: def.location,
+      type: def.type,
+      status: def.status,
       totalReports: siteReports.length,
+      highRiskCount: riskCounts.High,
+      sifCount: riskCounts['SIF-Precursor'],
+      lastActivity: latest ? formatReportDate(latest.date) : 'No Activity',
       uniqueDays,
       healthStatus: health.status,
       healthDescription: health.description,

@@ -28,6 +28,7 @@ export const mockSampleBatch = [
     activity: 'Drilling Operations',
     barrier_failure: 'Equipment Maintenance',
     sif_precursor: true,
+    priority: 'IMMEDIATE',
     explanation:
       'Unsecured 4-inch steel hardware at 18m directly above populated floor. Direct SIF precursor due to high potential energy drop trajectory without physical catch barriers.',
   },
@@ -48,6 +49,7 @@ export const mockSampleBatch = [
     activity: 'Tank Cleaning',
     barrier_failure: 'Procedural Violation',
     sif_precursor: true,
+    priority: 'IMMEDIATE',
     explanation:
       'Atmospheric monitoring deficiency coupled with unanchored emergency retrieval gear inside a confined space constitutes an acute SIF precursor.',
   },
@@ -68,6 +70,7 @@ export const mockSampleBatch = [
     activity: 'Maintenance',
     barrier_failure: 'Isolation Incomplete',
     sif_precursor: false,
+    priority: 'STANDARD',
     explanation:
       'Incomplete boundary isolation during maintenance on 480V systems. Lockout procedure was partially followed, mitigating immediate arc-flash hazard.',
   },
@@ -88,6 +91,7 @@ export const mockSampleBatch = [
     activity: 'Scaffold Work',
     barrier_failure: 'PPE Non-compliance',
     sif_precursor: true,
+    priority: 'PRIORITY',
     explanation:
       'Attachment to non-engineered structural anchor at 9m height combined with absent kickplates violates primary fall arrest standards.',
   },
@@ -108,6 +112,7 @@ export const mockSampleBatch = [
     activity: 'Warehouse Operations',
     barrier_failure: 'PPE Non-compliance',
     sif_precursor: false,
+    priority: 'STANDARD',
     explanation:
       'Pedestrian bypassed high-vis requirement in marked lane. Operator attentiveness and braking distance prevented escalation to collision.',
   },
@@ -848,13 +853,61 @@ export const mockReports = [
   },
 ];
 
-// Ensure all reports in mockReports strictly reference siteId and siteName
+// Domain-accurate HSE Task Priority mapping:
+// IMMEDIATE: Critical life-safety SIF precursor / severe barrier breakdown requiring urgent intervention
+// PRIORITY: High-risk or recurring operational vulnerability requiring prompt remediation
+// STANDARD: Normal corrective / preventive task
+const DOMAIN_PRIORITY_MAP = {
+  1: 'IMMEDIATE',  // Rig Site A: 4-inch casing clamp suspended at 18m
+  2: 'STANDARD',   // Rig Site A: Relief valve bypass line pitting
+  3: 'IMMEDIATE',  // Rig Site A: Confined space entry without calibration
+  4: 'STANDARD',   // Rig Site A: 480V insulation cracked
+  5: 'PRIORITY',   // Rig Site A: Crane hoist wire 3 broken strands
+  6: 'STANDARD',   // Rig Site A: Workshop hand laceration
+  7: 'PRIORITY',   // Rig Site A: Chemical splash biocide
+  8: 'STANDARD',   // Rig Site A: Proactive muster drill
+  9: 'IMMEDIATE',  // Rig Site B: Dropped casing tongs 14m
+  10: 'IMMEDIATE', // Rig Site B: MGS flare line block valve locked
+  11: 'PRIORITY',  // Rig Site B: BOP choke manifold leak
+  12: 'STANDARD',  // Rig Site B: Rig floor tripping hazard
+  13: 'PRIORITY',  // Rig Site B: Mud pump relief valve bypassed
+  14: 'STANDARD',  // Rig Site B: Degasser exhaust hose clamped
+  15: 'STANDARD',  // Rig Site B: Catwalk slip resistance worn
+  16: 'STANDARD',  // Rig Site B: Routine engine cooling flush
+  17: 'IMMEDIATE', // Processing Unit: H2S release 45 ppm at desalter
+  18: 'IMMEDIATE', // Processing Unit: Hot work without permit on crude column
+  19: 'PRIORITY',  // Processing Unit: Glycol reboiler fuel gas solenoid stuck
+  20: 'STANDARD',  // Processing Unit: Flare knockout drum level gauge cloudy
+  21: 'PRIORITY',  // Processing Unit: Scaffolding uninspected at stabilizer
+  22: 'STANDARD',  // Processing Unit: Chemical injection skid leak
+  23: 'STANDARD',  // Processing Unit: Centrifugal compressor vibration
+  24: 'STANDARD',  // Processing Unit: ESD quarterly test passed
+  25: 'IMMEDIATE', // Warehouse: Forklift nearly pinned rigger at Bay 2
+  26: 'PRIORITY',  // Warehouse: Forklift driven without seatbelt & horn
+  27: 'PRIORITY',  // Warehouse: Pallet racking upright bent by reach truck
+  28: 'STANDARD',  // Warehouse: Acid spill kit missing neutralizer
+  29: 'STANDARD',  // Warehouse: Blocked fire exit aisle 3
+  30: 'STANDARD',  // Warehouse: Missing floor hazard striping
+  31: 'STANDARD',  // Warehouse: LED emergency lighting check
+  32: 'IMMEDIATE', // Workshop: Hydro-test bench 10,000 PSI without shield
+  33: 'PRIORITY',  // Workshop: Overhead gantry crane limit switch bypassed
+  34: 'PRIORITY',  // Workshop: Grinding without face shield & eye wash dry
+  35: 'STANDARD',  // Workshop: Oxygen/acetylene stored without fire separation
+  36: 'STANDARD',  // Workshop: Air receiver moisture drain stuck
+  37: 'STANDARD',  // Workshop: Solvent degreasing bench exhaust fan
+  38: 'STANDARD',  // Workshop: Proactive tool testing
+};
+
+// Ensure all reports in mockReports strictly reference siteId, siteName, and priority
 mockReports.forEach((r) => {
   if (!r.siteId && r.site) {
     r.siteId = r.site.toLowerCase().replace(/\s+/g, '-');
   }
   if (!r.siteName && r.site) {
     r.siteName = r.site;
+  }
+  if (!r.priority) {
+    r.priority = DOMAIN_PRIORITY_MAP[r.id] || (r.risk_level === 'SIF-Precursor' ? 'IMMEDIATE' : r.risk_level === 'High' ? 'PRIORITY' : 'STANDARD');
   }
 });
 

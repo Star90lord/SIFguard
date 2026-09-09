@@ -33,7 +33,7 @@ import {
 } from 'recharts';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';
-import { SiteHealthBadge, RiskBadge } from '../components/ui/Badge';
+import { SiteHealthBadge, RiskBadge, PriorityBadge, ReportStatusBadge } from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -68,7 +68,12 @@ export default function SiteDetail() {
   // Reports tab filters
   const [reportSearch, setReportSearch] = useState('');
   const [reportRiskFilter, setReportRiskFilter] = useState('ALL');
+  const [reportPriorityFilter, setReportPriorityFilter] = useState('ALL');
+  const [reportStatusFilter, setReportStatusFilter] = useState('ALL');
   const [reportHazardFilter, setReportHazardFilter] = useState('ALL');
+  const [reportActivityFilter, setReportActivityFilter] = useState('ALL');
+  const [reportTimeRange, setReportTimeRange] = useState('ALL');
+  const [reportSort, setReportSort] = useState('newest');
 
   // History tab time-range filters
   const [historyTimeRange, setHistoryTimeRange] = useState('ALL');
@@ -134,15 +139,35 @@ export default function SiteDetail() {
     return Array.from(set).sort();
   }, [rawSiteReports]);
 
+  // Unique activities for filter dropdown
+  const uniqueActivities = useMemo(() => {
+    const set = new Set(rawSiteReports.map((r) => r.activity).filter(Boolean));
+    return Array.from(set).sort();
+  }, [rawSiteReports]);
+
   // Filtered reports for Reports tab
   const filteredReports = useMemo(() => {
     return filterReports(rawSiteReports, {
       search: reportSearch,
       riskLevel: reportRiskFilter,
+      priority: reportPriorityFilter,
+      status: reportStatusFilter,
       hazard: reportHazardFilter,
-      sort: 'newest',
+      activity: reportActivityFilter,
+      datePreset: reportTimeRange,
+      sort: reportSort,
     });
-  }, [rawSiteReports, reportSearch, reportRiskFilter, reportHazardFilter]);
+  }, [
+    rawSiteReports,
+    reportSearch,
+    reportRiskFilter,
+    reportPriorityFilter,
+    reportStatusFilter,
+    reportHazardFilter,
+    reportActivityFilter,
+    reportTimeRange,
+    reportSort,
+  ]);
 
   // Filtered reports for History tab based on selected time range
   const filteredHistoryReports = useMemo(() => {
@@ -433,12 +458,12 @@ export default function SiteDetail() {
                             className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex items-start justify-between gap-4 group"
                           >
                             <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-mono text-xs text-slate-500 font-semibold">
                                   {formatDateTime(r)}
                                 </span>
                                 <RiskBadge level={r.risk_level} size="sm" />
-                                <span className="text-xs font-bold text-slate-800">{r.hazard}</span>
+                                <span className="text-xs font-bold text-slate-900 break-words">{r.hazard}</span>
                               </div>
                               <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed group-hover:text-slate-900">
                                 {r.text_snippet || r.full_text || r.report_text}
@@ -479,20 +504,26 @@ export default function SiteDetail() {
                       <div
                         key={r.id}
                         onClick={() => setSelectedReport(r)}
-                        className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex items-center justify-between gap-4 group"
+                        className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group"
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <RiskBadge level={r.risk_level} size="sm" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-slate-800 truncate group-hover:text-slate-900">
+                        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                          <div className="shrink-0 pt-0.5 sm:pt-0">
+                            <RiskBadge level={r.risk_level} size="sm" />
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p className="text-xs font-semibold text-slate-800 break-words group-hover:text-slate-900 leading-snug">
                               {r.text_snippet || r.full_text}
                             </p>
-                            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                              {formatDateTime(r)} · {r.activity} · {r.hazard}
-                            </p>
+                            <div className="text-[11px] text-slate-500 font-mono flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span className="text-slate-400 font-semibold">{formatDateTime(r)}</span>
+                              <span className="text-slate-300">·</span>
+                              <span className="text-slate-600 font-sans font-medium">{r.activity}</span>
+                              <span className="text-slate-300">·</span>
+                              <span className="text-slate-800 font-sans font-semibold">{r.hazard}</span>
+                            </div>
                           </div>
                         </div>
-                        <span className="text-[11px] text-blue-600 font-medium group-hover:underline flex items-center gap-0.5 shrink-0">
+                        <span className="text-[11px] text-blue-600 font-medium group-hover:underline flex items-center gap-0.5 shrink-0 self-end sm:self-center">
                           Inspect <ChevronRight size={11} />
                         </span>
                       </div>
@@ -545,12 +576,12 @@ export default function SiteDetail() {
         {activeTab === 'reports' && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
+            <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                 {/* Search */}
-                <div className="sm:col-span-6">
+                <div className="sm:col-span-8">
                   <Input
-                    placeholder="Search reports by hazard, activity, text..."
+                    placeholder="Search reports by hazard, activity, location, text..."
                     prefixIcon={Search}
                     value={reportSearch}
                     onChange={(e) => setReportSearch(e.target.value)}
@@ -558,33 +589,120 @@ export default function SiteDetail() {
                   />
                 </div>
 
+                {/* Sort Selector */}
+                <div className="sm:col-span-4 flex items-center justify-end gap-2">
+                  <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Sort:</span>
+                  <select
+                    value={reportSort}
+                    onChange={(e) => setReportSort(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none focus:border-blue-600 cursor-pointer"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="highest_risk">Highest Risk</option>
+                    <option value="lowest_risk">Lowest Risk</option>
+                    <option value="priority">Priority: Immediate First</option>
+                    <option value="status">Status: Action Required First</option>
+                    <option value="hazard_asc">Hazard A → Z</option>
+                    <option value="activity_asc">Activity A → Z</option>
+                    <option value="id_asc">Report ID: Low to High</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Second Row: Detailed Filters */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100">
+                {/* Time Range */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Time Range
+                  </label>
+                  <select
+                    value={reportTimeRange}
+                    onChange={(e) => setReportTimeRange(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                  >
+                    <option value="ALL">All Time</option>
+                    <option value="TODAY">Today (09 Sep 2026)</option>
+                    <option value="THIS_WEEK">This Week</option>
+                    <option value="THIS_MONTH">This Month</option>
+                    <option value="THIS_YEAR">This Year</option>
+                  </select>
+                </div>
+
                 {/* Risk Filter */}
-                <div className="sm:col-span-3">
-                  <Select
-                    size="sm"
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Risk Level
+                  </label>
+                  <select
                     value={reportRiskFilter}
-                    onChange={(val) => setReportRiskFilter(typeof val === 'object' && val?.target ? val.target.value : val)}
-                    options={[
-                      { value: 'ALL', label: 'All Risk Levels' },
-                      { value: 'SIF-Precursor', label: 'SIF Precursor' },
-                      { value: 'High', label: 'High Risk' },
-                      { value: 'Medium', label: 'Medium Risk' },
-                      { value: 'Low', label: 'Low Risk' },
-                    ]}
-                  />
+                    onChange={(e) => setReportRiskFilter(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                  >
+                    <option value="ALL">All Risk Levels</option>
+                    <option value="SIF-Precursor">SIF Precursor</option>
+                    <option value="High">High Risk</option>
+                    <option value="Medium">Medium Risk</option>
+                    <option value="Low">Low Risk</option>
+                  </select>
+                </div>
+
+                {/* Priority Filter */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={reportPriorityFilter}
+                    onChange={(e) => setReportPriorityFilter(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                  >
+                    <option value="ALL">All Priorities</option>
+                    <option value="IMMEDIATE">Immediate</option>
+                    <option value="PRIORITY">Priority</option>
+                    <option value="STANDARD">Standard</option>
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={reportStatusFilter}
+                    onChange={(e) => setReportStatusFilter(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="ACTION REQUIRED">Action Required</option>
+                    <option value="UNDER REVIEW">Under Review</option>
+                    <option value="IN PROGRESS">In Progress</option>
+                    <option value="PENDING VERIFICATION">Pending Verification</option>
+                    <option value="NEW">New</option>
+                    <option value="RESOLVED">Resolved</option>
+                    <option value="CLOSED">Closed</option>
+                  </select>
                 </div>
 
                 {/* Hazard Filter */}
-                <div className="sm:col-span-3">
-                  <Select
-                    size="sm"
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Hazard
+                  </label>
+                  <select
                     value={reportHazardFilter}
-                    onChange={(val) => setReportHazardFilter(typeof val === 'object' && val?.target ? val.target.value : val)}
-                    options={[
-                      { value: 'ALL', label: 'All Hazards' },
-                      ...uniqueHazards.map((h) => ({ value: h, label: h })),
-                    ]}
-                  />
+                    onChange={(e) => setReportHazardFilter(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                  >
+                    <option value="ALL">All Hazards</option>
+                    {uniqueHazards.map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -593,17 +711,43 @@ export default function SiteDetail() {
             {filteredReports.length === 0 ? (
               <EmptyState
                 icon={FileText}
-                title="No reports found for this site"
-                message="Try clearing your search query or adjusting the risk/hazard filters."
-                actionLabel="Reset Filters"
+                title="No reports match the selected filters."
+                message="Try clearing your search query or adjusting the risk, priority, hazard, or status filters."
+                actionLabel="Reset filters"
                 onAction={() => {
                   setReportSearch('');
                   setReportRiskFilter('ALL');
+                  setReportPriorityFilter('ALL');
+                  setReportStatusFilter('ALL');
                   setReportHazardFilter('ALL');
+                  setReportActivityFilter('ALL');
+                  setReportTimeRange('ALL');
+                  setReportSort('newest');
                 }}
               />
             ) : (
               <div className="bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                  <span>Showing {filteredReports.length} reports for {site?.name}</span>
+                  {(reportSearch || reportRiskFilter !== 'ALL' || reportPriorityFilter !== 'ALL' || reportStatusFilter !== 'ALL' || reportHazardFilter !== 'ALL' || reportTimeRange !== 'ALL' || reportSort !== 'newest') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReportSearch('');
+                        setReportRiskFilter('ALL');
+                        setReportPriorityFilter('ALL');
+                        setReportStatusFilter('ALL');
+                        setReportHazardFilter('ALL');
+                        setReportActivityFilter('ALL');
+                        setReportTimeRange('ALL');
+                        setReportSort('newest');
+                      }}
+                      className="text-rose-600 hover:text-rose-800 font-bold text-xs underline cursor-pointer"
+                    >
+                      Reset filters
+                    </button>
+                  )}
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
@@ -611,6 +755,8 @@ export default function SiteDetail() {
                         <th className="py-3 px-4 font-semibold">Date</th>
                         <th className="py-3 px-4 font-semibold">Report</th>
                         <th className="py-3 px-4 font-semibold">Risk</th>
+                        <th className="py-3 px-4 font-semibold">Priority</th>
+                        <th className="py-3 px-4 font-semibold">Status</th>
                         <th className="py-3 px-4 font-semibold">Hazard</th>
                         <th className="py-3 px-4 font-semibold">Activity</th>
                         <th className="py-3 px-3 w-8"></th>
@@ -637,8 +783,14 @@ export default function SiteDetail() {
                                 {r.text_snippet || r.full_text || r.report_text}
                               </span>
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-4 whitespace-nowrap">
                               <RiskBadge level={r.risk_level} size="sm" />
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <PriorityBadge priority={r.priority || 'STANDARD'} size="sm" />
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <ReportStatusBadge status={r.status} size="sm" />
                             </td>
                             <td className="py-3 px-4 text-slate-700 font-semibold whitespace-nowrap">
                               {r.hazard}
@@ -810,45 +962,49 @@ export default function SiteDetail() {
                           <div
                             key={ev.id}
                             onClick={() => setSelectedReport(ev)}
-                            className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-3 group"
+                            className="p-4 sm:p-5 hover:bg-slate-50/90 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-4 group"
                           >
-                            {/* Left: Date / Time + Risk */}
-                            <div className="flex items-center sm:items-start gap-3 sm:w-44 shrink-0">
+                            {/* LEFT: Risk Badge (Dedicated Layout Column) */}
+                            <div className="w-auto sm:w-36 shrink-0 pt-0.5">
                               <RiskBadge level={ev.risk_level} size="sm" />
-                              <span className="font-mono text-xs font-semibold text-slate-600 whitespace-nowrap">
-                                {formatDateTime(ev)}
-                              </span>
                             </div>
 
-                            {/* Middle: Hazard, Activity, Location, Barrier Failure */}
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-xs sm:text-sm text-slate-900">
+                            {/* MIDDLE: Date+time, Activity title, Context/activity, Location, Barrier */}
+                            <div className="min-w-0 flex-1 space-y-2">
+                              <div>
+                                <time className="font-mono text-xs font-semibold text-slate-500 block mb-1">
+                                  {formatDateTime(ev)}
+                                </time>
+                                <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug break-words group-hover:text-blue-600 transition-colors">
                                   {ev.hazard}
-                                </span>
-                                <span className="text-slate-300">·</span>
-                                <span className="text-xs text-slate-600 font-medium">
+                                </h3>
+                                <p className="text-xs text-slate-600 font-medium break-words mt-0.5">
                                   {ev.activity}
-                                </span>
+                                </p>
                               </div>
 
-                              <p className="text-xs text-slate-500 font-medium">
-                                Location: <span className="text-slate-700">{ev.location || site.name}</span>
+                              <p className="text-xs text-slate-600 font-medium break-words">
+                                Location: <span className="text-slate-800 font-semibold">{ev.location || site.name}</span>
                               </p>
 
                               {/* Prominent Barrier Failure Callout */}
-                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-50 border border-rose-200 text-rose-900 text-[11px] font-medium mt-1">
-                                <ShieldAlert size={11} className="text-rose-600 shrink-0" />
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-rose-50 border border-rose-200 text-rose-900 text-xs font-medium break-words">
+                                <ShieldAlert size={13} className="text-rose-600 shrink-0" />
                                 <span>
                                   Barrier: <strong className="font-semibold">{ev.barrier_failure || 'None'}</strong>
                                 </span>
                               </div>
                             </div>
 
-                            {/* Right: Action Chevron */}
-                            <div className="flex items-center gap-1 text-[11px] text-blue-600 font-semibold shrink-0 self-end sm:self-center">
-                              <span className="hidden sm:inline group-hover:underline">Inspect</span>
-                              <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                            {/* RIGHT: Optional action / priority badge / status & Inspect button */}
+                            <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 pt-0.5">
+                              {ev.priority && (
+                                <PriorityBadge priority={ev.priority} size="sm" />
+                              )}
+                              <span className="text-xs text-blue-600 font-semibold group-hover:underline flex items-center gap-1">
+                                <span>Inspect</span>
+                                <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                              </span>
                             </div>
                           </div>
                         ))}

@@ -6,7 +6,7 @@ export default function AppShell({ children, title, subtitle }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+    <div className="min-h-screen text-slate-900 flex" style={{ backgroundColor: '#F4F7FA' }}>
       {/* Sidebar with responsive mobile drawer support */}
       <Sidebar
         mobileOpen={mobileNavOpen}

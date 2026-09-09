@@ -23,13 +23,32 @@ import {
   Filter,
   X,
   ChevronRight,
+  Plus,
+  Edit3,
+  Trash2,
+  Play,
+  Check,
 } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';
 import Button from '../components/ui/Button';
-import { RiskBadge } from '../components/ui/Badge';
+import {
+  RiskBadge,
+  ReportStatusBadge,
+  ActionStatusBadge,
+  ActionPriorityBadge,
+  OverdueBadge,
+  isActionOverdue,
+} from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
-import { getReport } from '../api/sifguardApi';
+import {
+  getReport,
+  updateReportStatus,
+  createAction,
+  updateAction,
+  deleteAction,
+  getActions,
+} from '../api/sifguardApi';
 import {
   formatReportCode,
   formatDateTime,
@@ -50,6 +69,25 @@ export default function ReportDetail() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFeedback, setDownloadFeedback] = useState(null);
 
+  // Workflow status & history state
+  const [reportStatus, setReportStatus] = useState('NEW');
+  const [statusHistory, setStatusHistory] = useState([]);
+  const [statusFeedback, setStatusFeedback] = useState(null);
+
+  // HSE Actions state
+  const [actions, setActions] = useState([]);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [editingAction, setEditingAction] = useState(null);
+  const [actionForm, setActionForm] = useState({
+    title: '',
+    description: '',
+    priority: 'STANDARD',
+    assignedTo: 'HSE Supervisor',
+    dueDate: '',
+    status: 'OPEN',
+  });
+  const [actionFeedback, setActionFeedback] = useState(null);
+
   // Compare related reports modal state
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
 
@@ -63,10 +101,108 @@ export default function ReportDetail() {
     try {
       const data = await getReport(reportId);
       setReport(data);
+      setReportStatus(data.status || 'NEW');
+      setStatusHistory(data.statusHistory || []);
+      setActions(data.actions || []);
     } catch (err) {
       setError(err.message || 'Report record not found.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleStatusChange(newStatus) {
+    if (!report || newStatus === reportStatus) return;
+    try {
+      const updated = await updateReportStatus(report.id, newStatus);
+      setReportStatus(updated.status);
+      setStatusHistory(updated.history || []);
+      setStatusFeedback(`Report status updated to ${newStatus}`);
+      setTimeout(() => setStatusFeedback(null), 4000);
+    } catch (err) {
+      console.error('Status update failed:', err);
+    }
+  }
+
+  function handleOpenActionModal(actionToEdit = null, prefilledTitle = '') {
+    if (actionToEdit) {
+      setEditingAction(actionToEdit);
+      setActionForm({
+        title: actionToEdit.title || '',
+        description: actionToEdit.description || '',
+        priority: actionToEdit.priority || 'STANDARD',
+        assignedTo: actionToEdit.assignedTo || 'HSE Supervisor',
+        dueDate: actionToEdit.dueDate || '',
+        status: actionToEdit.status || 'OPEN',
+      });
+    } else {
+      setEditingAction(null);
+      const defaultDue = new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10);
+      const defaultPri = report?.risk_level === 'SIF-Precursor' ? 'IMMEDIATE' : report?.risk_level === 'High' ? 'PRIORITY' : 'STANDARD';
+      setActionForm({
+        title: prefilledTitle || '',
+        description: '',
+        priority: defaultPri,
+        assignedTo: 'HSE Supervisor',
+        dueDate: defaultDue,
+        status: 'OPEN',
+      });
+    }
+    setIsActionModalOpen(true);
+  }
+
+  async function handleSaveAction(e) {
+    if (e) e.preventDefault();
+    if (!actionForm.title.trim()) return;
+
+    try {
+      if (editingAction) {
+        const updated = await updateAction(editingAction.id, actionForm);
+        setActions((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+        setActionFeedback(`Action "${updated.title}" updated.`);
+      } else {
+        const created = await createAction({
+          ...actionForm,
+          reportId: report.id,
+        });
+        setActions((prev) => [created, ...prev]);
+        setActionFeedback(`Action "${created.title}" assigned.`);
+        if (reportStatus === 'NEW' || reportStatus === 'UNDER REVIEW') {
+          setReportStatus('ACTION REQUIRED');
+        }
+      }
+      setIsActionModalOpen(false);
+      setTimeout(() => setActionFeedback(null), 4000);
+    } catch (err) {
+      console.error('Action save failed:', err);
+    }
+  }
+
+  async function handleDeleteAction(actionId) {
+    try {
+      await deleteAction(actionId);
+      setActions((prev) => prev.filter((a) => a.id !== actionId));
+      setActionFeedback('Action removed.');
+      setTimeout(() => setActionFeedback(null), 3000);
+    } catch (err) {
+      console.error('Action delete failed:', err);
+    }
+  }
+
+  async function handleTransitionAction(action, nextStatus) {
+    try {
+      const updated = await updateAction(action.id, { status: nextStatus });
+      setActions((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      setActionFeedback(`Action status set to ${nextStatus.replace(/_/g, ' ')}.`);
+
+      const remainingActions = actions.filter((a) => a.id !== action.id);
+      const allClosed = nextStatus === 'CLOSED' && remainingActions.every((a) => a.status === 'CLOSED');
+      if (allClosed && reportStatus !== 'RESOLVED' && reportStatus !== 'CLOSED') {
+        setActionFeedback('All assigned actions completed. Report can now be marked Resolved.');
+      }
+      setTimeout(() => setActionFeedback(null), 4500);
+    } catch (err) {
+      console.error('Action transition failed:', err);
     }
   }
 
@@ -235,6 +371,40 @@ export default function ReportDetail() {
               </Link>
               <p className="text-xs text-slate-500 font-mono mt-0.5">{dateTimeStr}</p>
             </div>
+          </div>
+
+          {/* OPERATIONAL STATUS & WORKFLOW BAR */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Report Status:
+              </span>
+              <ReportStatusBadge status={reportStatus} size="md" />
+              <div className="relative inline-block">
+                <label htmlFor="report-status-select" className="sr-only">Change Report Status</label>
+                <select
+                  id="report-status-select"
+                  aria-label="Change Report Status"
+                  value={reportStatus}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="px-2.5 py-1 text-xs font-semibold bg-white border border-slate-300 rounded-md text-slate-800 shadow-2xs hover:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                >
+                  <option value="NEW">New</option>
+                  <option value="UNDER REVIEW">Under Review</option>
+                  <option value="ACTION REQUIRED">Action Required</option>
+                  <option value="IN PROGRESS">In Progress</option>
+                  <option value="PENDING VERIFICATION">Pending Verification</option>
+                  <option value="RESOLVED">Resolved</option>
+                  <option value="CLOSED">Closed</option>
+                </select>
+              </div>
+            </div>
+
+            {statusFeedback && (
+              <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1 animate-in fade-in">
+                <CheckCircle2 size={13} /> {statusFeedback}
+              </span>
+            )}
           </div>
 
           {/* Quick Telemetry Strip */}
@@ -433,42 +603,295 @@ export default function ReportDetail() {
           </div>
         </section>
 
-        {/* SECTION E — RECOMMENDED SAFETY ACTIONS */}
-        <section className="p-6 rounded-xl border border-blue-200/80 bg-blue-50/20 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-blue-100 pb-3">
+        {/* SECTION E — HSE ACTION TRACKING & INTERVENTIONS */}
+        <section className="p-6 rounded-xl border border-blue-200/80 bg-white shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={17} className="text-blue-700" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-950">
-                Section E — Recommended Safety Actions
-              </h2>
+              <ShieldCheck size={18} className="text-blue-700" />
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                  Section E — HSE Action Tracking & Interventions
+                </h2>
+                <p className="text-xs text-slate-500 font-normal">
+                  Track operational response, assignees, and verification milestones.
+                </p>
+              </div>
             </div>
-            <span
-              className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded uppercase tracking-wider ${
-                priority === 'IMMEDIATE'
-                  ? 'bg-red-100 text-red-800 border border-red-200'
-                  : priority === 'PRIORITY'
-                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                  : 'bg-blue-100 text-blue-800 border border-blue-200'
-              }`}
-            >
-              Priority: {priority}
-            </span>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={Plus}
+                onClick={() => handleOpenActionModal(null)}
+              >
+                Add Action
+              </Button>
+            </div>
           </div>
 
-          <div className="space-y-2.5">
-            {recommendedActions.map((act, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-3 p-3 rounded-lg bg-white border border-blue-100 shadow-2xs text-xs text-slate-800 leading-snug"
-              >
-                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-[11px] shrink-0 font-mono">
-                  {idx + 1}
-                </span>
-                <span className="font-medium pt-0.5">{act}</span>
-              </div>
-            ))}
+          {/* Action Feedback Banner */}
+          {actionFeedback && (
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 font-medium flex items-center justify-between animate-in fade-in">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                {actionFeedback}
+              </span>
+              {reportStatus !== 'RESOLVED' && reportStatus !== 'CLOSED' && actions.length > 0 && actions.every(a => a.status === 'CLOSED') && (
+                <button
+                  type="button"
+                  onClick={() => handleStatusChange('RESOLVED')}
+                  className="px-2 py-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded border border-emerald-300 transition-colors cursor-pointer"
+                >
+                  Mark Report Resolved
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Tracked Actions List */}
+          {actions.length === 0 ? (
+            <div className="p-6 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50 space-y-2">
+              <CheckSquare size={24} className="text-slate-400 mx-auto" />
+              <p className="text-xs font-semibold text-slate-700">
+                No actions have been created for this report.
+              </p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Convert a recommended safety intervention below or create a custom task to begin operational tracking.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {actions.map((act) => {
+                const isOpen = act.status === 'OPEN';
+                const isInProgress = act.status === 'IN PROGRESS';
+                const isPendingVerification = act.status === 'PENDING VERIFICATION';
+                const isClosed = act.status === 'CLOSED';
+
+                return (
+                  <div
+                    key={act.id}
+                    className={`p-4 sm:p-5 rounded-xl border transition-all space-y-3.5 shadow-2xs ${
+                      isClosed
+                        ? 'bg-slate-50/80 border-slate-200 text-slate-600'
+                        : isPendingVerification
+                        ? 'bg-sky-50/40 border-sky-200'
+                        : isInProgress
+                        ? 'bg-amber-50/30 border-amber-200'
+                        : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Task
+                        </div>
+                        <h4 className="font-bold text-sm sm:text-base text-slate-900 break-words leading-snug">
+                          {act.title}
+                        </h4>
+                        {act.description && (
+                          <p className="text-xs text-slate-600 leading-relaxed break-words pt-0.5">
+                            {act.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Action transition & edit buttons */}
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-start">
+                        {(isOpen || act.status === 'ACTION REQUIRED') && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={Play}
+                            onClick={() => handleTransitionAction(act, 'IN PROGRESS')}
+                            className="text-amber-800 border-amber-200 bg-amber-50/60 hover:bg-amber-100/60 font-semibold"
+                          >
+                            Start Action
+                          </Button>
+                        )}
+                        {isInProgress && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={Clock}
+                            onClick={() => handleTransitionAction(act, 'PENDING VERIFICATION')}
+                            className="text-sky-800 border-sky-200 bg-sky-50/60 hover:bg-sky-100/60 font-semibold"
+                          >
+                            Submit for Verification
+                          </Button>
+                        )}
+                        {isPendingVerification && (
+                          <>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={Check}
+                              onClick={() => handleTransitionAction(act, 'RESOLVED')}
+                              className="text-teal-800 border-teal-200 bg-teal-50 hover:bg-teal-100 font-semibold"
+                            >
+                              Mark Resolved
+                            </Button>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              icon={Check}
+                              onClick={() => handleTransitionAction(act, 'CLOSED')}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-2xs"
+                            >
+                              Verify & Close
+                            </Button>
+                          </>
+                        )}
+                        {act.status === 'RESOLVED' && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={Check}
+                            onClick={() => handleTransitionAction(act, 'CLOSED')}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-2xs"
+                          >
+                            Close Action
+                          </Button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenActionModal(act)}
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                          title="Edit action"
+                          aria-label="Edit action"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAction(act.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                          title="Delete action"
+                          aria-label="Delete action"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Task Attributes Grid (Priority, Status, Assignee, Due Date) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                          Priority
+                        </span>
+                        <ActionPriorityBadge priority={act.priority} size="sm" />
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                          Status
+                        </span>
+                        <ActionStatusBadge status={act.status} size="sm" />
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                          Assignee
+                        </span>
+                        <span className="font-semibold text-slate-800 break-words block">
+                          {act.assignee || act.assignedTo || 'Site HSE Team'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                          Due Date
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono text-slate-700 font-medium block">
+                            {act.dueDate || '—'}
+                          </span>
+                          {isActionOverdue(act) && <OverdueBadge size="sm" />}
+                        </div>
+                        {act.completedAt && (
+                          <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                            Verified: {new Date(act.completedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Recommended Interventions with 1-click track conversion */}
+          <div className="pt-3 border-t border-slate-100 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Recommended Interventions (from Analysis)
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 uppercase">
+                Priority: {priority}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {recommendedActions.map((act, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200/80 text-xs text-slate-800"
+                >
+                  <div className="flex items-start gap-2.5 leading-snug">
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-[11px] shrink-0 font-mono">
+                      {idx + 1}
+                    </span>
+                    <span className="font-medium pt-0.5">{act}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenActionModal(null, act)}
+                    className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+                  >
+                    <Plus size={12} />
+                    <span>Track as Action</span>
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
+
+        {/* STATUS HISTORY SECTION (Rendered only when history events exist) */}
+        {statusHistory.length > 0 && (
+          <section className="p-5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <Clock size={15} className="text-slate-500" />
+                <span>Status History</span>
+              </h3>
+              <span className="text-[11px] font-mono text-slate-400">{statusHistory.length} status events recorded</span>
+            </div>
+            <div className="space-y-2">
+              {statusHistory.map((hist, idx) => {
+                const dateObj = new Date(hist.timestamp);
+                const dateFormatted = !isNaN(dateObj.getTime())
+                  ? `${dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} · ${dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+                  : hist.timestamp;
+
+                return (
+                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2.5 rounded-lg bg-slate-50 border border-slate-200/70 text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                      <span className="font-mono text-slate-500 text-[11px]">{dateFormatted}</span>
+                      <span className="font-bold text-slate-900">{hist.newStatus}</span>
+                    </div>
+                    {hist.note && <span className="text-[11px] text-slate-500 italic">{hist.note}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* TWO-COLUMN CORRECTIVE & PREVENTIVE ACTIONS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -729,6 +1152,150 @@ export default function ReportDetail() {
                   </Button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ACTION CREATION & EDITING MODAL */}
+        {isActionModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95">
+              <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-blue-600" />
+                  <h3 className="font-bold text-sm text-slate-900">
+                    {editingAction ? 'Edit HSE Action' : 'Create Operational Action'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsActionModalOpen(false)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
+                  aria-label="Close modal"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAction} className="p-5 space-y-4 text-xs">
+                {/* Action Title */}
+                <div>
+                  <label htmlFor="action-title" className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
+                    Action Title *
+                  </label>
+                  <input
+                    id="action-title"
+                    type="text"
+                    required
+                    value={actionForm.title}
+                    onChange={(e) => setActionForm({ ...actionForm, title: e.target.value })}
+                    placeholder="e.g., Stop activity until fall protection is verified"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label htmlFor="action-desc" className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
+                    Description & Verification Criteria
+                  </label>
+                  <textarea
+                    id="action-desc"
+                    rows={3}
+                    value={actionForm.description}
+                    onChange={(e) => setActionForm({ ...actionForm, description: e.target.value })}
+                    placeholder="Specific operational instructions or required engineering sign-offs..."
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none resize-none"
+                  />
+                </div>
+
+                {/* Priority & Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="action-priority" className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
+                      Priority
+                    </label>
+                    <select
+                      id="action-priority"
+                      value={actionForm.priority}
+                      onChange={(e) => setActionForm({ ...actionForm, priority: e.target.value })}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-semibold outline-none focus:border-blue-600 cursor-pointer"
+                    >
+                      <option value="IMMEDIATE">Immediate</option>
+                      <option value="PRIORITY">Priority</option>
+                      <option value="STANDARD">Standard</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="action-status" className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
+                      Status
+                    </label>
+                    <select
+                      id="action-status"
+                      value={actionForm.status}
+                      onChange={(e) => setActionForm({ ...actionForm, status: e.target.value })}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-semibold outline-none focus:border-blue-600 cursor-pointer"
+                    >
+                      <option value="OPEN">Open</option>
+                      <option value="ACTION REQUIRED">Action Required</option>
+                      <option value="IN PROGRESS">In Progress</option>
+                      <option value="PENDING VERIFICATION">Pending Verification</option>
+                      <option value="RESOLVED">Resolved</option>
+                      <option value="CLOSED">Closed</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Assigned To & Due Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="action-assigned" className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
+                      Assigned To
+                    </label>
+                    <input
+                      id="action-assigned"
+                      type="text"
+                      value={actionForm.assignedTo}
+                      onChange={(e) => setActionForm({ ...actionForm, assignedTo: e.target.value })}
+                      placeholder="e.g., HSE Supervisor"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 outline-none focus:border-blue-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="action-due" className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
+                      Due Date
+                    </label>
+                    <input
+                      id="action-due"
+                      type="date"
+                      value={actionForm.dueDate}
+                      onChange={(e) => setActionForm({ ...actionForm, dueDate: e.target.value })}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono outline-none focus:border-blue-600 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsActionModalOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    disabled={!actionForm.title.trim()}
+                  >
+                    {editingAction ? 'Update Action' : 'Create Action'}
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
         )}

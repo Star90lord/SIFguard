@@ -23,7 +23,7 @@ import {
   Clock,
   ArrowUpRight,
 } from 'lucide-react';
-import { RiskBadge } from '../ui/Badge';
+import { RiskBadge, ReportStatusBadge, PriorityBadge } from '../ui/Badge';
 import Button from '../ui/Button';
 import {
   formatReportCode,
@@ -170,6 +170,7 @@ export default function ReportDetailDrawer({
                     {reportCode}
                   </span>
                   <RiskBadge level={report.risk_level} size="sm" />
+                  <ReportStatusBadge status={report.status} size="sm" />
                 </div>
                 {/* Site Link: Clicking site navigates to /sites/:siteId */}
                 <button
@@ -284,10 +285,15 @@ export default function ReportDetailDrawer({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3.5 pt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 pt-1">
                 <div>
                   <span className="text-[11px] text-slate-400 block mb-1">Risk Level</span>
                   <RiskBadge level={report.risk_level} size="md" />
+                </div>
+
+                <div>
+                  <span className="text-[11px] text-slate-400 block mb-1">Task Priority</span>
+                  <PriorityBadge priority={report.priority || 'STANDARD'} size="md" />
                 </div>
 
                 <div>
@@ -305,9 +311,9 @@ export default function ReportDetailDrawer({
                   )}
                 </div>
 
-                <div>
+                <div className="sm:col-span-1">
                   <span className="text-[11px] text-slate-400 block mb-0.5">Primary Hazard</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 block">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 block break-words">
                     {report.hazard || 'None Specified'}
                   </span>
                   {report.hazard && report.hazard !== 'None' && (
@@ -325,9 +331,9 @@ export default function ReportDetailDrawer({
                   )}
                 </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <span className="text-[11px] text-slate-400 block mb-0.5">Operational Activity</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 block">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 block break-words">
                     {report.activity || 'General Operations'}
                   </span>
                 </div>
@@ -340,7 +346,7 @@ export default function ReportDetailDrawer({
                 <ShieldAlert size={14} className="text-rose-600" />
                 <span>Barrier Failure</span>
               </div>
-              <p className="text-xs sm:text-sm font-semibold text-rose-950 leading-snug">
+              <p className="text-xs sm:text-sm font-semibold text-rose-950 leading-snug break-words">
                 {report.barrier_failure || 'None Identified'}
               </p>
               <p className="text-[11px] text-rose-800/80 leading-relaxed pt-0.5">

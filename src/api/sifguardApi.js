@@ -12,7 +12,16 @@ import {
   getMockSites,
   addMockSite,
   updateMockSite,
-} from '../data/mockData';
+} from '../data/mockData.js';
+import {
+  filterReports,
+  compareReports,
+  getReportSummary,
+  getRiskTrendSeries,
+  getAttentionReports,
+  getSiteRiskOverview,
+  formatReportCode,
+} from '../utils/filterReports.js';
 
 // ─── Mock helpers ───────────────────────────────────────────────────
 function delay(ms = 400) {
@@ -228,21 +237,17 @@ export async function analyzeFiles(files, options = {}, onProgress = null) {
   return res.json();
 }
 
-import {
-  filterReports,
-  getReportSummary,
-  getRiskTrendSeries,
-  getAttentionReports,
-  getSiteRiskOverview,
-  formatReportCode,
-} from '../utils/filterReports';
-
 // ─── Query Endpoints ────────────────────────────────────────────────
 
 export async function getReports(filters = {}) {
   if (USE_MOCK) {
     await delay(200);
-    const results = filterReports(mockReports, filters);
+    const decorated = attachReportStatuses(mockReports);
+    let results = filterReports(decorated, filters);
+    if (filters.status && filters.status !== 'ALL') {
+      const targetStatus = filters.status.toUpperCase().replace(/_/g, ' ');
+      results = results.filter((r) => (r.status || '').toUpperCase() === targetStatus);
+    }
     return results;
   }
   const query = new URLSearchParams(filters).toString();
@@ -325,8 +330,15 @@ export async function getReport(reportId) {
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
       .slice(0, 6);
 
+    // Lifecycle status and change history
+    const statusData = await getReportStatus(report.id);
+    const actions = await getActions(report.id);
+
     return {
       ...report,
+      status: statusData.status,
+      statusHistory: statusData.history || [],
+      actions,
       relatedReports,
       siteReports,
     };
@@ -360,7 +372,8 @@ export async function getSiteReports(siteId, filters = {}) {
     );
     if (!site) throw new Error(`Site ${siteId} not found`);
 
-    const filteredReports = filterReports(site.reports || [], {
+    const decoratedReports = attachReportStatuses(site.reports || []);
+    const filteredReports = filterReports(decoratedReports, {
       ...filters,
       siteId: site.id,
     });
@@ -405,16 +418,50 @@ export async function getSiteComparison(siteIds = [], filters = {}) {
   if (USE_MOCK) {
     await delay(200);
     const allSites = getMockSites();
-    const selectedSites = siteIds
-      .map((id) => allSites.find((s) => s.id === id || s.name.toLowerCase().replace(/\s+/g, '-') === id))
+    const normalizedSiteIds = (Array.isArray(siteIds) ? siteIds : String(siteIds).split(','))
+      .map((id) => String(id).trim().toLowerCase())
+      .filter(Boolean);
+
+    const selectedSites = normalizedSiteIds
+      .map((id) =>
+        allSites.find(
+          (s) =>
+            (s.id && s.id.toLowerCase() === id) ||
+            (s.name && s.name.toLowerCase() === id) ||
+            (s.name && s.name.toLowerCase().replace(/\s+/g, '-') === id) ||
+            (s.code && s.code.toLowerCase() === id)
+        )
+      )
       .filter(Boolean);
 
     if (selectedSites.length === 0) {
-      return { sites: [], keyDifferences: [], commonPatterns: [], recommendations: [] };
+      return {
+        sites: [],
+        summary: {
+          facilityCount: 0,
+          totalReports: 0,
+          highRiskReports: 0,
+          sifPrecursors: 0,
+          mostCommonHazard: null,
+          mostCommonActivity: null,
+        },
+        keyDifferences: [],
+        commonPatterns: [],
+        recommendations: [],
+        keyFindings: [],
+      };
     }
 
     const comparisonSites = selectedSites.map((site) => {
-      const filtered = filterReports(site.reports || [], filters);
+      const siteReports = (site.reports && site.reports.length > 0)
+        ? site.reports
+        : mockReports.filter(
+            (r) =>
+              r.siteId === site.id ||
+              (r.site && r.site.toLowerCase() === site.name.toLowerCase()) ||
+              (r.siteName && r.siteName.toLowerCase() === site.name.toLowerCase())
+          );
+      const filtered = filterReports(siteReports, filters);
       const summary = getReportSummary(filtered);
       const highCount = filtered.filter((r) => r.risk_level === 'High').length;
       const sifCount = filtered.filter((r) => r.risk_level === 'SIF-Precursor' || r.sif_precursor === true).length;
@@ -425,6 +472,8 @@ export async function getSiteComparison(siteIds = [], filters = {}) {
         ...site,
         filteredReports: filtered,
         totalReports: filtered.length,
+        lowRiskCount: lowCount,
+        mediumRiskCount: medCount,
         highRiskCount: highCount,
         sifCount: sifCount,
         riskCounts: {
@@ -433,9 +482,91 @@ export async function getSiteComparison(siteIds = [], filters = {}) {
           High: highCount,
           'SIF-Precursor': sifCount,
         },
+        topHazard: summary.topHazards[0] || { hazard: 'None Recorded', count: 0 },
+        topActivity: summary.topActivities[0] || { activity: 'Routine Operations', count: 0 },
+        primaryBarrier: summary.barrierFailures[0] || { barrier: 'None Recorded', count: 0 },
         topHazards: summary.topHazards.slice(0, 4),
         topActivities: summary.topActivities.slice(0, 4),
         barrierFailures: summary.barrierFailures.slice(0, 4),
+      };
+    });
+
+    // Comparison summary metrics across selected facilities
+    const totalReports = comparisonSites.reduce((sum, s) => sum + s.totalReports, 0);
+    const totalHighRisk = comparisonSites.reduce((sum, s) => sum + s.highRiskCount, 0);
+    const totalSif = comparisonSites.reduce((sum, s) => sum + s.sifCount, 0);
+
+    const globalHazards = {};
+    const globalActivities = {};
+    const globalBarriers = {};
+
+    comparisonSites.forEach((s) => {
+      s.filteredReports.forEach((r) => {
+        if (r.hazard && r.hazard !== 'None') {
+          globalHazards[r.hazard] = (globalHazards[r.hazard] || 0) + 1;
+        }
+        if (r.activity && r.activity !== 'None') {
+          globalActivities[r.activity] = (globalActivities[r.activity] || 0) + 1;
+        }
+        if (r.barrier_failure && r.barrier_failure !== 'None') {
+          globalBarriers[r.barrier_failure] = (globalBarriers[r.barrier_failure] || 0) + 1;
+        }
+      });
+    });
+
+    const sortedHazards = Object.entries(globalHazards)
+      .map(([hazard, count]) => ({ hazard, count }))
+      .sort((a, b) => b.count - a.count);
+    const sortedActivities = Object.entries(globalActivities)
+      .map(([activity, count]) => ({ activity, count }))
+      .sort((a, b) => b.count - a.count);
+    const sortedBarriers = Object.entries(globalBarriers)
+      .map(([barrier, count]) => ({ barrier, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const summary = {
+      facilityCount: comparisonSites.length,
+      facilityNames: comparisonSites.map((s) => s.name),
+      totalReports,
+      highRiskReports: totalHighRisk,
+      sifPrecursors: totalSif,
+      mostCommonHazard: sortedHazards[0] || { hazard: 'N/A', count: 0 },
+      mostCommonActivity: sortedActivities[0] || { activity: 'N/A', count: 0 },
+      mostCommonBarrier: sortedBarriers[0] || { barrier: 'N/A', count: 0 },
+      topHazards: sortedHazards.slice(0, 5),
+      topActivities: sortedActivities.slice(0, 5),
+      topBarriers: sortedBarriers.slice(0, 5),
+    };
+
+    // Concise Key Findings per site (Section 3.D)
+    const keyFindings = comparisonSites.map((s) => {
+      const bullets = [];
+      if (s.sifCount > 0) {
+        bullets.push(`Elevated SIF-Precursor activity (${s.sifCount} signal${s.sifCount > 1 ? 's' : ''}) requiring priority safeguard audit`);
+      } else if (s.highRiskCount > 0) {
+        bullets.push(`Higher concentration of high-risk observations (${s.highRiskCount} reports)`);
+      } else if (s.totalReports > 0) {
+        bullets.push(`Predominantly medium-to-low risk operational observations (${s.totalReports} total)`);
+      } else {
+        bullets.push('No incident or hazard observations logged during the period');
+      }
+
+      if (s.topHazard && s.topHazard.count > 0 && s.topHazard.hazard !== 'None Recorded') {
+        bullets.push(`${s.topHazard.hazard} appears repeatedly (${s.topHazard.count} observation${s.topHazard.count > 1 ? 's' : ''})`);
+      }
+
+      if (s.primaryBarrier && s.primaryBarrier.count > 0 && s.primaryBarrier.barrier !== 'None Recorded') {
+        bullets.push(`Recurring barrier breakdown: ${s.primaryBarrier.barrier}`);
+      } else if (s.topActivity && s.topActivity.count > 0 && s.topActivity.activity !== 'Routine Operations') {
+        bullets.push(`Dominant activity: ${s.topActivity.activity}`);
+      }
+
+      return {
+        siteId: s.id,
+        siteName: s.name,
+        siteCode: s.code,
+        healthStatus: s.healthStatus,
+        findings: bullets.slice(0, 3),
       };
     });
 
@@ -454,11 +585,11 @@ export async function getSiteComparison(siteIds = [], filters = {}) {
       });
     }
 
-    if (highestSifSite && highestSifSite.sifCount > 0 && highestSifSite.id !== lowestSifSite.id) {
+    if (highestSifSite && highestSifSite.sifCount > 0 && highestSifSite.id !== lowestSifSite?.id) {
       keyDifferences.push({
         type: 'sif_concentration',
         site: highestSifSite.name,
-        statement: `${highestSifSite.name} exhibits a higher concentration of SIF-Precursor signals (${highestSifSite.sifCount}) compared to ${lowestSifSite.name} (${lowestSifSite.sifCount}).`,
+        statement: `${highestSifSite.name} exhibits a higher concentration of SIF-Precursor signals (${highestSifSite.sifCount}) compared to ${lowestSifSite ? lowestSifSite.name : 'other sites'}${lowestSifSite ? ` (${lowestSifSite.sifCount})` : ''}.`,
       });
     }
 
@@ -558,6 +689,8 @@ export async function getSiteComparison(siteIds = [], filters = {}) {
 
     return {
       sites: comparisonSites,
+      summary,
+      keyFindings,
       keyDifferences,
       commonPatterns,
       recommendations,
@@ -849,6 +982,701 @@ export async function getTrends() {
     return { ...mockTrends };
   }
   return request('/trends');
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// HSE WORKFLOW, REPORT LIFECYCLE, ACTION MANAGEMENT & REVIEW QUEUE
+// ═════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEYS = {
+  STATUSES: 'sifguard_report_statuses',
+  ACTIONS: 'sifguard_hse_actions',
+  SAVED_VIEWS: 'sifguard_saved_views',
+};
+
+// Default initial action seeds with explicit priorities (IMMEDIATE, PRIORITY, STANDARD)
+const DEFAULT_ACTIONS = [
+  {
+    id: 'act-101',
+    reportId: 1,
+    title: 'Stop activity until fall protection is verified',
+    description: 'Halt all derrick operations on Rig Site A until secondary inertia reel and safety net are certified.',
+    priority: 'IMMEDIATE',
+    status: 'OPEN',
+    assignee: 'HSE Supervisor',
+    assignedTo: 'HSE Supervisor',
+    dueDate: '2026-09-10',
+    createdAt: '2026-09-09T09:30:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-102',
+    reportId: 1,
+    title: 'Verify overhead casing clamp dampers',
+    description: 'Inspect vibration dampener hardware and install tethered safety cable on 4-inch casing clamp.',
+    priority: 'PRIORITY',
+    status: 'IN PROGRESS',
+    assignee: 'Rig Maintenance Lead',
+    assignedTo: 'Rig Maintenance Lead',
+    dueDate: '2026-09-11',
+    createdAt: '2026-09-09T09:45:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-103',
+    reportId: 3,
+    title: 'Re-calibrate atmospheric multi-gas monitors',
+    description: 'Recalibrate toxic vapor detectors for Mud Tank 3 and replace expired calibration certificate.',
+    priority: 'IMMEDIATE',
+    status: 'PENDING VERIFICATION',
+    assignee: 'Site Safety Officer',
+    assignedTo: 'Site Safety Officer',
+    dueDate: '2026-09-09',
+    createdAt: '2026-09-08T11:30:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-104',
+    reportId: 2,
+    title: 'Install certified 3000 PSI bypass flange',
+    description: 'Replace temporary hose clamp with hydro-tested forged steel flange on pump discharge.',
+    priority: 'STANDARD',
+    status: 'CLOSED',
+    assignee: 'Piping Specialist',
+    assignedTo: 'Piping Specialist',
+    dueDate: '2026-09-09',
+    createdAt: '2026-09-09T14:45:00Z',
+    completedAt: '2026-09-09T17:00:00Z',
+  },
+  {
+    id: 'act-105',
+    reportId: 4,
+    title: 'LOTO boundary audit on 480V distribution bus',
+    description: 'Audit lockout procedure on secondary standby circuit before maintenance resumes.',
+    priority: 'PRIORITY',
+    status: 'OPEN',
+    assignee: 'Lead Electrician',
+    assignedTo: 'Lead Electrician',
+    dueDate: '2026-09-12',
+    createdAt: '2026-09-07T17:00:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-106',
+    reportId: 10,
+    title: 'Unlock and lockwire MGS flare line block valve',
+    description: 'Remove unauthorized lock on mud gas separator flare discharge line and restore open path to flare.',
+    priority: 'IMMEDIATE',
+    status: 'OPEN',
+    assignee: 'Rig Superintendent',
+    assignedTo: 'Rig Superintendent',
+    dueDate: '2026-09-09',
+    createdAt: '2026-09-08T10:00:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-107',
+    reportId: 18,
+    title: 'Cancel unpermitted hot work & issue formal PTW',
+    description: 'Stop all welding on crude column bypass until gas testing passes and hot work permit is signed.',
+    priority: 'IMMEDIATE',
+    status: 'OPEN',
+    assignee: 'Plant Operations Lead',
+    assignedTo: 'Plant Operations Lead',
+    dueDate: '2026-09-09',
+    createdAt: '2026-09-09T11:45:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-108',
+    reportId: 25,
+    title: 'Service automatic dock lock trailer restraint on Bay 2',
+    description: 'Repair defective hydraulic dock lock and enforce mandatory wheel chocking protocol.',
+    priority: 'IMMEDIATE',
+    status: 'IN PROGRESS',
+    assignee: 'Warehouse Manager',
+    assignedTo: 'Warehouse Manager',
+    dueDate: '2026-09-10',
+    createdAt: '2026-09-08T16:00:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-109',
+    reportId: 32,
+    title: 'Install polycarbonate ballistic shatter shield on hydro-test bench',
+    description: 'Mandate shatter shield enclosure on 10,000 PSI test cell before pressurized testing resumes.',
+    priority: 'IMMEDIATE',
+    status: 'OPEN',
+    assignee: 'Mechanical Workshop Head',
+    assignedTo: 'Mechanical Workshop Head',
+    dueDate: '2026-09-10',
+    createdAt: '2026-09-09T13:30:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-110',
+    reportId: 5,
+    title: 'Replace frayed crane hoist wire rope',
+    description: 'De-rig damaged 12-ton hoist cable with 3 broken strands and recertify with proof load test.',
+    priority: 'PRIORITY',
+    status: 'IN PROGRESS',
+    assignee: 'Lifting Specialist',
+    assignedTo: 'Lifting Specialist',
+    dueDate: '2026-09-11',
+    createdAt: '2026-09-05T11:00:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-111',
+    reportId: 27,
+    title: 'Re-rate and de-stack pallet racking Row G',
+    description: 'Unload overweight steel valves from Level 3 and reinforce vertical upright post.',
+    priority: 'PRIORITY',
+    status: 'PENDING VERIFICATION',
+    assignee: 'Logistics Supervisor',
+    assignedTo: 'Logistics Supervisor',
+    dueDate: '2026-09-07',
+    createdAt: '2026-09-03T17:00:00Z',
+    completedAt: null,
+  },
+  {
+    id: 'act-112',
+    reportId: 28,
+    title: 'Replenish and test eyewash station fluid',
+    description: 'Flush and refill gravity-fed eyewash unit at battery charging bay.',
+    priority: 'STANDARD',
+    status: 'CLOSED',
+    assignee: 'Facility Maintenance',
+    assignedTo: 'Facility Maintenance',
+    dueDate: '2026-09-03',
+    createdAt: '2026-09-02T10:00:00Z',
+    completedAt: '2026-09-02T14:00:00Z',
+  },
+];
+
+// Default saved views
+const DEFAULT_SAVED_VIEWS = [
+  {
+    id: 'view-critical-falls',
+    name: 'Critical Fall Risks',
+    filters: {
+      siteFilter: 'ALL',
+      riskFilter: 'High',
+      hazardFilter: 'Fall',
+      datePreset: 'THIS_MONTH',
+      sortOption: 'highest_risk',
+    },
+    createdAt: '2026-09-01T08:00:00Z',
+  },
+  {
+    id: 'view-sif-precursors',
+    name: 'SIF Precursors',
+    filters: {
+      siteFilter: 'ALL',
+      riskFilter: 'SIF-Precursor',
+      hazardFilter: 'ALL',
+      datePreset: 'ALL',
+      sortOption: 'newest',
+    },
+    createdAt: '2026-09-01T08:00:00Z',
+  },
+  {
+    id: 'view-action-required',
+    name: 'Action Required',
+    filters: {
+      siteFilter: 'ALL',
+      riskFilter: 'ALL',
+      statusFilter: 'ACTION REQUIRED',
+      hazardFilter: 'ALL',
+      datePreset: 'THIS_MONTH',
+      sortOption: 'newest',
+    },
+    createdAt: '2026-09-02T09:00:00Z',
+  },
+];
+
+function getStoredStatuses() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.STATUSES);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredStatuses(map) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.STATUSES, JSON.stringify(map));
+  } catch (e) {
+    console.warn('LocalStorage save error:', e);
+  }
+}
+
+/**
+ * Derives default task priority for a report based on its explicit priority or risk
+ */
+export function getDefaultReportPriority(report) {
+  if (!report) return 'STANDARD';
+  if (report.priority) return String(report.priority).toUpperCase();
+  const isSif = report.risk_level === 'SIF-Precursor' || report.sif_precursor === true;
+  if (isSif) {
+    return Number(report.id) % 2 === 1 ? 'IMMEDIATE' : 'PRIORITY';
+  }
+  if (report.risk_level === 'High') {
+    return Number(report.id) % 3 === 0 ? 'IMMEDIATE' : 'PRIORITY';
+  }
+  if (report.risk_level === 'Medium') {
+    return Number(report.id) % 2 === 0 ? 'PRIORITY' : 'STANDARD';
+  }
+  return 'STANDARD';
+}
+
+export function getDefaultReportStatus(report) {
+  if (!report) return 'NEW';
+  const idNum = Number(report.id) || 1;
+  const isSif = report.risk_level === 'SIF-Precursor' || report.sif_precursor === true;
+  if (isSif) {
+    return idNum % 2 === 0 ? 'ACTION REQUIRED' : 'UNDER REVIEW';
+  }
+  if (report.risk_level === 'High') {
+    return idNum % 3 === 0 ? 'ACTION REQUIRED' : 'UNDER REVIEW';
+  }
+  if (report.risk_level === 'Medium') {
+    return idNum % 2 === 0 ? 'IN PROGRESS' : 'RESOLVED';
+  }
+  return idNum % 2 === 0 ? 'CLOSED' : 'NEW';
+}
+
+/**
+ * Retrieves the workflow status and change history for a report
+ */
+export async function getReportStatus(reportId) {
+  const map = getStoredStatuses();
+  const entry = map[String(reportId)];
+  if (entry) {
+    return entry;
+  }
+  const found = mockReports.find((r) => String(r.id) === String(reportId));
+  const status = getDefaultReportStatus(found);
+  return {
+    status,
+    history: [],
+  };
+}
+
+/**
+ * Updates a report's lifecycle status, appending to status history
+ */
+export async function updateReportStatus(reportId, newStatus, note = '') {
+  await delay(150);
+  const map = getStoredStatuses();
+  const key = String(reportId);
+  const current = map[key] || {
+    status: getDefaultReportStatus(mockReports.find((r) => String(r.id) === key)),
+    history: [],
+  };
+
+  const historyItem = {
+    previousStatus: current.status,
+    newStatus,
+    timestamp: new Date().toISOString(),
+    note: note || `Status transitioned to ${newStatus}`,
+  };
+
+  const updatedEntry = {
+    status: newStatus,
+    history: [historyItem, ...(current.history || [])],
+  };
+
+  map[key] = updatedEntry;
+  saveStoredStatuses(map);
+
+  return updatedEntry;
+}
+
+/**
+ * Decorates report items with current workflow status and priority
+ */
+export function attachReportStatuses(reports = []) {
+  const map = getStoredStatuses();
+  const actions = getStoredActions();
+  return reports.map((r) => {
+    const key = String(r.id);
+    const entry = map[key];
+    const status = entry ? entry.status : (r.status || getDefaultReportStatus(r));
+
+    // Derive task priority from linked action if present, or fallback to report priority
+    const reportActions = actions.filter((a) => String(a.reportId) === key);
+    let actionPriority = null;
+    if (reportActions.some((a) => (a.priority || '').toUpperCase() === 'IMMEDIATE')) {
+      actionPriority = 'IMMEDIATE';
+    } else if (reportActions.some((a) => (a.priority || '').toUpperCase() === 'PRIORITY')) {
+      actionPriority = 'PRIORITY';
+    } else if (reportActions.length > 0) {
+      actionPriority = 'STANDARD';
+    }
+
+    const priority = actionPriority || getDefaultReportPriority(r);
+    const primaryAction = reportActions[0] || null;
+    const isOverdue = reportActions.some((a) => {
+      if (!a.dueDate) return false;
+      const s = (a.status || '').toUpperCase().replace(/_/g, ' ');
+      if (s === 'CLOSED' || s === 'RESOLVED') return false;
+      const due = new Date(a.dueDate).getTime();
+      return !isNaN(due) && due < new Date().setHours(0, 0, 0, 0);
+    });
+
+    return {
+      ...r,
+      status,
+      priority,
+      isOverdue,
+      actionAssignee: primaryAction ? (primaryAction.assignee || primaryAction.assignedTo || '') : '',
+      actionDueDate: primaryAction ? primaryAction.dueDate || '' : '',
+      actionTitle: primaryAction ? primaryAction.title || '' : '',
+    };
+  });
+}
+
+// ─── Action Tracking API ─────────────────────────────────────────────
+
+function getStoredActions() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ACTIONS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.ACTIONS, JSON.stringify(DEFAULT_ACTIONS));
+      return [...DEFAULT_ACTIONS];
+    }
+    return JSON.parse(raw);
+  } catch {
+    return [...DEFAULT_ACTIONS];
+  }
+}
+
+function saveStoredActions(actions) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ACTIONS, JSON.stringify(actions));
+  } catch (e) {
+    console.warn('LocalStorage save error:', e);
+  }
+}
+
+export async function getActions(reportId = null) {
+  await delay(100);
+  const all = getStoredActions();
+  if (reportId !== null && reportId !== undefined) {
+    return all.filter((a) => String(a.reportId) === String(reportId));
+  }
+  return all;
+}
+
+export async function createAction(actionData) {
+  await delay(150);
+  const all = getStoredActions();
+  const assigneeName = actionData.assignee || actionData.assignedTo || 'Site HSE Team';
+  const newAction = {
+    id: `act-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    reportId: actionData.reportId,
+    title: actionData.title || 'Action',
+    description: actionData.description || '',
+    priority: (actionData.priority || 'STANDARD').toUpperCase(), // IMMEDIATE | PRIORITY | STANDARD
+    status: actionData.status || 'OPEN',                         // OPEN | IN PROGRESS | PENDING VERIFICATION | CLOSED
+    assignee: assigneeName,
+    assignedTo: assigneeName,
+    dueDate: actionData.dueDate || new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
+    createdAt: new Date().toISOString(),
+    completedAt: null,
+  };
+
+  const updated = [newAction, ...all];
+  saveStoredActions(updated);
+
+  // If report was NEW or UNDER REVIEW, recommend setting to ACTION REQUIRED
+  const statusMap = getStoredStatuses();
+  const currentEntry = statusMap[String(actionData.reportId)];
+  const currentStatus = currentEntry ? currentEntry.status : null;
+  if (!currentStatus || currentStatus === 'NEW' || currentStatus === 'UNDER REVIEW') {
+    updateReportStatus(actionData.reportId, 'ACTION REQUIRED', 'Automated: Operational action created');
+  }
+
+  return newAction;
+}
+
+export async function updateAction(actionId, updates) {
+  await delay(150);
+  const all = getStoredActions();
+  const idx = all.findIndex((a) => String(a.id) === String(actionId));
+  if (idx === -1) {
+    throw new Error(`Action with ID ${actionId} not found.`);
+  }
+
+  const existing = all[idx];
+  const isClosing = updates.status === 'CLOSED' && existing.status !== 'CLOSED';
+  const assigneeName = updates.assignee || updates.assignedTo || existing.assignee || existing.assignedTo;
+
+  const updated = {
+    ...existing,
+    ...updates,
+    assignee: assigneeName,
+    assignedTo: assigneeName,
+    priority: updates.priority ? updates.priority.toUpperCase() : existing.priority,
+    completedAt: isClosing ? new Date().toISOString() : (updates.completedAt !== undefined ? updates.completedAt : existing.completedAt),
+  };
+
+  all[idx] = updated;
+  saveStoredActions(all);
+
+  return updated;
+}
+
+export async function updateActionPriority(actionId, priority) {
+  return updateAction(actionId, { priority: (priority || 'STANDARD').toUpperCase() });
+}
+
+export async function updateActionStatus(actionId, status) {
+  return updateAction(actionId, { status });
+}
+
+export async function deleteAction(actionId) {
+  await delay(100);
+  const all = getStoredActions();
+  const filtered = all.filter((a) => String(a.id) !== String(actionId));
+  saveStoredActions(filtered);
+  return { success: true };
+}
+
+export async function getActionSummary(siteId = null) {
+  const all = getStoredActions();
+  let scoped = all;
+  if (siteId && siteId !== 'ALL' && siteId !== 'all') {
+    const norm = siteId.toLowerCase().trim();
+    scoped = all.filter((a) => {
+      if (a.siteId && a.siteId.toLowerCase() === norm) return true;
+      if (a.site && (a.site.toLowerCase() === norm || a.site.toLowerCase().replace(/\s+/g, '-') === norm)) return true;
+      const rep = mockReports.find((r) => String(r.id) === String(a.reportId));
+      if (rep) {
+        if (rep.siteId && rep.siteId.toLowerCase() === norm) return true;
+        if (rep.site && (rep.site.toLowerCase() === norm || rep.site.toLowerCase().replace(/\s+/g, '-') === norm)) return true;
+      }
+      return false;
+    });
+  }
+
+  let open = 0;
+  let inProgress = 0;
+  let pendingVerification = 0;
+  let closed = 0;
+
+  let immediate = 0;
+  let priority = 0;
+  let standard = 0;
+
+  scoped.forEach((a) => {
+    if (a.status === 'OPEN') open++;
+    else if (a.status === 'IN PROGRESS') inProgress++;
+    else if (a.status === 'PENDING VERIFICATION') pendingVerification++;
+    else if (a.status === 'CLOSED') closed++;
+
+    const p = (a.priority || 'STANDARD').toUpperCase();
+    if (p === 'IMMEDIATE') immediate++;
+    else if (p === 'PRIORITY') priority++;
+    else standard++;
+  });
+
+  return {
+    total: scoped.length,
+    open,
+    inProgress,
+    pendingVerification,
+    closed,
+    priorities: {
+      immediate,
+      priority,
+      standard,
+    },
+  };
+}
+
+// ─── Review Queue API ────────────────────────────────────────────────
+
+export async function getReviewQueue(filters = {}) {
+  await delay(200);
+  // Get all reports decorated with their current workflow status and priority
+  const decorated = attachReportStatuses(mockReports);
+
+  // Filter using filterReports
+  let filtered = filterReports(decorated, {
+    siteId: filters.site || filters.siteId,
+    riskLevel: filters.risk || filters.riskLevel,
+    hazard: filters.hazard,
+    priority: filters.priority,
+    status: filters.status,
+    datePreset: filters.datePreset || 'ALL',
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    search: filters.search,
+  });
+
+  // Sort deterministically using compareReports
+  const sortField = filters.sortField || filters.sort || filters.sortBy || 'default';
+  const sortDirection = filters.sortDirection || filters.sortOrder || filters.order || 'desc';
+  filtered.sort((a, b) => compareReports(a, b, sortField, sortDirection));
+
+  // Calculate live KPIs across the current decorated scope
+  const sifCount = filtered.filter((r) => r.risk_level === 'SIF-Precursor' || r.sif_precursor === true).length;
+  const highCount = filtered.filter((r) => r.risk_level === 'High').length;
+  const actionRequiredCount = filtered.filter((r) => (r.status || '').toUpperCase() === 'ACTION REQUIRED').length;
+  const pendingReviewCount = filtered.filter((r) => {
+    const s = (r.status || '').toUpperCase();
+    return s === 'UNDER REVIEW' || s === 'NEW';
+  }).length;
+  const immediateCount = filtered.filter((r) => (r.priority || '').toUpperCase() === 'IMMEDIATE').length;
+  const priorityCount = filtered.filter((r) => (r.priority || '').toUpperCase() === 'PRIORITY').length;
+  const standardCount = filtered.filter((r) => (r.priority || '').toUpperCase() === 'STANDARD').length;
+
+  return {
+    reports: filtered,
+    totalCount: filtered.length,
+    kpis: {
+      sifCount,
+      highCount,
+      actionRequiredCount,
+      pendingReviewCount,
+      immediateCount,
+      priorityCount,
+      standardCount,
+      totalCount: filtered.length,
+    },
+  };
+}
+
+// ─── Saved Views API ─────────────────────────────────────────────────
+
+export function getSavedViews() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SAVED_VIEWS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.SAVED_VIEWS, JSON.stringify(DEFAULT_SAVED_VIEWS));
+      return [...DEFAULT_SAVED_VIEWS];
+    }
+    return JSON.parse(raw);
+  } catch {
+    return [...DEFAULT_SAVED_VIEWS];
+  }
+}
+
+export function saveSavedView({ name, filters }) {
+  const views = getSavedViews();
+  const newView = {
+    id: `view-${Date.now()}`,
+    name: name.trim() || 'Custom Safety View',
+    filters: { ...filters },
+    createdAt: new Date().toISOString(),
+  };
+  const updated = [newView, ...views];
+  localStorage.setItem(STORAGE_KEYS.SAVED_VIEWS, JSON.stringify(updated));
+  return newView;
+}
+
+export function deleteSavedView(viewId) {
+  const views = getSavedViews();
+  const filtered = views.filter((v) => v.id !== viewId);
+  localStorage.setItem(STORAGE_KEYS.SAVED_VIEWS, JSON.stringify(filtered));
+  return { success: true };
+}
+
+export function renameSavedView(viewId, newName) {
+  const views = getSavedViews();
+  const target = views.find((v) => v.id === viewId);
+  if (target) {
+    target.name = newName.trim() || target.name;
+    localStorage.setItem(STORAGE_KEYS.SAVED_VIEWS, JSON.stringify(views));
+  }
+  return target;
+}
+
+// ─── Filtered CSV Export Generator ───────────────────────────────────
+
+export function exportReportsToCsv(reports = [], filenameCustom = '') {
+  if (!reports || reports.length === 0) {
+    return { success: false, message: 'Nothing to export.' };
+  }
+
+  // Decorate with status and action metadata if not present
+  const decorated = attachReportStatuses(reports);
+
+  const headers = [
+    'Report ID',
+    'Date',
+    'Time',
+    'Site',
+    'Site Code',
+    'Risk',
+    'SIF Precursor',
+    'Priority',
+    'Status',
+    'Assignee',
+    'Due Date',
+    'Overdue',
+    'Hazard',
+    'Activity',
+    'Location',
+    'Barrier Failure',
+  ];
+
+  function escapeCsvCell(val) {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  }
+
+  const rows = decorated.map((r) => {
+    const code = formatReportCode(r.id);
+    const siteCode = (r.site || '').toUpperCase().replace(/\s+/g, '-').slice(0, 10);
+    const isSif = r.risk_level === 'SIF-Precursor' || r.sif_precursor === true ? 'Yes' : 'No';
+
+    return [
+      escapeCsvCell(code),
+      escapeCsvCell(r.date || ''),
+      escapeCsvCell(r.time || ''),
+      escapeCsvCell(r.site || r.siteName || ''),
+      escapeCsvCell(siteCode),
+      escapeCsvCell(r.risk_level || 'Low'),
+      escapeCsvCell(isSif),
+      escapeCsvCell(r.priority || 'STANDARD'),
+      escapeCsvCell(r.status || 'NEW'),
+      escapeCsvCell(r.actionAssignee || ''),
+      escapeCsvCell(r.actionDueDate || ''),
+      escapeCsvCell(r.isOverdue ? 'OVERDUE' : 'No'),
+      escapeCsvCell(r.hazard || 'None'),
+      escapeCsvCell(r.activity || 'General Operations'),
+      escapeCsvCell(r.location || ''),
+      escapeCsvCell(r.barrier_failure || 'None Identified'),
+    ].join(',');
+  });
+
+  const csvContent = [headers.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+  const defaultFilename = `SIFguard_Reports_${new Date().toISOString().slice(0, 7)}.csv`;
+  const filename = filenameCustom || defaultFilename;
+
+  // Trigger browser download
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  return {
+    success: true,
+    filename,
+    rowCount: reports.length,
+  };
 }
 
 

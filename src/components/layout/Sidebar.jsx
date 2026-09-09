@@ -3,6 +3,7 @@ import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileSearch,
+  ClipboardCheck,
   ClipboardList,
   ShieldCheck,
   Building2,
@@ -10,6 +11,8 @@ import {
   Radio,
   X,
   UserCheck,
+  Repeat,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { canAccessAdmin } from '../../config/roles';
@@ -26,16 +29,23 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
       ],
     },
     {
-      title: 'Analysis',
+      title: 'HSE Workflow',
       items: [
-        { to: '/submit', label: 'Analyze Reports', icon: FileSearch },
+        { to: '/review', label: 'Review Queue', icon: ClipboardCheck },
+        { to: '/reports', label: 'Safety Reports', icon: ClipboardList },
       ],
     },
     {
-      title: 'Monitoring',
+      title: 'Intelligence & Analysis',
       items: [
-        { to: '/reports', label: 'Reports', icon: ClipboardList },
-        { to: '/sites', label: 'Sites', icon: Building2 },
+        { to: '/submit', label: 'Analyze Reports', icon: FileSearch },
+        { to: '/sites/compare', label: 'Site Comparison', icon: Repeat },
+      ],
+    },
+    {
+      title: 'Facilities',
+      items: [
+        { to: '/sites', label: 'Sites Directory', icon: Building2 },
       ],
     },
     {

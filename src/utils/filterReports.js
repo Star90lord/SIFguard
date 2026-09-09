@@ -5,9 +5,29 @@
 
 export const RISK_WEIGHTS = {
   'SIF-Precursor': 4,
+  'SIF-PRECURSOR': 4,
   High: 3,
+  HIGH: 3,
   Medium: 2,
+  MEDIUM: 2,
   Low: 1,
+  LOW: 1,
+};
+
+export const PRIORITY_WEIGHTS = {
+  IMMEDIATE: 3,
+  PRIORITY: 2,
+  STANDARD: 1,
+};
+
+export const STATUS_WEIGHTS = {
+  'ACTION REQUIRED': 7,
+  'UNDER REVIEW': 6,
+  'IN PROGRESS': 5,
+  'PENDING VERIFICATION': 4,
+  NEW: 3,
+  RESOLVED: 2,
+  CLOSED: 1,
 };
 
 // Reference current date for SIH 2026 simulation (09 Sep 2026)
@@ -59,31 +79,110 @@ export function formatDateTime(report) {
 }
 
 /**
- * Filter an array of reports based on standard criteria
+ * Universal multi-column report comparator
+ * @param {Object} a - Report A
+ * @param {Object} b - Report B
+ * @param {string} field - Sort field ('default' | 'date' | 'id' | 'site' | 'hazard' | 'risk' | 'priority' | 'status' | 'activity')
+ * @param {string} direction - Sort direction ('asc' | 'desc')
+ */
+export function compareReports(a, b, field = 'default', direction = 'desc') {
+  if (field === 'default') {
+    // SIF-PRECURSOR -> HIGH -> Action Required -> newest
+    const aRisk = RISK_WEIGHTS[a.risk_level] || 0;
+    const bRisk = RISK_WEIGHTS[b.risk_level] || 0;
+    const aPriority = PRIORITY_WEIGHTS[(a.priority || '').toUpperCase()] || 0;
+    const bPriority = PRIORITY_WEIGHTS[(b.priority || '').toUpperCase()] || 0;
+    const aIsActionReq = (a.status || '').toUpperCase() === 'ACTION REQUIRED' ? 2 : 0;
+    const bIsActionReq = (b.status || '').toUpperCase() === 'ACTION REQUIRED' ? 2 : 0;
+
+    const aScore = (aRisk === 4 ? 20 : 0) + aPriority * 5 + aRisk * 2 + aIsActionReq;
+    const bScore = (bRisk === 4 ? 20 : 0) + bPriority * 5 + bRisk * 2 + bIsActionReq;
+
+    if (aScore !== bScore) return bScore - aScore;
+    const aDate = new Date(a.date || a.timestamp || 0).getTime();
+    const bDate = new Date(b.date || b.timestamp || 0).getTime();
+    return bDate - aDate;
+  }
+
+  let result = 0;
+  if (field === 'date') {
+    const aDate = new Date(a.date || a.timestamp || 0).getTime();
+    const bDate = new Date(b.date || b.timestamp || 0).getTime();
+    result = aDate - bDate;
+  } else if (field === 'id' || field === 'report') {
+    const aNum = Number(String(a.id).replace(/\D/g, '')) || 0;
+    const bNum = Number(String(b.id).replace(/\D/g, '')) || 0;
+    result = aNum !== bNum ? aNum - bNum : String(a.id).localeCompare(String(b.id));
+  } else if (field === 'site') {
+    const aSite = (a.site || a.siteName || '').toLowerCase();
+    const bSite = (b.site || b.siteName || '').toLowerCase();
+    result = aSite.localeCompare(bSite);
+  } else if (field === 'hazard') {
+    const aH = (a.hazard || '').toLowerCase();
+    const bH = (b.hazard || '').toLowerCase();
+    result = aH.localeCompare(bH);
+  } else if (field === 'activity') {
+    const aAct = (a.activity || '').toLowerCase();
+    const bAct = (b.activity || '').toLowerCase();
+    result = aAct.localeCompare(bAct);
+  } else if (field === 'risk') {
+    const aW = RISK_WEIGHTS[a.risk_level] || 0;
+    const bW = RISK_WEIGHTS[b.risk_level] || 0;
+    result = aW - bW;
+  } else if (field === 'priority') {
+    const aP = PRIORITY_WEIGHTS[(a.priority || '').toUpperCase()] || 0;
+    const bP = PRIORITY_WEIGHTS[(b.priority || '').toUpperCase()] || 0;
+    result = aP - bP;
+  } else if (field === 'status') {
+    const aS = STATUS_WEIGHTS[(a.status || '').toUpperCase().replace(/_/g, ' ')] || 0;
+    const bS = STATUS_WEIGHTS[(b.status || '').toUpperCase().replace(/_/g, ' ')] || 0;
+    result = aS - bS;
+  }
+
+  if (result !== 0) {
+    return direction === 'desc' ? -result : result;
+  }
+
+  // Deterministic secondary tie-breaker: newest date first, then ID
+  const aDate = new Date(a.date || a.timestamp || 0).getTime();
+  const bDate = new Date(b.date || b.timestamp || 0).getTime();
+  if (aDate !== bDate) return bDate - aDate;
+  return String(a.id).localeCompare(String(b.id));
+}
+
+/**
+ * Filter an array of reports based on standard multi-dimensional criteria
  */
 export function filterReports(reports = [], filters = {}) {
   const {
     search = '',
     siteId = 'ALL',
     riskLevel = 'ALL',
+    priority = 'ALL',
+    status = 'ALL',
     hazard = 'ALL',
     activity = 'ALL',
     datePreset = 'ALL',
     specificDate = '',
     startDate = '',
     endDate = '',
-    sort = 'newest', // 'newest' | 'oldest' | 'highest_risk'
+    sort = 'newest',
+    sortField = null,
+    sortDirection = null,
   } = filters;
 
   const today = parseDate(SIMULATED_TODAY) || new Date();
 
   const filtered = reports.filter((r) => {
-    // 1. Site Filter
+    // 1. Site Filter (Supports exact siteId, slugified kebab, exact name, or code)
     if (siteId && siteId !== 'ALL') {
-      const matchId = r.siteId === siteId;
-      const matchName = r.site && r.site.toLowerCase().replace(/\s+/g, '-') === siteId.toLowerCase();
-      const matchLiteral = r.site === siteId;
-      if (!matchId && !matchName && !matchLiteral) return false;
+      const norm = siteId.toLowerCase().trim();
+      const matchId = r.siteId && r.siteId.toLowerCase() === norm;
+      const matchKebab = r.site && r.site.toLowerCase().replace(/\s+/g, '-') === norm;
+      const matchSite = r.site && r.site.toLowerCase() === norm;
+      const matchSiteName = r.siteName && r.siteName.toLowerCase() === norm;
+      const matchCode = r.siteCode && r.siteCode.toLowerCase() === norm;
+      if (!matchId && !matchKebab && !matchSite && !matchSiteName && !matchCode) return false;
     }
 
     // 2. Risk Filter
@@ -91,17 +190,29 @@ export function filterReports(reports = [], filters = {}) {
       if (r.risk_level !== riskLevel) return false;
     }
 
-    // 3. Hazard Filter
+    // 3. Priority Filter
+    if (priority && priority !== 'ALL') {
+      const targetP = priority.toUpperCase();
+      if ((r.priority || '').toUpperCase() !== targetP) return false;
+    }
+
+    // 4. Status Filter
+    if (status && status !== 'ALL') {
+      const targetS = status.toUpperCase().replace(/_/g, ' ');
+      if ((r.status || '').toUpperCase() !== targetS) return false;
+    }
+
+    // 5. Hazard Filter
     if (hazard && hazard !== 'ALL') {
       if (r.hazard !== hazard) return false;
     }
 
-    // 4. Activity Filter
+    // 6. Activity Filter
     if (activity && activity !== 'ALL') {
       if (r.activity !== activity) return false;
     }
 
-    // 5. Date Filter
+    // 7. Date Filter
     const rDate = parseDate(r.date || r.timestamp);
     if (rDate) {
       if (datePreset === 'TODAY') {
@@ -131,7 +242,7 @@ export function filterReports(reports = [], filters = {}) {
       }
     }
 
-    // 6. Search across Report ID, Hazard, Activity, Location, Site, Text Snippet, Full Text, Barrier Failure
+    // 8. Search across Report ID, Hazard, Activity, Location, Site, Text Snippet, Full Text, Barrier Failure
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
       const code = formatReportCode(r.id).toLowerCase();
@@ -163,25 +274,66 @@ export function filterReports(reports = [], filters = {}) {
     return true;
   });
 
-  // Sorting
-  return filtered.sort((a, b) => {
-    const aDate = new Date(a.date || a.timestamp || 0).getTime();
-    const bDate = new Date(b.date || b.timestamp || 0).getTime();
+  // Resolve sort field & direction
+  let finalField = sortField;
+  let finalDirection = sortDirection;
 
-    if (sort === 'highest_risk') {
-      const aWeight = RISK_WEIGHTS[a.risk_level] || 0;
-      const bWeight = RISK_WEIGHTS[b.risk_level] || 0;
-      if (aWeight !== bWeight) return bWeight - aWeight;
-      return bDate - aDate;
+  if (!finalField) {
+    if (sort === 'newest') {
+      finalField = 'date';
+      finalDirection = 'desc';
+    } else if (sort === 'oldest') {
+      finalField = 'date';
+      finalDirection = 'asc';
+    } else if (sort === 'highest_risk') {
+      finalField = 'risk';
+      finalDirection = 'desc';
+    } else if (sort === 'lowest_risk') {
+      finalField = 'risk';
+      finalDirection = 'asc';
+    } else if (sort === 'priority' || sort === 'priority_desc') {
+      finalField = 'priority';
+      finalDirection = 'desc';
+    } else if (sort === 'priority_asc') {
+      finalField = 'priority';
+      finalDirection = 'asc';
+    } else if (sort === 'site_asc') {
+      finalField = 'site';
+      finalDirection = 'asc';
+    } else if (sort === 'site_desc') {
+      finalField = 'site';
+      finalDirection = 'desc';
+    } else if (sort === 'id_asc') {
+      finalField = 'id';
+      finalDirection = 'asc';
+    } else if (sort === 'id_desc') {
+      finalField = 'id';
+      finalDirection = 'desc';
+    } else if (sort === 'hazard_asc') {
+      finalField = 'hazard';
+      finalDirection = 'asc';
+    } else if (sort === 'hazard_desc') {
+      finalField = 'hazard';
+      finalDirection = 'desc';
+    } else if (sort === 'activity_asc') {
+      finalField = 'activity';
+      finalDirection = 'asc';
+    } else if (sort === 'activity_desc') {
+      finalField = 'activity';
+      finalDirection = 'desc';
+    } else if (sort === 'status' || sort === 'status_desc') {
+      finalField = 'status';
+      finalDirection = 'desc';
+    } else if (sort === 'status_asc') {
+      finalField = 'status';
+      finalDirection = 'asc';
+    } else {
+      finalField = 'default';
+      finalDirection = 'desc';
     }
+  }
 
-    if (sort === 'oldest') {
-      return aDate - bDate;
-    }
-
-    // Default 'newest'
-    return bDate - aDate;
-  });
+  return filtered.sort((a, b) => compareReports(a, b, finalField, finalDirection || 'desc'));
 }
 
 /**

@@ -11,6 +11,7 @@ import Admin from './pages/Admin';
 import ReportDetail from './pages/ReportDetail';
 import SiteComparison from './pages/SiteComparison';
 import HazardComparison from './pages/HazardComparison';
+import ReviewQueue from './pages/ReviewQueue';
 
 export default function App() {
   return (
@@ -21,10 +22,13 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/submit" element={<SubmitReport />} />
           <Route path="/analyze" element={<Navigate to="/submit" replace />} />
+          <Route path="/review" element={<ReviewQueue />} />
+          <Route path="/review-queue" element={<Navigate to="/review" replace />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/:reportId" element={<ReportDetail />} />
           <Route path="/sites" element={<Sites />} />
           <Route path="/sites/compare" element={<SiteComparison />} />
+          <Route path="/compare" element={<Navigate to="/sites/compare" replace />} />
           <Route path="/sites/:siteId" element={<SiteDetail />} />
           <Route path="/compare/hazard" element={<HazardComparison />} />
           <Route path="/settings" element={<Settings />} />

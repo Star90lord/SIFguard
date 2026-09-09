@@ -13,11 +13,11 @@ export default function KpiCard({
   onClick,
 }) {
   const accentStyles = {
-    default: 'border-slate-200 bg-white hover:border-slate-300',
-    green: 'border-slate-200 bg-white hover:border-emerald-300',
-    amber: 'border-slate-200 bg-white hover:border-amber-300',
-    orange: 'border-slate-200 bg-white hover:border-orange-300',
-    red: 'border-red-200 bg-red-50/20 hover:border-red-300',
+    default: 'border-slate-300 bg-white hover:border-slate-400',
+    green: 'border-slate-300 bg-white hover:border-emerald-300',
+    amber: 'border-slate-300 bg-white hover:border-amber-300',
+    orange: 'border-slate-300 bg-white hover:border-orange-300',
+    red: 'border-red-300 bg-red-50/20 hover:border-red-400',
   };
 
   const pipStyles = {
@@ -31,15 +31,15 @@ export default function KpiCard({
   return (
     <div
       onClick={onClick}
-      className={`p-4 sm:p-4.5 rounded-xl border transition-all duration-150 shadow-2xs ${
+      className={`p-4 sm:p-4.5 rounded-xl border transition-all duration-150 shadow-sm ${
         accentStyles[variant] || accentStyles.default
-      } ${highlight ? 'ring-1 ring-red-300/80 shadow-xs' : ''} ${
-        onClick ? 'cursor-pointer' : ''
+      } ${highlight ? 'ring-1 ring-red-300/80 shadow-sm' : ''} ${
+        onClick ? 'cursor-pointer hover:shadow-md' : ''
       } ${className}`}
     >
       {/* Label & Indicator Pip */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] truncate">
           {label}
         </span>
         <span
@@ -52,7 +52,7 @@ export default function KpiCard({
 
       {/* Value (24–32px) */}
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl sm:text-[28px] font-bold font-mono tracking-tight text-slate-900 leading-none">
+        <span className="text-2xl sm:text-[28px] font-bold font-mono tracking-tight text-[#0F172A] leading-none">
           {value}
         </span>
 

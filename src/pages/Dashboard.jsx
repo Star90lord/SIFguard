@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Layers,
   ArrowUpRight,
+  ClipboardCheck,
 } from 'lucide-react';
 import {
   BarChart,
@@ -36,7 +37,7 @@ import { DashboardSkeleton } from '../components/ui/Skeleton';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
-import { getSites, getReports } from '../api/sifguardApi';
+import { getSites, getReports, getActionSummary } from '../api/sifguardApi';
 import {
   filterReports,
   getReportSummary,
@@ -128,9 +129,38 @@ export default function Dashboard() {
   const [trendGranularity, setTrendGranularity] = useState('DAILY');
   const [trendSpecificDate, setTrendSpecificDate] = useState('2026-09-09');
 
+  // HSE Action Tracking Summary state
+  const [actionSummary, setActionSummary] = useState({
+    total: 0,
+    open: 0,
+    inProgress: 0,
+    pendingVerification: 0,
+    closed: 0,
+    priorities: {
+      immediate: 0,
+      priority: 0,
+      standard: 0,
+    },
+  });
+
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  // Update actions summary whenever selected site changes
+  useEffect(() => {
+    async function updateActions() {
+      try {
+        const actionsData = await getActionSummary(selectedSite);
+        if (actionsData) {
+          setActionSummary(actionsData);
+        }
+      } catch (err) {
+        console.error('Failed to update action summary:', err);
+      }
+    }
+    updateActions();
+  }, [selectedSite]);
 
   // Sync URL params when state changes
   useEffect(() => {
@@ -144,12 +174,16 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [siteData, reportsData] = await Promise.all([
+      const [siteData, reportsData, actionsData] = await Promise.all([
         getSites(),
         getReports(),
+        getActionSummary(selectedSite),
       ]);
       setSites(siteData || []);
       setAllReports(reportsData || []);
+      if (actionsData) {
+        setActionSummary(actionsData);
+      }
     } catch (err) {
       setError(err.message || 'Unable to retrieve safety metrics.');
     } finally {
@@ -273,17 +307,17 @@ export default function Dashboard() {
     <AppShell title="Safety Intelligence" subtitle="Executive Dashboard">
       <PageContainer className="space-y-6">
         {/* 1. DASHBOARD HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3 border-b border-slate-300">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 tracking-[0.08em]">
                 Oil India Limited HSE Operations
               </span>
             </div>
-            <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+            <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-none">
               Safety Intelligence Dashboard
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 font-normal">
+            <p className="text-sm text-[#475569] mt-1.5 font-normal">
               Monitor emerging safety risks and SIF precursor signals across operational sites.
             </p>
           </div>
@@ -291,13 +325,13 @@ export default function Dashboard() {
           {/* Controls: Site Selector & Time Selector */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Site Scope Selector */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
-              <Building2 size={14} className="text-blue-600" />
-              <span>Site:</span>
+            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-[#334155] shadow-sm hover:border-slate-400 transition-colors">
+              <Building2 size={14} className="text-blue-600 shrink-0" />
+              <span className="text-[#475569] font-bold">Site:</span>
               <select
                 value={selectedSite}
                 onChange={(e) => setSelectedSite(e.target.value)}
-                className="bg-transparent font-medium text-slate-900 border-none outline-none cursor-pointer pr-1"
+                className="bg-transparent font-semibold text-[#0F172A] border-none outline-none cursor-pointer pr-1 min-w-0"
                 aria-label="Filter site scope"
               >
                 <option value="ALL">All Sites</option>
@@ -310,13 +344,13 @@ export default function Dashboard() {
             </div>
 
             {/* Time Selector */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
-              <Calendar size={14} className="text-slate-400" />
-              <span>Time:</span>
+            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-[#334155] shadow-sm hover:border-slate-400 transition-colors">
+              <Calendar size={14} className="text-blue-500 shrink-0" />
+              <span className="text-[#475569] font-bold">Time:</span>
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="bg-transparent font-medium text-slate-900 border-none outline-none cursor-pointer pr-1"
+                className="bg-transparent font-semibold text-[#0F172A] border-none outline-none cursor-pointer pr-1"
                 aria-label="Filter time range"
               >
                 <option value="TODAY">Today</option>
@@ -342,8 +376,8 @@ export default function Dashboard() {
 
         {/* Conditional Custom Date Range Bar */}
         {timeRange === 'CUSTOM' && (
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 text-xs">
-            <span className="font-semibold text-slate-700">Custom Period:</span>
+          <div className="p-3 bg-white border border-slate-300 rounded-xl flex items-center gap-3 text-xs shadow-sm">
+            <span className="font-bold text-[#334155]">Custom Period:</span>
             <div className="flex items-center gap-2">
               <span className="text-slate-400">From</span>
               <input
@@ -366,13 +400,13 @@ export default function Dashboard() {
         )}
 
         {/* CONTEXT BAR */}
-        <div className="p-3.5 rounded-xl bg-slate-100/90 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div className="flex flex-wrap items-center gap-3 text-slate-700 font-medium">
+        <div className="p-3.5 rounded-xl bg-white border border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+              <span className="text-[#94A3B8] uppercase text-[10px] font-bold tracking-wider">
                 Scope:
               </span>
-              <strong className="text-slate-900 font-bold">
+              <strong className="text-[#0F172A] font-bold">
                 {currentSiteObj ? `${currentSiteObj.name} (${currentSiteObj.location})` : 'All Operational Sites'}
               </strong>
             </div>
@@ -380,23 +414,23 @@ export default function Dashboard() {
             <span className="text-slate-300">|</span>
 
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+              <span className="text-[#94A3B8] uppercase text-[10px] font-bold tracking-wider">
                 Period:
               </span>
-              <span className="text-slate-800 font-semibold font-mono">{periodLabel}</span>
+              <span className="text-[#1e293b] font-semibold font-mono">{periodLabel}</span>
             </div>
           </div>
 
-          <div className="text-[11px] font-mono text-slate-500">
+          <div className="text-[11px] font-mono text-[#64748B] font-medium">
             {totalReports} observations evaluated
             {currentSiteObj ? ` · Health: ${currentSiteObj.healthStatus}` : ` across ${sitesReportingCount} facilities`}
           </div>
         </div>
 
         {/* ENHANCEMENT 5: EXECUTIVE SAFETY BRIEF */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4.5 sm:p-5 shadow-2xs space-y-3.5">
+        <div className="rounded-xl border border-slate-300 bg-white p-4.5 sm:p-5 shadow-sm space-y-3.5">
           {/* Header & Metrics Snapshot */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2.5">
               <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200 text-[10px] font-bold font-mono uppercase tracking-wider">
                 Executive Safety Brief
@@ -429,21 +463,21 @@ export default function Dashboard() {
                   <AlertOctagon size={13} className="text-rose-600" />
                   <span>Priority Safety Signal</span>
                 </span>
-                <p className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
+                <p className="text-xs sm:text-[13px] text-[#334155] font-medium leading-relaxed">
                   {executiveBrief.prioritySignal}
                 </p>
               </div>
 
               {/* Center: Recommended Focus */}
-              <div className="md:col-span-4 space-y-1.5 border-t md:border-t-0 md:border-l border-slate-100 pt-2 md:pt-0 md:pl-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+              <div className="md:col-span-4 space-y-1.5 border-t md:border-t-0 md:border-l border-slate-200 pt-2 md:pt-0 md:pl-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">
                   Recommended Operational Focus
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {executiveBrief.recommendedFocus.map((focus, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-medium leading-none"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-300 text-[#334155] text-[11px] font-medium leading-none"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
                       <span>{focus}</span>
@@ -479,19 +513,21 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* 2. EXECUTIVE KPI STRIP */}
+        {/* 2. EXECUTIVE KPI STRIP (WITH DRILL-DOWNS) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           <MetricCard
             label="Total Reports"
             value={totalReports}
             indicator={currentSiteObj ? `Scoped to ${currentSiteObj.name}` : `${sitesReportingCount} sites active`}
             color="default"
+            onClick={() => navigate(selectedSite === 'ALL' ? '/reports' : `/reports?site=${selectedSite}`)}
           />
           <MetricCard
             label="High Risk"
             value={highCount}
             indicator={`${totalReports > 0 ? Math.round((highCount / totalReports) * 100) : 0}% of evaluated events`}
             color="orange"
+            onClick={() => navigate(selectedSite === 'ALL' ? '/reports?risk=High' : `/reports?risk=High&site=${selectedSite}`)}
           />
           <MetricCard
             label="SIF Precursors"
@@ -499,31 +535,207 @@ export default function Dashboard() {
             indicator={sifCount > 0 ? 'Urgent precursor action' : 'Zero detected in period'}
             color="red"
             highlight={sifCount > 0}
+            onClick={() => navigate(selectedSite === 'ALL' ? '/reports?risk=SIF-Precursor' : `/reports?risk=SIF-Precursor&site=${selectedSite}`)}
           />
           <MetricCard
             label="Sites Reporting"
             value={sitesReportingCount}
             indicator={selectedSite === 'ALL' ? 'Company-wide operations' : 'Single site focus'}
             color="default"
+            onClick={() => navigate('/sites')}
           />
         </div>
 
+        {/* 2.5 COMPACT ACTION STATUS SUMMARY (FEATURE 7) */}
+        <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <ClipboardCheck size={16} className="text-blue-600 shrink-0" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#334155]">
+                Action Status
+              </h3>
+              <span className="text-xs text-[#94A3B8] font-normal hidden sm:inline truncate">
+                Operational safety response & interventions
+              </span>
+            </div>
+            <Link
+              to="/review"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline"
+            >
+              <span>Go to Review Queue</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Open */}
+            <div
+              onClick={() => navigate('/review?status=OPEN')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate('/review?status=OPEN');
+                }
+              }}
+              className="p-3 bg-slate-50/80 hover:bg-amber-50/70 border border-slate-300 hover:border-amber-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              title="Filter Review Queue: Open actions"
+            >
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-amber-800">
+                <span>Open</span>
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+              </div>
+              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-amber-900">
+                {actionSummary.open}
+              </div>
+              <div className="text-[11px] text-[#94A3B8] group-hover:text-amber-700 font-medium">
+                Requires assignment &rarr;
+              </div>
+            </div>
+
+            {/* In Progress */}
+            <div
+              onClick={() => navigate('/review?status=IN_PROGRESS')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate('/review?status=IN_PROGRESS');
+                }
+              }}
+              className="p-3 bg-slate-50/80 hover:bg-blue-50/70 border border-slate-300 hover:border-blue-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              title="Filter Review Queue: In Progress actions"
+            >
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-blue-800">
+                <span>In Progress</span>
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+              </div>
+              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-blue-900">
+                {actionSummary.inProgress}
+              </div>
+              <div className="text-[11px] text-[#94A3B8] group-hover:text-blue-700 font-medium">
+                Active remediation &rarr;
+              </div>
+            </div>
+
+            {/* Pending Verification */}
+            <div
+              onClick={() => navigate('/review?status=PENDING_VERIFICATION')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate('/review?status=PENDING_VERIFICATION');
+                }
+              }}
+              className="p-3 bg-slate-50/80 hover:bg-sky-50/70 border border-slate-300 hover:border-sky-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              title="Filter Review Queue: Pending Verification"
+            >
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-sky-800">
+                <span>Pending Verification</span>
+                <span className="w-2 h-2 rounded-full bg-sky-500" />
+              </div>
+              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-sky-900">
+                {actionSummary.pendingVerification}
+              </div>
+              <div className="text-[11px] text-[#94A3B8] group-hover:text-sky-700 font-medium">
+                Awaiting sign-off &rarr;
+              </div>
+            </div>
+
+            {/* Closed */}
+            <div
+              onClick={() => navigate('/review?status=CLOSED')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate('/review?status=CLOSED');
+                }
+              }}
+              className="p-3 bg-slate-50/80 hover:bg-emerald-50/70 border border-slate-300 hover:border-emerald-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              title="Filter Review Queue: Closed actions"
+            >
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-emerald-800">
+                <span>Closed</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              </div>
+              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-emerald-900">
+                {actionSummary.closed}
+              </div>
+              <div className="text-[11px] text-[#94A3B8] group-hover:text-emerald-700 font-medium">
+                Verified & resolved &rarr;
+              </div>
+            </div>
+          </div>
+
+          {/* Priority Breakdown Strip */}
+          <div className="pt-2.5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+            <div className="flex items-center gap-1.5 text-[#475569] font-semibold">
+              <AlertOctagon size={13} className="text-slate-400 shrink-0" />
+              <span>Priority Breakdown:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/review?priority=IMMEDIATE')}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 hover:bg-rose-100/80 text-rose-800 border border-rose-200/80 transition-colors font-semibold text-xs cursor-pointer"
+                title="View Immediate priority reports in Review Queue"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                <span>Immediate</span>
+                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded border border-rose-200 text-rose-900 ml-0.5 text-[11px]">
+                  {actionSummary.priorities?.immediate ?? 0}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/review?priority=PRIORITY')}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100/80 text-amber-800 border border-amber-200/80 transition-colors font-semibold text-xs cursor-pointer"
+                title="View Priority reports in Review Queue"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span>Priority</span>
+                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded border border-amber-200 text-amber-900 ml-0.5 text-[11px]">
+                  {actionSummary.priorities?.priority ?? 0}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/review?priority=STANDARD')}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors font-semibold text-xs cursor-pointer"
+                title="View Standard priority reports in Review Queue"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                <span>Standard</span>
+                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded border border-slate-200 text-slate-800 ml-0.5 text-[11px]">
+                  {actionSummary.priorities?.standard ?? 0}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* 3. REQUIRES ATTENTION / PRIORITY SECTION */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3.5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <div className="flex items-center gap-2">
-              <ShieldAlert size={18} className="text-rose-600" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+        <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-sm space-y-3.5">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 gap-3">
+            <div className="flex items-start gap-2 min-w-0">
+              <ShieldAlert size={18} className="text-rose-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
                   Requires Attention
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#64748B]">
                   Prioritized precursor and high-severity signals requiring operational intervention.
                 </p>
               </div>
             </div>
 
-            <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
+            <span className="text-xs font-mono font-bold text-[#334155] bg-slate-100 border border-slate-300 px-2.5 py-0.5 rounded shrink-0">
               {attentionReports.length} Priority Items
             </span>
           </div>
@@ -538,33 +750,33 @@ export default function Dashboard() {
                 <div
                   key={item.id}
                   onClick={() => setSelectedReport(item)}
-                  className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 hover:border-slate-300 transition-colors cursor-pointer space-y-2 group"
+                  className="p-3.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 transition-colors cursor-pointer space-y-2 group shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <RiskBadge level={item.risk_level} size="sm" />
-                    <span className="font-mono text-[11px] text-slate-500 font-medium">
+                    <span className="font-mono text-[11px] text-[#64748B] font-medium shrink-0">
                       {formatDateTime(item)}
                     </span>
                   </div>
 
                   <div className="space-y-0.5">
-                    <p className="font-bold text-xs text-slate-900 truncate flex items-center gap-1">
-                      <Building2 size={11} className="text-slate-400" />
-                      <span>{item.site || item.siteName}</span>
+                    <p className="font-bold text-xs text-[#0F172A] truncate flex items-center gap-1">
+                      <Building2 size={11} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{item.site || item.siteName}</span>
                     </p>
-                    <p className="text-xs font-semibold text-slate-800">
-                      {item.hazard} · <span className="text-slate-600 font-normal">{item.activity}</span>
+                    <p className="text-xs font-semibold text-[#334155]">
+                      {item.hazard} · <span className="text-[#475569] font-normal">{item.activity}</span>
                     </p>
                   </div>
 
                   {item.barrier_failure && item.barrier_failure !== 'None' && (
-                    <p className="text-[11px] text-rose-800 font-medium truncate pt-1 border-t border-slate-200/60">
+                    <p className="text-[11px] text-rose-700 font-medium truncate pt-1 border-t border-slate-200">
                       Barrier: {item.barrier_failure}
                     </p>
                   )}
 
                   <div className="flex items-center justify-between text-[11px] text-blue-600 font-semibold pt-0.5">
-                    <span className="font-mono text-slate-400">{formatReportCode(item.id)}</span>
+                    <span className="font-mono text-[#94A3B8]">{formatReportCode(item.id)}</span>
                     <span className="flex items-center gap-0.5 group-hover:underline">
                       Inspect <ChevronRight size={11} />
                     </span>
@@ -576,21 +788,21 @@ export default function Dashboard() {
         </div>
 
         {/* 4. RISK TREND SECTION */}
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
+        <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-2.5">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[#0F172A] tracking-tight flex items-center gap-2">
                 <BarChart3 size={16} className="text-blue-600" />
                 <span>Risk Trend</span>
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-[#64748B] mt-0.5">
                 Timeline distribution of safety observations by severity classification.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               {/* Compact Granularity Selector */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-[#334155] shadow-sm hover:border-slate-400 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
                 <label htmlFor="risk-trend-granularity" className="sr-only">
                   Risk Trend Time Granularity
                 </label>
@@ -612,7 +824,7 @@ export default function Dashboard() {
 
               {/* Specific Date Picker Input */}
               {trendGranularity === 'SPECIFIC_DATE' && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700 shadow-2xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-[#334155] shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
                   <label htmlFor="risk-trend-date" className="sr-only">
                     Select Specific Date
                   </label>
@@ -629,7 +841,7 @@ export default function Dashboard() {
               )}
 
               {/* Dynamic Total Events */}
-              <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200/60 shrink-0">
+              <span className="text-xs font-mono font-bold text-[#334155] bg-slate-100 px-2.5 py-1 rounded-md border border-slate-300 shrink-0">
                 {trendTotalEvents} Total Events
               </span>
             </div>
@@ -685,13 +897,13 @@ export default function Dashboard() {
 
         {/* 5. SITE RISK OVERVIEW (When All Sites is Selected) */}
         {selectedSite === 'ALL' && (
-          <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
                   Site Risk Overview
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#64748B] mt-0.5">
                   Comparative breakdown of active facilities, calculated health index, and precursor density.
                 </p>
               </div>
@@ -707,7 +919,7 @@ export default function Dashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <tr className="border-b border-slate-300 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
                     <th className="py-2.5 px-3">Site</th>
                     <th className="py-2.5 px-3">Health Status</th>
                     <th className="py-2.5 px-3">Reports</th>
@@ -716,22 +928,22 @@ export default function Dashboard() {
                     <th className="py-2.5 px-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-200">
                   {siteRiskList.map((st) => (
                     <tr
                       key={st.id}
                       onClick={() => navigate(`/sites/${st.id}`)}
-                      className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                      className="hover:bg-slate-50 transition-colors cursor-pointer group"
                     >
-                      <td className="py-3 px-3 font-semibold text-slate-900 flex items-center gap-2">
-                        <Building2 size={13} className="text-slate-400 group-hover:text-blue-600" />
+                      <td className="py-3 px-3 font-semibold text-[#0F172A] flex items-center gap-2">
+                        <Building2 size={13} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
                         <span>{st.name}</span>
-                        <span className="text-slate-400 font-normal">({st.location})</span>
+                        <span className="text-[#94A3B8] font-normal">({st.location})</span>
                       </td>
                       <td className="py-3 px-3">
                         <SiteHealthBadge status={st.healthStatus} size="sm" />
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-slate-700">
+                      <td className="py-3 px-3 font-mono font-bold text-[#334155]">
                         {st.totalReports}
                       </td>
                       <td className="py-3 px-3">
@@ -758,15 +970,15 @@ export default function Dashboard() {
         )}
 
         {/* 6. SIF PRECURSOR SIGNALS SECTION */}
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <div className="flex items-center gap-2">
-              <AlertOctagon size={16} className="text-rose-600" />
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+        <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertOctagon size={16} className="text-rose-600 shrink-0" />
+              <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
                 SIF Precursor Signals — {sifPrecursorReports.length} Detected
               </h3>
             </div>
-            <span className="text-xs font-semibold text-rose-700">
+            <span className="text-xs font-semibold text-rose-700 shrink-0">
               Critical Life-Safety Alerts
             </span>
           </div>
@@ -783,25 +995,25 @@ export default function Dashboard() {
                 <div
                   key={sif.id}
                   onClick={() => setSelectedReport(sif)}
-                  className="p-3.5 rounded-lg border border-rose-200 bg-rose-50/40 hover:bg-rose-50/80 transition-colors cursor-pointer space-y-2 group"
+                  className="p-3.5 rounded-lg border border-rose-200 bg-rose-50/50 hover:bg-rose-50 hover:border-rose-300 transition-colors cursor-pointer space-y-2 group shadow-sm"
                 >
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono font-bold text-rose-950">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-mono font-bold text-rose-900 shrink-0">
                       {formatDateTime(sif)}
                     </span>
                     <RiskBadge level={sif.risk_level} size="sm" />
                   </div>
 
                   <div className="text-xs space-y-0.5">
-                    <p className="font-bold text-slate-900">{sif.site || sif.siteName}</p>
-                    <p className="text-slate-700 font-semibold">{sif.hazard} · {sif.activity}</p>
-                    <p className="text-rose-900 font-medium text-[11px] pt-0.5">
+                    <p className="font-bold text-[#0F172A]">{sif.site || sif.siteName}</p>
+                    <p className="text-[#334155] font-semibold">{sif.hazard} · {sif.activity}</p>
+                    <p className="text-rose-800 font-medium text-[11px] pt-0.5">
                       Barrier: {sif.barrier_failure || 'Defect'}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-rose-700 font-semibold pt-1 border-t border-rose-100">
-                    <span className="font-mono text-slate-400">{formatReportCode(sif.id)}</span>
+                  <div className="flex items-center justify-between text-[11px] text-rose-700 font-semibold pt-1 border-t border-rose-200">
+                    <span className="font-mono text-[#94A3B8]">{formatReportCode(sif.id)}</span>
                     <span className="flex items-center gap-0.5 group-hover:underline">
                       Inspect <ChevronRight size={11} />
                     </span>
@@ -815,13 +1027,13 @@ export default function Dashboard() {
         {/* 7 & 8. TOP HAZARDS & RISK BY ACTIVITY (2-Column Grid) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Top Recurring Hazards */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3.5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div>
-                <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                <h4 className="text-sm font-bold text-[#0F172A] tracking-tight">
                   Top Recurring Hazards
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#64748B] mt-0.5">
                   Click any hazard to investigate related safety reports.
                 </p>
               </div>
@@ -836,10 +1048,10 @@ export default function Dashboard() {
                   className="space-y-1 group cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">
+                    <span className="font-semibold text-[#334155] group-hover:text-blue-600 transition-colors">
                       {h.hazard}
                     </span>
-                    <span className="font-mono text-slate-600 font-bold">
+                    <span className="font-mono text-[#475569] font-bold">
                       {h.count} ({h.percentage}%)
                     </span>
                   </div>
@@ -855,13 +1067,13 @@ export default function Dashboard() {
           </div>
 
           {/* Risk by Operational Activity */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3.5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div>
-                <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                <h4 className="text-sm font-bold text-[#0F172A] tracking-tight">
                   Risk by Operational Activity
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#64748B] mt-0.5">
                   Task categories associated with reported risk events.
                 </p>
               </div>
@@ -876,10 +1088,10 @@ export default function Dashboard() {
                   className="space-y-1 group cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">
+                    <span className="font-semibold text-[#334155] group-hover:text-blue-600 transition-colors">
                       {act.activity}
                     </span>
-                    <span className="font-mono text-slate-600 font-bold">
+                    <span className="font-mono text-[#475569] font-bold">
                       {act.count} ({act.percentage}%)
                     </span>
                   </div>
@@ -896,13 +1108,13 @@ export default function Dashboard() {
         </div>
 
         {/* 9. RECURRING BARRIER FAILURES (Differentiator) */}
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3.5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <div>
-              <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+        <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3.5">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-3">
+            <div className="min-w-0">
+              <h4 className="text-sm font-bold text-[#0F172A] tracking-tight">
                 Recurring Barrier Failures
               </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-[#64748B] mt-0.5">
                 Identified breaches in procedural, mechanical, or physical safeguards with risk associations.
               </p>
             </div>
@@ -915,20 +1127,30 @@ export default function Dashboard() {
             {scopedSummary.barrierFailures.map((bf) => (
               <div
                 key={bf.barrier}
-                className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-1.5"
+                onClick={() => navigate('/reports')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/reports');
+                  }
+                }}
+                className="p-3.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 transition-colors cursor-pointer space-y-1.5 group shadow-sm"
+                title="Investigate safety reports with barrier failures"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 truncate">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-[#0F172A] truncate">
                     {bf.barrier}
                   </span>
-                  <span className="font-mono font-bold text-xs text-slate-800 bg-white border border-slate-200 px-1.5 py-0.2 rounded">
+                  <span className="font-mono font-bold text-xs text-[#334155] bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded shrink-0">
                     {bf.count}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-500 flex items-center justify-between">
+                <div className="text-[11px] text-[#64748B] flex items-center justify-between">
                   <span>Risk Severity:</span>
-                  <strong className="text-slate-800 font-semibold font-mono">
+                  <strong className="text-[#334155] font-semibold font-mono">
                     {bf.riskAssociation}
                   </strong>
                 </div>
@@ -945,11 +1167,11 @@ export default function Dashboard() {
         </div>
 
         {/* 10. RECENT SAFETY ACTIVITY FEED */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-blue-600" />
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
                 Recent Safety Activity
               </h3>
             </div>
@@ -968,16 +1190,16 @@ export default function Dashboard() {
               <div
                 key={r.id}
                 onClick={() => setSelectedReport(r)}
-                className="px-5 py-3 hover:bg-slate-50/80 transition-colors cursor-pointer flex items-center justify-between gap-4 group"
+                className="px-5 py-3 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-between gap-4 group"
               >
                 {/* Date / Time */}
-                <div className="w-36 shrink-0 font-mono text-xs text-slate-500 font-medium">
+                <div className="w-36 shrink-0 font-mono text-xs text-[#64748B] font-medium">
                   {formatDateTime(r)}
                 </div>
 
                 {/* Site */}
-                <div className="w-32 shrink-0 font-semibold text-xs text-slate-800 flex items-center gap-1">
-                  <Building2 size={12} className="text-slate-400" />
+                <div className="w-32 shrink-0 font-semibold text-xs text-[#334155] flex items-center gap-1">
+                  <Building2 size={12} className="text-slate-400 shrink-0" />
                   <span className="truncate">{r.site || r.siteName}</span>
                 </div>
 
@@ -987,9 +1209,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* Hazard & Activity */}
-                <div className="min-w-0 flex-1 truncate text-xs text-slate-700">
-                  <strong className="text-slate-900">{r.hazard}</strong>
-                  <span className="text-slate-400 mx-1.5">·</span>
+                <div className="min-w-0 flex-1 truncate text-xs text-[#475569]">
+                  <strong className="text-[#0F172A]">{r.hazard}</strong>
+                  <span className="text-[#94A3B8] mx-1.5">·</span>
                   <span>{r.activity}</span>
                 </div>
 

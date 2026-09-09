@@ -17,7 +17,6 @@ import {
   ExternalLink,
   ShieldAlert,
   Layers,
-  Sparkles,
 } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';

@@ -34,20 +34,38 @@ export default function MetricCard({
   indicator,
   color = 'default',
   highlight = false,
+  onClick,
+  className = '',
 }) {
   const style = ACCENT_STYLES[color] || ACCENT_STYLES.default;
+  const isClickable = Boolean(onClick);
 
   return (
     <div
+      onClick={onClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={
+        isClickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={`bg-white border rounded-xl p-4 sm:p-5 transition-all duration-150 relative overflow-hidden flex flex-col justify-between ${
         highlight
-          ? 'border-red-200 shadow-xs ring-1 ring-red-500/10'
-          : 'border-slate-200 shadow-2xs hover:border-slate-300'
-      }`}
+          ? 'border-red-300 shadow-sm ring-1 ring-red-500/15'
+          : 'border-slate-300 shadow-sm hover:border-slate-400'
+      } ${
+        isClickable ? 'cursor-pointer hover:border-blue-300 hover:shadow-md group' : ''
+      } ${className}`}
     >
       {/* Top indicator strip */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-blue-700 transition-colors">
           {label}
         </span>
         {color !== 'default' && (
@@ -57,17 +75,22 @@ export default function MetricCard({
 
       {/* Primary Value */}
       <div className="flex items-baseline gap-2 mb-2">
-        <span className="text-3xl font-bold tracking-tight text-slate-900">
+        <span className="text-3xl font-bold tracking-tight text-[#0F172A] group-hover:text-blue-900 transition-colors">
           {value}
         </span>
       </div>
 
       {/* Subtext / Context */}
       {indicator && (
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs text-slate-500 font-medium">
+        <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+          <span className="text-xs text-[#475569] font-medium">
             {indicator}
           </span>
+          {isClickable && (
+            <span className="text-[11px] text-blue-600 font-semibold group-hover:underline">
+              View &rarr;
+            </span>
+          )}
         </div>
       )}
     </div>

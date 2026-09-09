@@ -1,6 +1,7 @@
 # ==============================
 # Node.js
 # ==============================
+
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -18,6 +19,12 @@ pnpm-debug.log*
 
 # Keep an example environment file
 !.env.example
+.venv
+.SIFvenv
+!.venv.example
+!.SIFvenv.example
+.gitignore
+.gitignore.example
 
 # ==============================
 # Build / Production

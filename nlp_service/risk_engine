@@ -1,0 +1,349 @@
+from typing import List, Dict
+
+
+HAZARD_CATEGORIES = {
+    "gravity_height": {
+        "keywords": ["fall", "height", "elevation", "roof", "scaffold", "ladder",
+                     "fell", "dropped object", "overhead", "unguarded edge", "platform"],
+        "energy_level": 5,
+        "severity_label": "Catastrophic",
+    },
+    "mechanical_motion": {
+        "keywords": ["machine", "machinery", "rotating", "conveyor", "pinch point",
+                     "caught in", "caught between", "struck by", "moving parts",
+                     "crushed", "entanglement", "unguarded machine"],
+        "energy_level": 5,
+        "severity_label": "Catastrophic",
+    },
+    "mobile_equipment": {
+        "keywords": ["forklift", "crane", "vehicle", "truck", "traffic", "mobile equipment",
+                     "excavator", "loader", "collision", "run over", "backing", "reversing"],
+        "energy_level": 5,
+        "severity_label": "Catastrophic",
+    },
+    "electrical": {
+        "keywords": ["electrical", "voltage", "arc flash", "live wire", "energized",
+                     "shock", "electrocution", "exposed wiring"],
+        "energy_level": 5,
+        "severity_label": "Catastrophic",
+    },
+    "confined_space_excavation": {
+        "keywords": ["confined space", "trench", "excavation", "cave-in", "engulfment", "shoring"],
+        "energy_level": 5,
+        "severity_label": "Catastrophic",
+    },
+    "thermal": {
+        "keywords": ["fire", "explosion", "burn", "molten", "steam", "extreme heat",
+                     "extreme cold", "hot surface"],
+        "energy_level": 5,
+        "severity_label": "Catastrophic",
+    },
+    "chemical": {
+        "keywords": ["chemical", "toxic", "corrosive", "exposure", "spill", "fumes",
+                     "gas leak", "asphyxiant", "flammable", "explosive atmosphere", "hazmat"],
+        "energy_level": 4,
+        "severity_label": "Major",
+    },
+    "pressure": {
+        "keywords": ["pressure", "pressurized", "steam line", "hydraulic", "pneumatic",
+                     "compressed gas", "cylinder"],
+        "energy_level": 4,
+        "severity_label": "Major",
+    },
+    "biological": {
+        "keywords": ["biological", "infectious", "bloodborne", "pathogen"],
+        "energy_level": 3,
+        "severity_label": "Moderate",
+    },
+    "slip_trip_same_level": {
+        "keywords": ["slip", "trip", "uneven surface", "wet floor"],
+        "energy_level": 2,
+        "severity_label": "Minor",
+    },
+    "ergonomic": {
+        "keywords": ["manual handling", "lifting", "repetitive", "ergonomic", "noise", "vibration"],
+        "energy_level": 2,
+        "severity_label": "Minor",
+    },
+}
+
+DEFAULT_HAZARD = {"category": "unclassified", "energy_level": 3, "severity_label": "Moderate"}
+
+HIGH_ENERGY_THRESHOLD = 4
+
+
+BARRIER_TYPES = {
+    "engineering_control_failure": {
+        "keywords": ["guard", "interlock", "barricade", "ventilation", "machine guard",
+                     "safety device", "malfunction", "bypassed", "disabled", "missing guard"],
+        "weight": 3,
+        "control_class": "direct",
+    },
+    "administrative_control_failure": {
+        "keywords": ["permit", "lockout", "tagout", "loto", "procedure not followed",
+                     "training", "supervision", "checklist", "inspection skipped", "jsa not conducted"],
+        "weight": 2,
+        "control_class": "direct",
+    },
+    "ppe_failure": {
+        "keywords": ["ppe", "personal protective equipment", "helmet", "harness",
+                     "gloves", "goggles", "respirator", "not worn", "damaged ppe"],
+        "weight": 1,
+        "control_class": "indirect",
+    },
+}
+
+DEFAULT_BARRIER = {"control_type": "unclassified", "weight": 1, "control_class": "indirect"}
+DIRECT_CONTROL_THRESHOLD = 2
+
+
+ACTIVITY_FREQUENCY = {
+    "high": ["routine", "daily", "continuous", "repetitive", "standard operation", "every shift"],
+    "low": ["occasional", "non-routine", "one-time", "rare", "infrequent", "emergency"],
+}
+
+RISK_LEVEL_BANDS = [
+    (16, 25, "Critical"),
+    (10, 15, "High"),
+    (5, 9, "Medium"),
+    (1, 4, "Low"),
+]
+
+RISK_LEVEL_ORDER = {"Low": 0, "Medium": 1, "High": 2, "Critical": 3}
+
+
+def _match_category(text: str, table: dict, default: dict, key_field: str) -> dict:
+    lowered = text.lower()
+    for key, config in table.items():
+        if any(keyword in lowered for keyword in config["keywords"]):
+            result = dict(config)
+            result[key_field] = key
+            return result
+    result = dict(default)
+    result[key_field] = default.get(key_field, "unclassified")
+    return result
+
+
+def classify_hazard(text: str) -> dict:
+    match = _match_category(text, HAZARD_CATEGORIES, DEFAULT_HAZARD, "category")
+    return {
+        "text": text,
+        "category": match["category"],
+        "energy_level": match["energy_level"],
+        "severity_label": match["severity_label"],
+        "is_high_energy": match["energy_level"] >= HIGH_ENERGY_THRESHOLD,
+    }
+
+
+def classify_barrier_failure(text: str) -> dict:
+    match = _match_category(text, BARRIER_TYPES, DEFAULT_BARRIER, "control_type")
+    return {
+        "text": text,
+        "control_type": match["control_type"],
+        "weight": match["weight"],
+        "control_class": match["control_class"],
+        "is_direct_control_failure": match["weight"] >= DIRECT_CONTROL_THRESHOLD,
+    }
+
+
+def classify_activity(text: str) -> dict:
+    lowered = text.lower()
+    frequency = "medium"
+    if any(keyword in lowered for keyword in ACTIVITY_FREQUENCY["high"]):
+        frequency = "high"
+    elif any(keyword in lowered for keyword in ACTIVITY_FREQUENCY["low"]):
+        frequency = "low"
+    return {"text": text, "frequency": frequency}
+
+
+def calculate_severity(scored_hazards: List[dict]) -> dict:
+    if not scored_hazards:
+        return {"score": 1, "label": "Negligible", "driver": None}
+
+    dominant = max(scored_hazards, key=lambda hazard: hazard["energy_level"])
+    return {
+        "score": dominant["energy_level"],
+        "label": dominant["severity_label"],
+        "driver": dominant["text"],
+    }
+
+
+def calculate_likelihood(scored_activities: List[dict], scored_barriers: List[dict]) -> dict:
+    score = 3
+
+    frequencies = [activity["frequency"] for activity in scored_activities]
+    if "high" in frequencies:
+        score += 1
+    elif frequencies and all(freq == "low" for freq in frequencies):
+        score -= 1
+
+    total_weight = sum(barrier["weight"] for barrier in scored_barriers)
+    score += min(total_weight // 2, 3)
+
+    score = max(1, min(score, 5))
+
+    labels = {1: "Rare", 2: "Unlikely", 3: "Possible", 4: "Likely", 5: "Almost Certain"}
+    return {"score": score, "label": labels[score], "contributing_barrier_weight": total_weight}
+
+
+def determine_risk_level(risk_score: int) -> str:
+    for lower, upper, label in RISK_LEVEL_BANDS:
+        if lower <= risk_score <= upper:
+            return label
+    return "Low"
+
+
+def determine_sif_precursor(scored_hazards: List[dict], scored_barriers: List[dict]) -> dict:
+    high_energy_hazards = [h for h in scored_hazards if h["is_high_energy"]]
+    direct_failures = [b for b in scored_barriers if b["is_direct_control_failure"]]
+    indirect_failures = [b for b in scored_barriers if not b["is_direct_control_failure"]]
+
+    if not high_energy_hazards:
+        return {
+            "is_sif_precursor": False,
+            "classification": "Non-SIF",
+            "high_energy_hazards": [],
+            "control_failures": [],
+            "rationale": "No high-energy hazard identified in the report.",
+        }
+
+    if direct_failures:
+        return {
+            "is_sif_precursor": True,
+            "classification": "SIF Precursor - Direct Control Failure",
+            "high_energy_hazards": [h["text"] for h in high_energy_hazards],
+            "control_failures": [b["text"] for b in direct_failures],
+            "rationale": (
+                "High-energy hazard present alongside a failed or absent direct "
+                "(engineering/administrative) control."
+            ),
+        }
+
+    if indirect_failures:
+        return {
+            "is_sif_precursor": True,
+            "classification": "SIF Precursor - Indirect Control Failure",
+            "high_energy_hazards": [h["text"] for h in high_energy_hazards],
+            "control_failures": [b["text"] for b in indirect_failures],
+            "rationale": (
+                "High-energy hazard present with only a PPE-level control failure; "
+                "direct controls appear intact."
+            ),
+        }
+
+    return {
+        "is_sif_precursor": False,
+        "classification": "Potential SIF Exposure",
+        "high_energy_hazards": [h["text"] for h in high_energy_hazards],
+        "control_failures": [],
+        "rationale": "High-energy hazard present but no barrier failure identified; monitor controls.",
+    }
+
+
+def escalate_risk_level(matrix_level: str, sif_result: dict) -> str:
+    escalation_floor = "Low"
+    if sif_result["classification"] == "SIF Precursor - Direct Control Failure":
+        escalation_floor = "Critical"
+    elif sif_result["classification"] == "SIF Precursor - Indirect Control Failure":
+        escalation_floor = "High"
+    elif sif_result["classification"] == "Potential SIF Exposure":
+        escalation_floor = "Medium"
+
+    if RISK_LEVEL_ORDER[escalation_floor] > RISK_LEVEL_ORDER[matrix_level]:
+        return escalation_floor
+    return matrix_level
+
+
+SIF_POTENTIAL_LEVELS = {
+    1: {
+        "label": "No SIF Potential",
+        "description": "No high-energy hazard identified in the report.",
+        "recommended_action": "No SIF-specific action required; continue standard monitoring.",
+    },
+    2: {
+        "label": "Minimal SIF Potential",
+        "description": "A major energy source is present but controls appear intact.",
+        "recommended_action": "Verify control effectiveness during the next routine inspection.",
+    },
+    3: {
+        "label": "Moderate SIF Potential",
+        "description": (
+            "A catastrophic energy source is present with controls intact, or a major "
+            "energy source is present with a PPE-level control failure."
+        ),
+        "recommended_action": "Schedule a control verification review within the current cycle.",
+    },
+    4: {
+        "label": "High SIF Potential",
+        "description": "A catastrophic energy source is present with only a PPE-level control failure.",
+        "recommended_action": "Escalate to supervisor review; confirm PPE compliance and direct controls.",
+    },
+    5: {
+        "label": "Severe SIF Potential",
+        "description": "A high-energy source is present alongside a failed or absent direct control.",
+        "recommended_action": "Immediate escalation; stop work in the affected area until direct controls are restored.",
+    },
+}
+
+
+def classify_sif_potential_severity(scored_hazards: List[dict], sif_result: dict) -> dict:
+    high_energy_hazards = [h for h in scored_hazards if h["is_high_energy"]]
+    max_energy = max((h["energy_level"] for h in high_energy_hazards), default=0)
+    classification = sif_result["classification"]
+
+    if not high_energy_hazards:
+        score = 1
+    elif classification == "SIF Precursor - Direct Control Failure":
+        score = 5
+    elif classification == "SIF Precursor - Indirect Control Failure":
+        score = 4 if max_energy >= 5 else 3
+    else:
+        score = 3 if max_energy >= 5 else 2
+
+    level = SIF_POTENTIAL_LEVELS[score]
+
+    return {
+        "score": score,
+        "label": level["label"],
+        "description": level["description"],
+        "recommended_action": level["recommended_action"],
+        "dominant_energy_level": max_energy,
+    }
+
+
+def assess_risk(entities: Dict[str, List[str]]) -> dict:
+    hazards = entities.get("hazards", [])
+    activities = entities.get("activities", [])
+    locations = entities.get("locations", [])
+    barrier_failures = entities.get("barrier_failures", [])
+
+    scored_hazards = [classify_hazard(text) for text in hazards]
+    scored_activities = [classify_activity(text) for text in activities]
+    scored_barriers = [classify_barrier_failure(text) for text in barrier_failures]
+
+    severity = calculate_severity(scored_hazards)
+    likelihood = calculate_likelihood(scored_activities, scored_barriers)
+    risk_score = severity["score"] * likelihood["score"]
+    matrix_level = determine_risk_level(risk_score)
+
+    sif_result = determine_sif_precursor(scored_hazards, scored_barriers)
+    final_risk_level = escalate_risk_level(matrix_level, sif_result)
+    sif_potential = classify_sif_potential_severity(scored_hazards, sif_result)
+
+    return {
+        "sif_assessment": sif_result,
+        "sif_potential_classification": sif_potential,
+        "risk_matrix": {
+            "likelihood": likelihood,
+            "severity": severity,
+            "risk_score": risk_score,
+            "matrix_risk_level": matrix_level,
+            "final_risk_level": final_risk_level,
+        },
+        "entity_breakdown": {
+            "hazards": scored_hazards,
+            "activities": scored_activities,
+            "barrier_failures": scored_barriers,
+            "locations": locations,
+        },
+    }

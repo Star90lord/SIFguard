@@ -21,40 +21,7 @@ const userDetailsSchema = new mongoose.Schema(
     { _id: false }
 );
 
-const documentSchema = new mongoose.Schema(
-    {
-        // This is a snapshot of the PostgreSQL account that uploaded the file.
-        user: {
-            type: userDetailsSchema,
-            required: true,
-        },
-        originalName: {
-            type: String,
-            required: true,
-        },
-        filePath: {
-            type: String,
-            required: true,
-        },
-        extractedText: {
-            type: String,
-            default: "",
-        },
-        department: {
-            type: String,
-            default: "Pending",
-        },
-        status: {
-            type: String,
-            enum: ["Uploaded", "Processing", "Routed", "Failed"],
-            default: "Uploaded",
-        },
-    },
-    {
-        timestamps: true,
-    }
-);
 
-const Document = mongoose.model("Document", documentSchema);
+const User = mongoose.model("user", userDetailsSchema);
 
-module.exports = { Document };
+module.exports = { User };

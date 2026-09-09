@@ -16,10 +16,21 @@ import {
   FileText,
   AlertOctagon,
   ShieldCheck,
+  Download,
+  CheckCircle2,
+  Check,
+  AlertCircle,
+  Clock,
+  ArrowUpRight,
 } from 'lucide-react';
 import { RiskBadge } from '../ui/Badge';
 import Button from '../ui/Button';
-import { formatReportCode } from '../../utils/filterReports';
+import {
+  formatReportCode,
+  getContributingFactors,
+  getRecommendedSafetyActions,
+} from '../../utils/filterReports';
+import { downloadIndividualReport } from '../../utils/reportGenerator';
 
 function formatEventTimestamp(report) {
   if (report.date && report.time) {
@@ -50,6 +61,8 @@ export default function ReportDetailDrawer({
 }) {
   const navigate = useNavigate();
   const [showOriginalNarrative, setShowOriginalNarrative] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFeedback, setDownloadFeedback] = useState(null);
 
   // Find index for Previous / Next navigation
   const currentIndex = report && allReports.length > 0
@@ -61,13 +74,36 @@ export default function ReportDetailDrawer({
 
   function handlePrev() {
     if (hasPrev && onSelectReport) {
+      setDownloadFeedback(null);
       onSelectReport(allReports[currentIndex - 1]);
     }
   }
 
   function handleNext() {
     if (hasNext && onSelectReport) {
+      setDownloadFeedback(null);
       onSelectReport(allReports[currentIndex + 1]);
+    }
+  }
+
+  function handleDownload() {
+    if (!report || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const outcome = downloadIndividualReport(report);
+      if (outcome.success) {
+        setDownloadFeedback(`Report downloaded: ${outcome.filename}`);
+        setTimeout(() => setDownloadFeedback(null), 4000);
+      } else {
+        setDownloadFeedback('Download could not be initiated.');
+        setTimeout(() => setDownloadFeedback(null), 4000);
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+      setDownloadFeedback('Error generating PDF report.');
+      setTimeout(() => setDownloadFeedback(null), 4000);
+    } finally {
+      setIsDownloading(false);
     }
   }
 
@@ -96,6 +132,10 @@ export default function ReportDetailDrawer({
     report.risk_level === 'SIF-Precursor' ||
     report.sif_precursor === true ||
     (report.explanation && report.explanation.toLowerCase().includes('sif precursor'));
+
+  // Derived intelligence
+  const { factors, whyItMatters } = getContributingFactors(report);
+  const { priority, actions } = getRecommendedSafetyActions(report);
 
   // Find other reports from the same site
   const relatedReports = allReports
@@ -126,7 +166,7 @@ export default function ReportDetailDrawer({
             <div className="flex items-center gap-2.5">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-xs font-bold text-slate-600 bg-slate-200/80 px-1.5 py-0.5 rounded">
                     {reportCode}
                   </span>
                   <RiskBadge level={report.risk_level} size="sm" />
@@ -189,6 +229,48 @@ export default function ReportDetailDrawer({
             </div>
           </div>
 
+          {/* Quick Action Bar: Download Report & View Full Report */}
+          <div className="px-5 sm:px-6 py-2.5 bg-slate-100/70 border-b border-slate-200/80 flex items-center justify-between gap-2.5 text-xs shrink-0">
+            <span className="text-[11px] font-mono text-slate-500">
+              OIL HSE Intelligence
+            </span>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={Download}
+                onClick={handleDownload}
+                disabled={isDownloading}
+                aria-label="Download safety report"
+                className="font-medium"
+              >
+                {isDownloading ? 'Generating...' : 'PDF'}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={ArrowUpRight}
+                onClick={() => {
+                  onClose();
+                  navigate(`/reports/${reportCode}`);
+                }}
+                aria-label="View Full Report"
+                className="font-medium"
+              >
+                View Full Report
+              </Button>
+            </div>
+          </div>
+
+          {/* Download Feedback Toast */}
+          {downloadFeedback && (
+            <div className="mx-5 sm:mx-6 mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs font-semibold text-emerald-900 animate-in fade-in">
+              <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+              <span className="truncate">{downloadFeedback}</span>
+            </div>
+          )}
+
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
             {/* 1. SAFETY ASSESSMENT SECTION (Visual Focus) */}
@@ -225,14 +307,27 @@ export default function ReportDetailDrawer({
 
                 <div>
                   <span className="text-[11px] text-slate-400 block mb-0.5">Primary Hazard</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 block">
                     {report.hazard || 'None Specified'}
                   </span>
+                  {report.hazard && report.hazard !== 'None' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        navigate(`/compare/hazard?hazard=${encodeURIComponent(report.hazard)}`);
+                      }}
+                      className="mt-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-semibold flex items-center gap-0.5 group"
+                    >
+                      <span>Compare Hazard</span>
+                      <ChevronRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  )}
                 </div>
 
                 <div>
                   <span className="text-[11px] text-slate-400 block mb-0.5">Operational Activity</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 block">
                     {report.activity || 'General Operations'}
                   </span>
                 </div>
@@ -253,17 +348,97 @@ export default function ReportDetailDrawer({
               </p>
             </div>
 
-            {/* 3. EXPLANATION SECTION */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1.5 shadow-2xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                Classification Explanation
-              </span>
-              <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed font-normal">
-                {report.explanation || 'System analyzed this report based on precursor criteria, hazard severity, and barrier failure.'}
-              </p>
+            {/* 3. ENHANCEMENT 1: EXPLAINABLE RISK PANEL */}
+            <div className="p-4.5 rounded-xl border border-slate-200 bg-white space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle size={14} className="text-blue-600" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    Explainable Risk Assessment
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400 uppercase font-semibold">
+                  Contributing Drivers
+                </span>
+              </div>
+
+              {/* Qualitative Contributing Factors */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-slate-600 block">
+                  Contributing Risk Factors:
+                </span>
+                <ul className="space-y-1.5">
+                  {factors.map((factor, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-start gap-2 text-xs text-slate-700 leading-snug"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                      <span>{factor}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Why This Matters Callout */}
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Why This Matters
+                </span>
+                <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                  {whyItMatters}
+                </p>
+              </div>
+
+              {/* Classification Explanation Context */}
+              {report.explanation && (
+                <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 leading-relaxed">
+                  <span className="font-semibold text-slate-700">Classification Note: </span>
+                  <span>{report.explanation}</span>
+                </div>
+              )}
             </div>
 
-            {/* 4. EVENT TELEMETRY & LOCATION */}
+            {/* 4. ENHANCEMENT 2: RECOMMENDED SAFETY ACTIONS */}
+            <div className="p-4.5 rounded-xl border border-blue-200/90 bg-blue-50/30 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck size={15} className="text-blue-700" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-950">
+                    Recommended Safety Actions
+                  </span>
+                </div>
+
+                {/* Priority Badge */}
+                <span
+                  className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded uppercase tracking-wider ${
+                    priority === 'IMMEDIATE'
+                      ? 'bg-red-100 text-red-800 border border-red-200'
+                      : priority === 'PRIORITY'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                      : 'bg-blue-100 text-blue-800 border border-blue-200'
+                  }`}
+                >
+                  Priority: {priority}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {actions.map((act, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-blue-100/90 shadow-2xs text-xs text-slate-800 leading-snug"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-[11px] shrink-0 font-mono">
+                      {idx + 1}
+                    </span>
+                    <span className="font-medium pt-0.5">{act}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. EVENT TELEMETRY & LOCATION */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5 text-xs">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                 Location & Timestamp
@@ -288,7 +463,7 @@ export default function ReportDetailDrawer({
               </div>
             </div>
 
-            {/* 5. ORIGINAL REPORT (Visually Secondary Expandable Section) */}
+            {/* 6. ORIGINAL REPORT (Visually Secondary Expandable Section) */}
             <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
               <button
                 type="button"
@@ -324,7 +499,7 @@ export default function ReportDetailDrawer({
               )}
             </div>
 
-            {/* 6. RELATED OBSERVATIONS FROM THE SAME SITE */}
+            {/* 7. RELATED OBSERVATIONS FROM THE SAME SITE */}
             {relatedReports.length > 0 && (
               <div className="pt-2 border-t border-slate-200">
                 <div className="flex items-center justify-between mb-2">
@@ -382,9 +557,32 @@ export default function ReportDetailDrawer({
               <Building2 size={13} />
               <span>Go to {siteName} History</span>
             </button>
-            <Button variant="secondary" size="sm" onClick={onClose}>
-              Close Details
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={Download}
+                onClick={handleDownload}
+                disabled={isDownloading}
+                aria-label="Download safety report"
+              >
+                PDF
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={ArrowUpRight}
+                onClick={() => {
+                  onClose();
+                  navigate(`/reports/${reportCode}`);
+                }}
+              >
+                Full Report
+              </Button>
+              <Button variant="secondary" size="sm" onClick={onClose}>
+                Close
+              </Button>
+            </div>
           </div>
         </aside>
       </div>

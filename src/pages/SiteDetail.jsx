@@ -19,6 +19,7 @@ import {
   BarChart3,
   AlertOctagon,
   CheckCircle2,
+  Pencil,
 } from 'lucide-react';
 import {
   BarChart,
@@ -41,7 +42,8 @@ import KpiCard from '../components/ui/KpiCard';
 import EmptyState from '../components/ui/EmptyState';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
-import { getSiteReports } from '../api/sifguardApi';
+import EditSiteModal from '../components/sites/EditSiteModal';
+import { getSiteReports, updateSite } from '../api/sifguardApi';
 import {
   filterReports,
   getReportSummary,
@@ -79,6 +81,10 @@ export default function SiteDetail() {
   // Selected report for drawer inspection
   const [selectedReport, setSelectedReport] = useState(null);
 
+  // Edit Site modal & feedback states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editSuccessMessage, setEditSuccessMessage] = useState(null);
+
   useEffect(() => {
     loadSiteData();
   }, [siteId]);
@@ -110,6 +116,13 @@ export default function SiteDetail() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleUpdateSite(updatedData) {
+    const updated = await updateSite(site.id, updatedData);
+    setSite(updated);
+    setEditSuccessMessage('Site updated successfully.');
+    setTimeout(() => setEditSuccessMessage(null), 4500);
   }
 
   // All raw reports for this site
@@ -246,6 +259,17 @@ export default function SiteDetail() {
           </span>
         </div>
 
+        {/* Edit Success Notification */}
+        {editSuccessMessage && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900 flex items-center justify-between shadow-2xs animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <span>{editSuccessMessage}</span>
+            </div>
+            <span className="text-[11px] font-mono text-emerald-700">Updated</span>
+          </div>
+        )}
+
         {/* Site Profile Header Card */}
         <div className="p-6 rounded-xl border border-slate-200 bg-white shadow-2xs">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -277,8 +301,16 @@ export default function SiteDetail() {
               </div>
             </div>
 
-            {/* Actions: Analyze Reports & View Reports */}
+            {/* Actions: Edit Site, Analyze Reports & View Reports */}
             <div className="flex items-center gap-2.5 self-start lg:self-auto pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+              <Button
+                variant="secondary"
+                size="md"
+                icon={Pencil}
+                onClick={() => setIsEditModalOpen(true)}
+              >
+                Edit Site
+              </Button>
               <Button
                 variant="secondary"
                 size="md"
@@ -1093,6 +1125,14 @@ export default function SiteDetail() {
           allReports={rawSiteReports}
           onClose={() => setSelectedReport(null)}
           onSelectReport={(r) => setSelectedReport(r)}
+        />
+
+        {/* Edit Site Modal */}
+        <EditSiteModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          site={site}
+          onUpdateSite={handleUpdateSite}
         />
       </PageContainer>
     </AppShell>

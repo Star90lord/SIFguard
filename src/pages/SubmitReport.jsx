@@ -27,6 +27,7 @@ import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
 import ReportTextarea from '../components/analysis/ReportTextarea';
 import { analyzeFiles, analyzeText, getSites } from '../api/sifguardApi';
 import { mockSampleBatch } from '../data/mockData';
+import { downloadBatchSummary } from '../utils/reportGenerator';
 
 export default function SubmitReport() {
   const navigate = useNavigate();
@@ -58,6 +59,31 @@ export default function SubmitReport() {
 
   // Save feedback
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Batch download state & feedback
+  const [isDownloadingSummary, setIsDownloadingSummary] = useState(false);
+  const [downloadSummaryFeedback, setDownloadSummaryFeedback] = useState(null);
+
+  function handleDownloadBatchSummary() {
+    if (!batchResults || isDownloadingSummary) return;
+    setIsDownloadingSummary(true);
+    try {
+      const outcome = downloadBatchSummary(batchResults);
+      if (outcome.success) {
+        setDownloadSummaryFeedback(`Batch summary downloaded: ${outcome.filename}`);
+        setTimeout(() => setDownloadSummaryFeedback(null), 4000);
+      } else {
+        setDownloadSummaryFeedback('Unable to generate batch summary.');
+        setTimeout(() => setDownloadSummaryFeedback(null), 4000);
+      }
+    } catch (err) {
+      console.error('Batch summary download error:', err);
+      setDownloadSummaryFeedback('Error generating batch summary PDF.');
+      setTimeout(() => setDownloadSummaryFeedback(null), 4000);
+    } finally {
+      setIsDownloadingSummary(false);
+    }
+  }
 
   useEffect(() => {
     async function loadSites() {
@@ -561,8 +587,18 @@ export default function SubmitReport() {
                   </p>
                 </div>
 
-                {/* Actions: Save / Analyze Another */}
-                <div className="flex items-center gap-2.5">
+                {/* Actions: Download Summary / Analyze Another / Save */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleDownloadBatchSummary}
+                    disabled={isDownloadingSummary}
+                    icon={Download}
+                    aria-label="Download batch analysis summary"
+                  >
+                    {isDownloadingSummary ? 'Generating PDF...' : 'Download Analysis Summary'}
+                  </Button>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -584,6 +620,14 @@ export default function SubmitReport() {
                   </Button>
                 </div>
               </div>
+
+              {/* Batch Download Feedback Notification */}
+              {downloadSummaryFeedback && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs font-semibold text-emerald-900 animate-in fade-in">
+                  <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                  <span>{downloadSummaryFeedback}</span>
+                </div>
+              )}
 
               {/* Semantic Risk Badges Summary */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

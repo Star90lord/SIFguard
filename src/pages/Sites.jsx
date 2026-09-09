@@ -9,6 +9,8 @@ import {
   ChevronRight,
   RefreshCw,
   SlidersHorizontal,
+  Repeat,
+  Check,
 } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';
@@ -28,6 +30,9 @@ export default function Sites() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Multi-site comparison selection (Unlimited sites)
+  const [selectedSiteIds, setSelectedSiteIds] = useState([]);
+
   // Search & filter state
   const [search, setSearch] = useState('');
   const [healthFilter, setHealthFilter] = useState('ALL');
@@ -36,6 +41,14 @@ export default function Sites() {
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  function handleToggleSite(siteId) {
+    if (selectedSiteIds.includes(siteId)) {
+      setSelectedSiteIds(selectedSiteIds.filter((id) => id !== siteId));
+    } else {
+      setSelectedSiteIds([...selectedSiteIds, siteId]);
+    }
+  }
 
   useEffect(() => {
     loadSitesData();
@@ -206,6 +219,7 @@ export default function Sites() {
           </div>
         </div>
 
+
         {/* Site Table / List */}
         {loading ? (
           <TableSkeleton rows={6} />
@@ -233,6 +247,7 @@ export default function Sites() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-3 w-10 text-center">Compare</th>
                       <th className="py-3 px-4 font-semibold">Site</th>
                       <th className="py-3 px-4 font-semibold">Location</th>
                       <th className="py-3 px-4 font-semibold">Health</th>
@@ -244,86 +259,108 @@ export default function Sites() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredSites.map((site) => (
-                      <tr
-                        key={site.id}
-                        onClick={() => navigate(`/sites/${site.id}`)}
-                        className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                      >
-                        {/* Site Name & Code */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-600 transition-colors shrink-0">
-                              <Building2 size={16} />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-sm">
-                                  {site.name}
-                                </span>
-                                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200/80">
-                                  {site.code || 'SITE'}
+                    {filteredSites.map((site) => {
+                      const isSelected = selectedSiteIds.includes(site.id);
+                      return (
+                        <tr
+                          key={site.id}
+                          onClick={() => navigate(`/sites/${site.id}`)}
+                          className={`transition-colors cursor-pointer group ${
+                            isSelected ? 'bg-blue-50/40' : 'hover:bg-slate-50/80'
+                          }`}
+                        >
+                          {/* Selection Checkbox */}
+                          <td
+                            className="py-3.5 px-3 text-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleSite(site.id);
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSite(site.id)}
+                              aria-label={`Select ${site.name} for comparison`}
+                              className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </td>
+
+                          {/* Site Name & Code */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-600 transition-colors shrink-0">
+                                <Building2 size={16} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-sm">
+                                    {site.name}
+                                  </span>
+                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200/80">
+                                    {site.code || 'SITE'}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-slate-400">
+                                  {site.type || 'Operational Site'} · {site.status || 'Active'}
                                 </span>
                               </div>
-                              <span className="text-[11px] text-slate-400">
-                                {site.type || 'Operational Site'} · {site.status || 'Active'}
-                              </span>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Location */}
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">
-                          {site.location}
-                        </td>
+                          {/* Location */}
+                          <td className="py-3.5 px-4 text-slate-600 font-medium">
+                            {site.location}
+                          </td>
 
-                        {/* Health */}
-                        <td className="py-3.5 px-4">
-                          <SiteHealthBadge status={site.healthStatus} size="sm" />
-                        </td>
+                          {/* Health */}
+                          <td className="py-3.5 px-4">
+                            <SiteHealthBadge status={site.healthStatus} size="sm" />
+                          </td>
 
-                        {/* Reports */}
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800 text-sm">
-                          {site.totalReports}
-                        </td>
+                          {/* Reports */}
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800 text-sm">
+                            {site.totalReports}
+                          </td>
 
-                        {/* High Risk */}
-                        <td className="py-3.5 px-4 text-right">
-                          <span
-                            className={`font-mono font-bold text-sm ${
-                              site.highRiskCount > 0 ? 'text-orange-600' : 'text-slate-400'
-                            }`}
-                          >
-                            {site.highRiskCount}
-                          </span>
-                        </td>
-
-                        {/* SIF Precursors */}
-                        <td className="py-3.5 px-4 text-right">
-                          {site.sifCount > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-mono font-bold text-xs">
-                              <ShieldAlert size={12} />
-                              {site.sifCount}
+                          {/* High Risk */}
+                          <td className="py-3.5 px-4 text-right">
+                            <span
+                              className={`font-mono font-bold text-sm ${
+                                site.highRiskCount > 0 ? 'text-orange-600' : 'text-slate-400'
+                              }`}
+                            >
+                              {site.highRiskCount}
                             </span>
-                          ) : (
-                            <span className="font-mono text-slate-400 font-medium">0</span>
-                          )}
-                        </td>
+                          </td>
 
-                        {/* Last Activity */}
-                        <td className="py-3.5 px-4 text-slate-500 font-mono text-xs">
-                          {site.lastActivity}
-                        </td>
+                          {/* SIF Precursors */}
+                          <td className="py-3.5 px-4 text-right">
+                            {site.sifCount > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-mono font-bold text-xs">
+                                <ShieldAlert size={12} />
+                                {site.sifCount}
+                              </span>
+                            ) : (
+                              <span className="font-mono text-slate-400 font-medium">0</span>
+                            )}
+                          </td>
 
-                        {/* Action Chevron */}
-                        <td className="py-3.5 px-3 text-right">
-                          <ChevronRight
-                            size={15}
-                            className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all"
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                          {/* Last Activity */}
+                          <td className="py-3.5 px-4 text-slate-500 font-mono text-xs">
+                            {site.lastActivity}
+                          </td>
+
+                          {/* Action Chevron */}
+                          <td className="py-3.5 px-3 text-right">
+                            <ChevronRight
+                              size={15}
+                              className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -341,57 +378,118 @@ export default function Sites() {
 
             {/* Mobile Stacked Cards (Visible on screens < 768px) */}
             <div className="md:hidden space-y-3">
-              {filteredSites.map((site) => (
-                <div
-                  key={site.id}
-                  onClick={() => navigate(`/sites/${site.id}`)}
-                  className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs hover:border-slate-300 transition-colors cursor-pointer space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
-                        <Building2 size={16} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 text-sm">{site.name}</span>
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                            {site.code || 'SITE'}
-                          </span>
+              {filteredSites.map((site) => {
+                const isSelected = selectedSiteIds.includes(site.id);
+                return (
+                  <div
+                    key={site.id}
+                    onClick={() => navigate(`/sites/${site.id}`)}
+                    className={`p-4 bg-white border rounded-xl shadow-2xs transition-colors cursor-pointer space-y-3 ${
+                      isSelected ? 'border-blue-300 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSite(site.id);
+                          }}
+                          className="pr-1"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSite(site.id)}
+                            aria-label={`Select ${site.name} for comparison`}
+                            className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                          />
                         </div>
-                        <p className="text-[11px] text-slate-400">
-                          {site.location} · {site.type}
-                        </p>
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                          <Building2 size={16} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900 text-sm">{site.name}</span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                              {site.code || 'SITE'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            {site.location} · {site.type}
+                          </p>
+                        </div>
+                      </div>
+                      <SiteHealthBadge status={site.healthStatus} size="sm" />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs text-center">
+                      <div className="p-1.5 bg-slate-50 rounded">
+                        <span className="text-[10px] text-slate-400 block">Reports</span>
+                        <strong className="text-slate-900 font-mono text-sm">{site.totalReports}</strong>
+                      </div>
+                      <div className="p-1.5 bg-amber-50/50 rounded">
+                        <span className="text-[10px] text-amber-700 block">High Risk</span>
+                        <strong className="text-amber-800 font-mono text-sm">{site.highRiskCount}</strong>
+                      </div>
+                      <div className="p-1.5 bg-rose-50/50 rounded">
+                        <span className="text-[10px] text-rose-700 block">SIF</span>
+                        <strong className="text-rose-800 font-mono text-sm">{site.sifCount}</strong>
                       </div>
                     </div>
-                    <SiteHealthBadge status={site.healthStatus} size="sm" />
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs text-center">
-                    <div className="p-1.5 bg-slate-50 rounded">
-                      <span className="text-[10px] text-slate-400 block">Reports</span>
-                      <strong className="text-slate-900 font-mono text-sm">{site.totalReports}</strong>
-                    </div>
-                    <div className="p-1.5 bg-amber-50/50 rounded">
-                      <span className="text-[10px] text-amber-700 block">High Risk</span>
-                      <strong className="text-amber-800 font-mono text-sm">{site.highRiskCount}</strong>
-                    </div>
-                    <div className="p-1.5 bg-rose-50/50 rounded">
-                      <span className="text-[10px] text-rose-700 block">SIF</span>
-                      <strong className="text-rose-800 font-mono text-sm">{site.sifCount}</strong>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                      <span className="font-mono">Active: {site.lastActivity}</span>
+                      <span className="text-blue-600 font-semibold flex items-center gap-0.5">
+                        View Profile <ChevronRight size={12} />
+                      </span>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                    <span className="font-mono">Active: {site.lastActivity}</span>
-                    <span className="text-blue-600 font-semibold flex items-center gap-0.5">
-                      View Profile <ChevronRight size={12} />
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
+        )}
+
+        {/* Sticky Site Comparison Launch Bar */}
+        {selectedSiteIds.length > 0 && (
+          <div className="sticky bottom-4 z-20 p-3.5 sm:p-4 bg-slate-900 text-white rounded-xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-3 border border-slate-700">
+            <div className="flex items-center gap-3">
+              <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-mono font-bold text-xs">
+                {selectedSiteIds.length}
+              </span>
+              <div>
+                <span className="text-xs sm:text-sm font-bold block">
+                  {selectedSiteIds.length} {selectedSiteIds.length === 1 ? 'site' : 'sites'} selected for comparison
+                </span>
+                <p className="text-[11px] text-slate-400">
+                  {selectedSiteIds.length < 2
+                    ? 'Select at least 2 facilities to activate side-by-side comparison.'
+                    : 'Ready to evaluate cross-site risk distributions and safety patterns.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedSiteIds([])}
+                className="text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                Clear
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={Repeat}
+                disabled={selectedSiteIds.length < 2}
+                onClick={() => navigate(`/sites/compare?sites=${selectedSiteIds.join(',')}`)}
+              >
+                Compare Selected Sites
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Add Site Modal */}

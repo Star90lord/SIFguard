@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileSearch,
@@ -7,41 +7,48 @@ import {
   ShieldCheck,
   Building2,
   Settings,
-  Palette,
   Radio,
   X,
+  UserCheck,
 } from 'lucide-react';
-
-const NAV_SECTIONS = [
-  {
-    title: 'Overview',
-    items: [
-      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    ],
-  },
-  {
-    title: 'Analysis',
-    items: [
-      { to: '/submit', label: 'Analyze Reports', icon: FileSearch },
-    ],
-  },
-  {
-    title: 'Monitoring',
-    items: [
-      { to: '/reports', label: 'Reports', icon: ClipboardList },
-      { to: '/sites', label: 'Sites', icon: Building2 },
-    ],
-  },
-  {
-    title: 'System',
-    items: [
-      { to: '/settings', label: 'Settings', icon: Settings },
-      { to: '/design-system', label: 'Design System', icon: Palette },
-    ],
-  },
-];
+import { useApp } from '../../context/AppContext';
+import { canAccessAdmin } from '../../config/roles';
 
 export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
+  const { currentUser, roleDefinition } = useApp();
+
+  // Dynamically configure navigation sections based on user role
+  const navSections = [
+    {
+      title: 'Overview',
+      items: [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      ],
+    },
+    {
+      title: 'Analysis',
+      items: [
+        { to: '/submit', label: 'Analyze Reports', icon: FileSearch },
+      ],
+    },
+    {
+      title: 'Monitoring',
+      items: [
+        { to: '/reports', label: 'Reports', icon: ClipboardList },
+        { to: '/sites', label: 'Sites', icon: Building2 },
+      ],
+    },
+    {
+      title: 'System',
+      items: [
+        { to: '/settings', label: 'Settings', icon: Settings },
+        ...(canAccessAdmin(currentUser)
+          ? [{ to: '/admin', label: 'Admin', icon: ShieldCheck }]
+          : []),
+      ],
+    },
+  ];
+
   return (
     <>
       {/* Mobile Backdrop Overlay */}
@@ -90,7 +97,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
 
         {/* Navigation Sections */}
         <div className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
-          {NAV_SECTIONS.map((section) => (
+          {navSections.map((section) => (
             <div key={section.title}>
               <div className="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {section.title}
@@ -153,15 +160,20 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
 
         {/* Operator Profile Footer */}
         <div className="p-3 border-t border-slate-200 bg-slate-50/60 shrink-0">
-          <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors">
-            <div className="w-8 h-8 rounded-lg bg-slate-200 border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-800">
-              SO
+          <Link
+            to="/settings?tab=profile"
+            onClick={() => onCloseMobile && onCloseMobile()}
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors group"
+            title="Open Profile Settings"
+          >
+            <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-2xs group-hover:bg-blue-600 transition-colors">
+              {currentUser.initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-900 truncate">Safety Officer</p>
-              <p className="text-[11px] text-slate-500 truncate">HSE Team · OIL</p>
+              <p className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</p>
+              <p className="text-[11px] text-slate-500 truncate">{roleDefinition.label} · OIL</p>
             </div>
-          </div>
+          </Link>
         </div>
       </aside>
     </>

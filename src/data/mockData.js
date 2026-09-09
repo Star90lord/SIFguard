@@ -923,6 +923,39 @@ export function addMockSite(siteData) {
   return newSite;
 }
 
+export function updateMockSite(siteId, updatedData) {
+  const allDefs = [...initialSites, ...sessionSites];
+  const target = allDefs.find(
+    (s) => s.id === siteId || s.name.toLowerCase().replace(/\s+/g, '-') === siteId
+  );
+  if (!target) {
+    throw new Error(`Site with ID "${siteId}" was not found.`);
+  }
+
+  const oldName = target.name;
+
+  if (updatedData.name !== undefined) target.name = updatedData.name.trim();
+  if (updatedData.code !== undefined) target.code = updatedData.code.trim();
+  if (updatedData.location !== undefined) target.location = updatedData.location.trim();
+  if (updatedData.type !== undefined) target.type = updatedData.type;
+  if (updatedData.status !== undefined) target.status = updatedData.status;
+
+  // If site name changed, synchronize reports referencing this site
+  if (updatedData.name && updatedData.name.trim() !== oldName) {
+    const newName = updatedData.name.trim();
+    mockReports.forEach((r) => {
+      if (r.siteId === target.id || r.site === oldName || r.siteName === oldName) {
+        r.site = newName;
+        r.siteName = newName;
+      }
+    });
+  }
+
+  // Return full site profile with recomputed metrics
+  const updatedList = getMockSites();
+  return updatedList.find((s) => s.id === target.id) || target;
+}
+
 // ─── Deterministic Site Health Calculation ──────────────────────────
 export function calculateSiteHealth(reports) {
   const sifCount = reports.filter((r) => r.risk_level === 'SIF-Precursor').length;

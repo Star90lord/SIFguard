@@ -40,13 +40,71 @@ import { getSites, getReports } from '../api/sifguardApi';
 import {
   filterReports,
   getReportSummary,
+  getRiskTrend,
   getRiskTrendSeries,
   getAttentionReports,
   getSiteRiskOverview,
   getPeriodLabel,
+  getExecutiveSafetyBrief,
   formatReportCode,
   formatDateTime,
+  formatDisplayDate,
 } from '../utils/filterReports';
+
+function CustomRiskTrendTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null;
+
+  const data = payload[0]?.payload || {};
+  const period = data.fullPeriodLabel || data.displayDate || label || '';
+
+  const low = data.Low ?? 0;
+  const medium = data.Medium ?? 0;
+  const high = data.High ?? 0;
+  const sif = data['SIF-Precursor'] ?? 0;
+  const total = data.total ?? (low + medium + high + sif);
+
+  return (
+    <div className="bg-slate-900/95 backdrop-blur-xs text-white border border-slate-700/80 rounded-lg p-3 shadow-xl text-xs min-w-[175px] space-y-2">
+      <div className="border-b border-slate-700/70 pb-1.5 font-bold text-slate-100 flex items-center justify-between">
+        <span>{period}</span>
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 inline-block" />
+            Low Risk
+          </span>
+          <span className="font-mono font-bold text-slate-200">{low}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-xs bg-amber-500 inline-block" />
+            Medium Risk
+          </span>
+          <span className="font-mono font-bold text-slate-200">{medium}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-xs bg-orange-500 inline-block" />
+            High Risk
+          </span>
+          <span className="font-mono font-bold text-slate-200">{high}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-xs bg-rose-600 inline-block" />
+            SIF Precursor
+          </span>
+          <span className="font-mono font-bold text-slate-200">{sif}</span>
+        </div>
+      </div>
+      <div className="border-t border-slate-700/70 pt-1.5 flex items-center justify-between font-bold text-white">
+        <span>Total</span>
+        <span className="font-mono text-sm text-blue-400">{total}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -65,6 +123,10 @@ export default function Dashboard() {
 
   // Selected report for slide-over drawer
   const [selectedReport, setSelectedReport] = useState(null);
+
+  // Risk Trend Time Intelligence state
+  const [trendGranularity, setTrendGranularity] = useState('DAILY');
+  const [trendSpecificDate, setTrendSpecificDate] = useState('2026-09-09');
 
   useEffect(() => {
     loadDashboardData();
@@ -116,15 +178,40 @@ export default function Dashboard() {
     return getReportSummary(scopedReports);
   }, [scopedReports]);
 
+  // Compact executive safety brief derived dynamically from scope
+  const executiveBrief = useMemo(() => {
+    return getExecutiveSafetyBrief(scopedReports, selectedSite, sites);
+  }, [scopedReports, selectedSite, sites]);
+
   // High-priority reports for "Requires Attention"
   const attentionReports = useMemo(() => {
     return getAttentionReports(scopedReports, 4);
   }, [scopedReports]);
 
+  // Trend source reports based on selected site and granularity
+  const trendSourceReports = useMemo(() => {
+    if (trendGranularity === 'SPECIFIC_DATE') {
+      return filterReports(allReports, {
+        siteId: selectedSite,
+        datePreset: 'SPECIFIC_DATE',
+        specificDate: trendSpecificDate,
+      });
+    }
+    return scopedReports;
+  }, [trendGranularity, allReports, selectedSite, trendSpecificDate, scopedReports]);
+
   // Trend series for Recharts
   const trendSeries = useMemo(() => {
-    return getRiskTrendSeries(scopedReports);
-  }, [scopedReports]);
+    return getRiskTrend(trendSourceReports, {
+      granularity: trendGranularity,
+      specificDate: trendSpecificDate,
+    });
+  }, [trendSourceReports, trendGranularity, trendSpecificDate]);
+
+  // Dynamic total events included in Risk Trend scope
+  const trendTotalEvents = useMemo(() => {
+    return trendSeries.reduce((sum, item) => sum + (item.total || 0), 0);
+  }, [trendSeries]);
 
   // SIF precursors in current period
   const sifPrecursorReports = useMemo(() => {
@@ -306,6 +393,92 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ENHANCEMENT 5: EXECUTIVE SAFETY BRIEF */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4.5 sm:p-5 shadow-2xs space-y-3.5">
+          {/* Header & Metrics Snapshot */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200 text-[10px] font-bold font-mono uppercase tracking-wider">
+                Executive Safety Brief
+              </span>
+              <span className="text-xs font-bold text-slate-800 font-mono">
+                09 SEP 2026 · {currentSiteObj ? currentSiteObj.name.toUpperCase() : 'ALL SITES'}
+              </span>
+            </div>
+
+            {/* Metric summary pills */}
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+              <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
+                {executiveBrief.totalReports} Reports
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-orange-50 text-orange-800 border border-orange-200 font-semibold">
+                {executiveBrief.highCount} High Risk
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-800 border border-red-200 font-bold">
+                {executiveBrief.sifCount} SIF Precursors
+              </span>
+            </div>
+          </div>
+
+          {/* Content: Priority Signal + Recommended Focus */}
+          {executiveBrief.hasData && executiveBrief.totalReports > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+              {/* Left: Priority Signal */}
+              <div className="md:col-span-6 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
+                  <AlertOctagon size={13} className="text-rose-600" />
+                  <span>Priority Safety Signal</span>
+                </span>
+                <p className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
+                  {executiveBrief.prioritySignal}
+                </p>
+              </div>
+
+              {/* Center: Recommended Focus */}
+              <div className="md:col-span-4 space-y-1.5 border-t md:border-t-0 md:border-l border-slate-100 pt-2 md:pt-0 md:pl-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Recommended Operational Focus
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {executiveBrief.recommendedFocus.map((focus, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-medium leading-none"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                      <span>{focus}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Action Button to Related Reports */}
+              <div className="md:col-span-2 flex md:justify-end pt-1 md:pt-0">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={ArrowRight}
+                  onClick={() => {
+                    const query = new URLSearchParams();
+                    if (executiveBrief.filterParams.site) query.set('site', executiveBrief.filterParams.site);
+                    if (executiveBrief.filterParams.hazard) query.set('hazard', executiveBrief.filterParams.hazard);
+                    if (executiveBrief.filterParams.risk) query.set('risk', executiveBrief.filterParams.risk);
+                    navigate(`/reports?${query.toString()}`);
+                  }}
+                  className="w-full md:w-auto font-semibold text-blue-700 hover:text-blue-900 border-blue-200 bg-blue-50/50 hover:bg-blue-100/50"
+                  aria-label="View related priority reports"
+                >
+                  View Related Reports
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="py-2 text-center text-xs text-slate-400">
+              No priority pattern identified for the selected period.
+            </div>
+          )}
+        </div>
+
         {/* 2. EXECUTIVE KPI STRIP */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           <MetricCard
@@ -404,7 +577,7 @@ export default function Dashboard() {
 
         {/* 4. RISK TREND SECTION */}
         <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
             <div>
               <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <BarChart3 size={16} className="text-blue-600" />
@@ -414,15 +587,68 @@ export default function Dashboard() {
                 Timeline distribution of safety observations by severity classification.
               </p>
             </div>
-            <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-              {scopedReports.length} Total Events
-            </span>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Compact Granularity Selector */}
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+                <label htmlFor="risk-trend-granularity" className="sr-only">
+                  Risk Trend Time Granularity
+                </label>
+                <Clock size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+                <select
+                  id="risk-trend-granularity"
+                  aria-label="Risk Trend Time Granularity"
+                  value={trendGranularity}
+                  onChange={(e) => setTrendGranularity(e.target.value)}
+                  className="bg-transparent font-medium text-slate-900 border-none outline-none cursor-pointer pr-1 text-xs"
+                >
+                  <option value="DAILY">Daily</option>
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="YEARLY">Yearly</option>
+                  <option value="SPECIFIC_DATE">Specific Date</option>
+                </select>
+              </div>
+
+              {/* Specific Date Picker Input */}
+              {trendGranularity === 'SPECIFIC_DATE' && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700 shadow-2xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+                  <label htmlFor="risk-trend-date" className="sr-only">
+                    Select Specific Date
+                  </label>
+                  <Calendar size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+                  <input
+                    id="risk-trend-date"
+                    aria-label="Select Specific Date"
+                    type="date"
+                    value={trendSpecificDate}
+                    onChange={(e) => setTrendSpecificDate(e.target.value)}
+                    className="bg-transparent font-mono text-xs text-slate-900 border-none outline-none cursor-pointer"
+                  />
+                </div>
+              )}
+
+              {/* Dynamic Total Events */}
+              <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200/60 shrink-0">
+                {trendTotalEvents} Total Events
+              </span>
+            </div>
           </div>
 
           <div className="h-64 w-full pt-1">
             {trendSeries.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                No trend observations recorded for this scope and time period.
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+                  <BarChart3 size={20} />
+                </div>
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  NO SAFETY OBSERVATIONS
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                  {trendGranularity === 'SPECIFIC_DATE'
+                    ? `No safety observations recorded on ${formatDisplayDate(trendSpecificDate)}.`
+                    : 'No safety observations found for the selected period.'}
+                </p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -436,22 +662,16 @@ export default function Dashboard() {
                     tick={{ fontSize: 11, fill: '#64748b' }}
                     axisLine={{ stroke: '#cbd5e1' }}
                     tickLine={false}
+                    interval={trendSeries.length > 10 ? 'preserveStartEnd' : 0}
                   />
                   <YAxis
                     tick={{ fontSize: 11, fill: '#64748b' }}
                     axisLine={false}
                     tickLine={false}
                     allowDecimals={false}
+                    domain={[0, 'auto']}
                   />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#fff',
-                      fontSize: '12px',
-                    }}
-                  />
+                  <Tooltip content={<CustomRiskTrendTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                   <Bar dataKey="Low" name="Low Risk" stackId="a" fill="#10b981" />
                   <Bar dataKey="Medium" name="Medium Risk" stackId="a" fill="#f59e0b" />

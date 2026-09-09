@@ -1,31 +1,43 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const MONGO_URI = process.env.MONGO_URI;
-if(!MONGO_URI){
-    console.error("missing mongo_uri");
-    process.exit(1);
-}
+const getMongoUri = () => {
+    return (
+        process.env.MONGO_URI ||
+        process.env.MONGODB_URI ||
+        ""
+    ).trim();
+};
 
-const mongoosOptions = {
+const mongooseOptions = {
     serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000, 
+    socketTimeoutMS: 45000,
     maxPoolSize: 10,
     minPoolSize: 2,
     maxIdleTimeMS: 30000,
-    heartbeatFrequencyMS: 10
-}
+    heartbeatFrequencyMS: 10000,
+};
 
 
 const connectdb = async () =>{
+    const MONGO_URI = getMongoUri();
+
+    if(!MONGO_URI){
+        const error = new Error(
+            "MONGO_URI is not configured. Set MONGO_URI in your .env file."
+        );
+        console.error(error.message);
+        throw error;
+    }
+
     try{
-        await mongoose.connect(MONGO_URI, mongoosOptions);
+        await mongoose.connect(MONGO_URI, mongooseOptions);
         console.log("mongoose connected succesfully");
         return mongoose.connection;
     }catch(error){
-        console.error("error");
+        console.error("MongoDB connection error:");
         console.error(error.message);
-        process.exit(1);
+        throw error;
     }
 };
 
@@ -33,17 +45,12 @@ mongoose.connection.on('error' , (error) =>{
     console.error('mongoose connection error', error.message);
 });
 
-mongoose.connection.on('error' , () =>{
-    console.warn("mongodb dosconnected")
+mongoose.connection.on('disconnected' , () =>{
+    console.warn("mongodb disconnected")
 });
 
-process.on('SIGINT' , async () => {
-    await mongoose.connection.close();
-    console.log('Mongoose connection closed due to process termination');
-});
-
-const shutDown = async () => {
-    Console.log(`\n${signal} receive: closing the mongodb conenctions`);
+const shutDown = async (signal) => {
+    console.log(`\n${signal} received: closing the mongodb connections`);
     
     try{
         await mongoose.connection.close();
@@ -55,8 +62,8 @@ const shutDown = async () => {
         process.exit(1);
     }
 };
-process.on("SIGNINT", () => shutDown('SIGNINT'));
-process.on("SIGTERM", () => shutDown('SIGNTERM'));
+process.on("SIGINT", () => shutDown('SIGINT'));
+process.on("SIGTERM", () => shutDown('SIGTERM'));
 
 
 if(require.main === module){

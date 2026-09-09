@@ -23,15 +23,19 @@ app.use(express.json());
 
 const authRoutes = require("./routes/authRoutes");
 const documentRoutes = require("./routes/documentRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
+const { getNlpServiceUrl } = require("./services/nlpService");
 
 // Authentication routes
 // /api/auth/signup
 // /api/auth/signin
+// /api/auth/login (alias of signin)
 // /api/auth/users
 // /api/auth/users/:id
 
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 
 // ==================== UPLOAD ERROR HANDLER ====================
@@ -45,7 +49,7 @@ app.use((error, req, res, next) => {
         }
 
         if (error.code === "LIMIT_FILE_SIZE") {
-            return res.status(400).json({
+            return res.status(413).json({
                 message: "File is too large. Maximum size is 5 MB.",
             });
         }
@@ -55,8 +59,19 @@ app.use((error, req, res, next) => {
         });
     }
 
-    if (error && error.message === "Only PDF, DOC, DOCX and TXT files are allowed.") {
+    if (
+        error &&
+        typeof error.message === "string" &&
+        error.message.includes("Only PDF, DOC, DOCX and TXT files are allowed.")
+    ) {
         return res.status(400).json({ message: error.message });
+    }
+
+    // Multer "no file" / unexpected field edge cases
+    if (error && error.message === "Unexpected field") {
+        return res.status(400).json({
+            message: 'Unexpected file field. Use the form-data key "document".',
+        });
     }
 
     return next(error);
@@ -105,6 +120,26 @@ app.use((req, res) => {
 });
 
 
+// ==================== GENERIC ERROR HANDLER ====================
+
+// Must be registered after all routes (and after the 404 handler
+// so that thrown/misconfigured errors still return JSON).
+// Never leaks secrets — only the error message is returned.
+
+// eslint-disable-next-line no-unused-vars
+app.use((error, req, res, next) => {
+    console.error("Unhandled backend error:", error);
+
+    if (res.headersSent) {
+        return next(error);
+    }
+
+    return res.status(error.status || 500).json({
+        message: error.message || "Internal server error",
+    });
+});
+
+
 // ==================== START SERVER ====================
 
 const startServer = async () => {
@@ -129,6 +164,10 @@ const startServer = async () => {
 
             console.log(
                 `http://localhost:${PORT}`
+            );
+
+            console.log(
+                `NLP service URL: ${getNlpServiceUrl()}`
             );
         });
 

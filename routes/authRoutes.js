@@ -26,6 +26,11 @@ router.post("/signup", signUp);
 router.post("/signin", signIn);
 
 
+// Login alias (same handler; used by Postman flow)
+// POST /api/auth/login
+router.post("/login", signIn);
+
+
 // ==================== PROTECTED ROUTES ====================
 
 // Get all users

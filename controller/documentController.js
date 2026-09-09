@@ -1,4 +1,4 @@
-const { Document } = require("../models/user");
+const { Document } = require("../models/document");
 
 // Upload and route document
 const uploadAndRouteDocument = async (req, res) => {
@@ -19,10 +19,13 @@ const uploadAndRouteDocument = async (req, res) => {
 
         // 1. Save document in database
         const newDoc = await Document.create({
-          user: req.user.id,
+          userId: String(req.user.id),
           originalName: req.file.originalname,
           filePath: req.file.path,
+          mimeType: req.file.mimetype,
+          fileSize: req.file.size,
           status: "Processing",
+          processingStatus: "Processing",
         });
 
         // 2. TODO: OCR

@@ -78,5 +78,9 @@ const upload = multer({
 });
 
 module.exports = {
-    upload
+    upload,
+    // Kept for backward compatibility with routes/documentRouter.js.
+    // The NLP forwarding now happens inside the document controller,
+    // so this middleware is intentionally a pass-through.
+    routeDocument: (req, res, next) => next(),
 };

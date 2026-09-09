@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Industrial Navy Palette */
+  --color-navy-950: #090d16;
+  --color-navy-900: #0f172a;
+  --color-navy-800: #1e293b;
+  --color-navy-700: #334155;
+  --color-navy-600: #475569;
+  --color-navy-500: #64748b;
+
+  /* Crisp Neutral Slates */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  /* Semantic Risk Colors */
+  --color-risk-low: #15803d;
+  --color-risk-low-bg: #f0fdf4;
+  --color-risk-low-border: #bbf7d0;
+
+  --color-risk-medium: #b45309;
+  --color-risk-medium-bg: #fffbeb;
+  --color-risk-medium-border: #fde68a;
+
+  --color-risk-high: #c2410c;
+  --color-risk-high-bg: #fff7ed;
+  --color-risk-high-border: #fed7aa;
+
+  --color-risk-sif: #b91c1c;
+  --color-risk-sif-bg: #fef2f2;
+  --color-risk-sif-border: #fecaca;
+}
+
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-navy-900);
+    background-color: var(--color-slate-50);
+    line-height: 1.5;
+  }
+
+  /* Custom scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Accessible focus ring */
+  :focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Application Shell Layout Rules */
+  .app-sidebar {
+    width: 240px;
+    min-width: 240px;
+    max-width: 240px;
+  }
+
+  .app-main {
+    margin-left: 240px;
+    width: calc(100vw - 240px);
+    max-width: calc(100vw - 240px);
+    min-width: 0;
+  }
+}

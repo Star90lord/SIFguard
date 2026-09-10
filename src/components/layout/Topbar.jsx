@@ -1,13 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Bell, ChevronRight, Menu, Check, AlertOctagon, AlertTriangle, ExternalLink, X, Sun, Moon } from 'lucide-react';
+import { Bell, ChevronRight, Menu, Check, AlertOctagon, AlertTriangle, ExternalLink, X, Sun, Moon, LogOut } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function Topbar({ title = 'Dashboard', subtitle, onOpenMobileNav }) {
   const navigate = useNavigate();
-  const { currentUser, roleDefinition, notifications, unreadCount, markAllAsRead, theme, toggleTheme } = useApp();
+  const { currentUser, roleDefinition, notifications, unreadCount, markAllAsRead, theme, toggleTheme, logout } = useApp();
   const [popoverOpen, setPopoverOpen] = useState(false);
   const popoverRef = useRef(null);
+
+  async function handleLogout() {
+    await logout();
+    navigate('/login', { replace: true });
+  }
 
   // Close popover when clicking outside
   useEffect(() => {
@@ -177,23 +182,35 @@ export default function Topbar({ title = 'Dashboard', subtitle, onOpenMobileNav 
         </div>
 
         {/* Profile Pill (Links to Settings Profile) */}
+        {/* Profile Pill (Links to Settings Profile) */}
         <Link
           to="/settings?tab=profile"
           className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700 hover:opacity-85 transition-opacity group"
           title="Open Profile Settings"
         >
           <div className="w-7 h-7 rounded-full bg-slate-900 dark:bg-slate-800 border border-slate-700 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-2xs group-hover:bg-blue-600 transition-colors">
-            {currentUser.initials}
+            {currentUser?.initials || 'OP'}
           </div>
           <div className="hidden lg:flex flex-col text-left">
             <span className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">
-              {currentUser.name}
+              {currentUser?.name || 'HSE Operator'}
             </span>
             <span className="text-xs font-mono text-slate-500 dark:text-slate-400 leading-none">
-              {roleDefinition.badgeText}
+              {roleDefinition?.badgeText || 'Operator'}
             </span>
           </div>
         </Link>
+
+        {/* Sign Out Action Button */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-[#172033] transition-colors"
+          title="Sign Out of SIFguard"
+          aria-label="Sign Out"
+        >
+          <LogOut size={16} />
+        </button>
       </div>
     </header>
   );

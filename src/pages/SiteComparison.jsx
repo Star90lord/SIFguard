@@ -101,11 +101,12 @@ export default function SiteComparison() {
 
   // Local staged selection for the full-width facility selection empty state
   const [selectedForCompare, setSelectedForCompare] = useState(() => currentSiteIds);
+  const siteIdsKey = currentSiteIds.join(',');
 
   // Synchronize staged selection when currentSiteIds changes in URL
   useEffect(() => {
     setSelectedForCompare(currentSiteIds);
-  }, [currentSiteIds.join(',')]);
+  }, [siteIdsKey]);
 
   // Synchronize state changes into URL search parameters
   const updateUrlParams = useCallback(
@@ -117,10 +118,10 @@ export default function SiteComparison() {
       if (newTab && newTab !== 'overview') {
         params.set('tab', newTab);
       }
-      if (newHazard && newHazard !== 'Dropped Object') {
+      if (newHazard && newHazard !== 'All Hazards') {
         params.set('hazard', newHazard);
       }
-      if (newRange && newRange !== 'ALL') {
+      if (newRange && newRange !== '90d') {
         params.set('range', newRange);
       }
       setSearchParams(params, { replace: true });
@@ -128,7 +129,7 @@ export default function SiteComparison() {
     [setSearchParams]
   );
 
-  // Sync state if URL search parameters change externally
+  // Synchronize tab and hazard parameter changes from external navigation
   useEffect(() => {
     if (tabParam !== activeTab) setActiveTab(tabParam);
     if (hazardParam !== selectedHazard) setSelectedHazard(hazardParam);
@@ -154,7 +155,7 @@ export default function SiteComparison() {
     } finally {
       setLoading(false);
     }
-  }, [currentSiteIds.join(','), timeRange]);
+  }, [siteIdsKey, timeRange]);
 
   useEffect(() => {
     loadComparison();
@@ -192,7 +193,7 @@ export default function SiteComparison() {
     } finally {
       setHazardLoading(false);
     }
-  }, [currentSiteIds.join(','), selectedHazard, timeRange, activeTab, updateUrlParams]);
+  }, [siteIdsKey, selectedHazard, timeRange, activeTab, updateUrlParams]);
 
   useEffect(() => {
     loadHazardAnalysis();

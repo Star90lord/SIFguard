@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FileSearch,
@@ -18,6 +18,7 @@ import {
   FileText,
   Sparkles,
   Shield,
+  ShieldCheck,
 } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';
@@ -47,6 +48,14 @@ export default function SubmitReport() {
   // Admin submission modal state & feedback
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submissionToast, setSubmissionToast] = useState(null);
+
+  // Sample Batch Preview Modal & Toast state
+  const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
+  const [sampleToast, setSampleToast] = useState(null);
+
+  // Ref for smooth scrolling to queue
+  const queueRef = useRef(null);
 
   // Monitored Sites from API
   const [sites, setSites] = useState([]);
@@ -250,14 +259,35 @@ export default function SubmitReport() {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // Computed duplicate check: whether files currently contains the mockSampleBatch
+  const isSampleBatchLoaded = useMemo(() => {
+    if (files.length === 0) return false;
+    return mockSampleBatch.every((sample) =>
+      files.some((f) => (f.name || f.filename) === sample.filename)
+    );
+  }, [files]);
+
   function handleClearAll() {
     setFiles([]);
     setBatchResults(null);
     setValidationError(null);
+    setSampleToast(null);
   }
 
-  // Quick load 5-report sample batch
-  function handleLoadSampleBatch() {
+  // Open Sample Batch Preview Modal
+  function handleOpenSampleModal() {
+    setIsSampleModalOpen(true);
+  }
+
+  // Confirm loading or reloading 5-report sample batch
+  async function handleConfirmLoadSample(reload = false) {
+    setIsLoadingSample(true);
+    if (reload) {
+      setFiles([]);
+    }
+    // Subtle brief delay for smooth interaction
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
     setValidationError(null);
     setBatchResults(null);
     const sampleItems = mockSampleBatch.map((s) => ({
@@ -266,6 +296,18 @@ export default function SubmitReport() {
       status: 'Ready',
     }));
     setFiles(sampleItems);
+    setIsLoadingSample(false);
+    setIsSampleModalOpen(false);
+
+    setSampleToast('5 sample reports loaded successfully.');
+    setTimeout(() => setSampleToast(null), 4000);
+
+    // Smooth scroll to the Uploaded Reports Queue
+    setTimeout(() => {
+      if (queueRef.current) {
+        queueRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }
 
   // Execute Batch Analysis
@@ -431,12 +473,12 @@ export default function SubmitReport() {
               variant="secondary"
               size="sm"
               icon={Layers}
-              onClick={handleLoadSampleBatch}
+              onClick={handleOpenSampleModal}
               disabled={isAnalyzing}
             >
-              Load Sample Batch (5 Reports)
+              Load Sample Batch
             </Button>
-            {isAdmin && (
+            {isAdmin ? (
               <Button
                 variant="primary"
                 size="sm"
@@ -444,6 +486,17 @@ export default function SubmitReport() {
                 onClick={() => setIsSubmitModalOpen(true)}
               >
                 Submit Safety Reports
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={Lock}
+                disabled={true}
+                title="Submitting safety reports requires HSE Administrator permissions"
+                className="opacity-70 cursor-not-allowed text-xs"
+              >
+                Submit Safety Reports (Admin Only)
               </Button>
             )}
           </div>
@@ -596,11 +649,11 @@ export default function SubmitReport() {
                       variant="secondary"
                       size="lg"
                       icon={Layers}
-                      onClick={handleLoadSampleBatch}
+                      onClick={handleOpenSampleModal}
                       disabled={isAnalyzing}
                       className="px-5 py-2.5 text-sm"
                     >
-                      Load Sample Batch (5 Reports)
+                      Load Sample Batch
                     </Button>
                   </div>
 
@@ -658,17 +711,32 @@ export default function SubmitReport() {
                       variant="secondary"
                       size="md"
                       icon={Layers}
-                      onClick={handleLoadSampleBatch}
+                      onClick={handleOpenSampleModal}
                       disabled={isAnalyzing}
                     >
-                      Load Demonstration Sample Batch (5 Reports)
+                      Load Sample Batch
                     </Button>
                   </div>
                 </div>
               )
             ) : (
               /* Queued Files View */
-              <div className="space-y-4">
+              <div ref={queueRef} className="space-y-4">
+                {sampleToast && (
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between shadow-2xs animate-in fade-in">
+                    <div className="flex items-center gap-2.5 font-medium">
+                      <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{sampleToast}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSampleToast(null)}
+                      className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 font-bold px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
                 <ReportQueue
                   files={files}
                   sites={sites}
@@ -929,6 +997,172 @@ export default function SubmitReport() {
           initialSite={siteContext}
           onSuccess={handleModalSuccess}
         />
+
+        {/* Sample Batch Preview & Confirmation Modal */}
+        <Modal
+          isOpen={isSampleModalOpen}
+          onClose={() => {
+            if (!isLoadingSample) setIsSampleModalOpen(false);
+          }}
+          title={isSampleBatchLoaded ? 'Sample batch already loaded.' : 'Load Sample Safety Reports'}
+          description={
+            isSampleBatchLoaded
+              ? 'A 5-report demonstration batch is currently present in your analysis queue.'
+              : 'Load a realistic multi-site sample batch to explore the SIFguard analysis workflow.'
+          }
+          icon={Layers}
+          iconBg="bg-blue-50 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/60"
+          iconColor="text-blue-600 dark:text-blue-400"
+          maxWidth="max-w-xl"
+          footer={
+            isSampleBatchLoaded ? (
+              <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-[#E2E8F0] dark:border-[#263244]">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsSampleModalOpen(false)}
+                  disabled={isLoadingSample}
+                >
+                  Keep Current Batch
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={isLoadingSample}
+                  icon={RotateCcw}
+                  onClick={() => handleConfirmLoadSample(true)}
+                >
+                  {isLoadingSample ? 'Loading sample reports...' : 'Reload Sample Batch'}
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-[#E2E8F0] dark:border-[#263244]">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsSampleModalOpen(false)}
+                  disabled={isLoadingSample}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={isLoadingSample}
+                  icon={Layers}
+                  onClick={() => handleConfirmLoadSample(false)}
+                >
+                  {isLoadingSample ? 'Loading sample reports...' : 'Load 5 Sample Reports'}
+                </Button>
+              </div>
+            )
+          }
+        >
+          {isSampleBatchLoaded ? (
+            <div className="space-y-4 text-xs">
+              <div className="p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 space-y-1">
+                <p className="font-semibold text-amber-900 dark:text-amber-200">
+                  Sample batch already loaded.
+                </p>
+                <p className="text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                  5 demonstration reports across 3 operating sites are already staged in your Uploaded Reports Queue. You can keep your active queue or reload a fresh sample batch.
+                </p>
+              </div>
+
+              {/* Current Loaded Summary */}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#94A3B8] block">Reports</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">5 Reports</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#94A3B8] block">Sites</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">3 Sites</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#94A3B8] block">Status</span>
+                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Ready</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 text-xs">
+              {/* Concise 4-item Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] text-center">
+                  <span className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] block leading-tight">5</span>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">Reports</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] text-center">
+                  <span className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] block leading-tight">3</span>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">Sites</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] text-center">
+                  <span className="text-xs font-bold text-slate-800 dark:text-[#CBD5E1] block leading-tight truncate">PDF/DOCX/TXT</span>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">Formats</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/50 text-center">
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400 block leading-tight">Ready</span>
+                  <span className="text-[11px] font-medium text-blue-700 dark:text-blue-300">For Analysis</span>
+                </div>
+              </div>
+
+              {/* Compact Site Distribution Preview */}
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block mb-2">
+                  Site Distribution
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244]">
+                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">Rig Site A</span>
+                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">3 reports</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244]">
+                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">Rig Site B</span>
+                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">1 report</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244]">
+                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">Warehouse</span>
+                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">1 report</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compact Sample Report Manifest List */}
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block mb-2">
+                  Sample Batch Manifest
+                </span>
+                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                  {mockSampleBatch.map((sample) => {
+                    const ext = sample.filename.split('.').pop().toUpperCase();
+                    return (
+                      <div
+                        key={sample.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#0D1420] border border-slate-200/80 dark:border-[#263244] text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText size={14} className="text-blue-500 shrink-0" />
+                          <span className="font-mono font-medium text-slate-800 dark:text-[#CBD5E1] truncate">
+                            {sample.filename.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-[#CBD5E1]">
+                            {sample.siteName}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                            {ext}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal>
       </PageContainer>
     </AppShell>
   );

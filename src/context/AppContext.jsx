@@ -2,62 +2,19 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import { ROLES, ROLE_DEFINITIONS, hasPermission as checkPermission } from '../config/roles';
 import { getMockSites } from '../data/mockData';
 import { getSites, updateSite as apiUpdateSite, addSite as apiAddSite } from '../api/sifguardApi';
+import {
+  getCurrentSession,
+  login as apiLogin,
+  logout as apiLogout,
+  DEMO_USERS,
+} from '../api/authApi';
 
 const AppContext = createContext(null);
 
 const DEFAULT_USERS = {
-  [ROLES.ADMINISTRATOR]: {
-    id: 'usr-admin-001',
-    name: 'HSE Administrator',
-    email: 'hse.admin@oilindia.example',
-    phone: '+91 94350 12345',
-    role: ROLES.ADMINISTRATOR,
-    department: 'HSE Operations Division',
-    organization: 'Oil India Limited (OIL)',
-    siteAccess: 'ALL',
-    initials: 'HA',
-    defaultSite: 'ALL',
-    defaultRange: 'THIS_MONTH',
-  },
-  [ROLES.HSE_MANAGER]: {
-    id: 'usr-mgr-002',
-    name: 'HSE Manager',
-    email: 'hse.manager@oilindia.example',
-    phone: '+91 94350 67890',
-    role: ROLES.HSE_MANAGER,
-    department: 'Field Safety Monitoring',
-    organization: 'Oil India Limited (OIL)',
-    siteAccess: 'rig-site-b',
-    initials: 'HM',
-    defaultSite: 'rig-site-b',
-    defaultRange: 'THIS_MONTH',
-  },
-  [ROLES.HSE_REVIEWER]: {
-    id: 'usr-rev-003',
-    name: 'HSE Reviewer',
-    email: 'hse.reviewer@oilindia.example',
-    phone: '+91 94350 33445',
-    role: ROLES.HSE_REVIEWER,
-    department: 'Safety Analysis & Investigation',
-    organization: 'Oil India Limited (OIL)',
-    siteAccess: 'ALL',
-    initials: 'HR',
-    defaultSite: 'ALL',
-    defaultRange: 'THIS_MONTH',
-  },
-  [ROLES.HSE_VIEWER]: {
-    id: 'usr-vw-004',
-    name: 'HSE Viewer',
-    email: 'hse.viewer@oilindia.example',
-    phone: '+91 94350 77889',
-    role: ROLES.HSE_VIEWER,
-    department: 'Executive Oversight',
-    organization: 'Oil India Limited (OIL)',
-    siteAccess: 'ALL',
-    initials: 'HV',
-    defaultSite: 'ALL',
-    defaultRange: 'THIS_MONTH',
-  },
+  [ROLES.ADMINISTRATOR]: DEMO_USERS[0],
+  [ROLES.HSE_MANAGER]: DEMO_USERS[1],
+  [ROLES.SITE_SAFETY_OFFICER]: DEMO_USERS[2],
 };
 
 const INITIAL_NOTIFICATIONS = [
@@ -117,8 +74,12 @@ const INITIAL_PREFERENCES = {
 };
 
 export function AppProvider({ children }) {
-  // Current user state (defaults to Administrator, persists demo role in sessionStorage)
+  // Current user state initialized from session or fallback
   const [currentUser, setCurrentUser] = useState(() => {
+    const session = getCurrentSession();
+    if (session?.user) {
+      return session.user;
+    }
     try {
       const savedRole = sessionStorage.getItem('sifguard_demo_role');
       if (savedRole && DEFAULT_USERS[savedRole]) {
@@ -127,8 +88,32 @@ export function AppProvider({ children }) {
     } catch (e) {
       // sessionStorage unavailable
     }
-    return DEFAULT_USERS[ROLES.ADMIN];
+    return null;
   });
+
+  const isAuthenticated = Boolean(currentUser);
+  const currentRole = currentUser?.role || null;
+
+  // Centralized login action
+  const login = useCallback(async ({ email, password, keepSignedIn = false }) => {
+    const session = await apiLogin({ email, password, keepSignedIn });
+    if (session?.user) {
+      setCurrentUser(session.user);
+      try {
+        sessionStorage.setItem('sifguard_demo_role', session.user.role);
+      } catch (e) {}
+    }
+    return session;
+  }, []);
+
+  // Centralized logout action
+  const logout = useCallback(async () => {
+    await apiLogout();
+    setCurrentUser(null);
+    try {
+      sessionStorage.removeItem('sifguard_demo_role');
+    } catch (e) {}
+  }, []);
 
   // Notifications state
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
@@ -142,6 +127,7 @@ export function AppProvider({ children }) {
   // Update profile
   function updateProfile(updatedFields) {
     setCurrentUser((prev) => {
+      if (!prev) return null;
       const merged = { ...prev, ...updatedFields };
       if (updatedFields.name) {
         const parts = updatedFields.name.trim().split(/\s+/);
@@ -154,20 +140,18 @@ export function AppProvider({ children }) {
     });
   }
 
-  // Switch role between ADMIN and MANAGER for live demo
+  // Switch role between canonical DEMO_USERS for development
   function switchRole(targetRole) {
     try {
       sessionStorage.setItem('sifguard_demo_role', targetRole);
-    } catch (e) {
-      // sessionStorage unavailable
-    }
-    if (DEFAULT_USERS[targetRole]) {
-      setCurrentUser(DEFAULT_USERS[targetRole]);
+    } catch (e) {}
+    const found = DEMO_USERS.find((u) => u.role === targetRole) || DEFAULT_USERS[targetRole];
+    if (found) {
+      setCurrentUser(found);
     } else {
       setCurrentUser((prev) => ({
-        ...prev,
+        ...(prev || DEFAULT_USERS[ROLES.ADMINISTRATOR]),
         role: targetRole,
-        initials: targetRole === ROLES.ADMIN ? 'HA' : 'HM',
       }));
     }
   }
@@ -288,10 +272,16 @@ export function AppProvider({ children }) {
 
   const value = {
     currentUser,
+    isAuthenticated,
+    currentRole,
+    login,
+    logout,
     updateProfile,
     switchRole,
-    roleDefinition: ROLE_DEFINITIONS[currentUser.role] || ROLE_DEFINITIONS[ROLES.MANAGER],
-    hasPermission: (permission) => checkPermission(currentUser, permission),
+    roleDefinition: currentUser?.role
+      ? ROLE_DEFINITIONS[currentUser.role] || ROLE_DEFINITIONS[ROLES.ADMINISTRATOR]
+      : ROLE_DEFINITIONS[ROLES.ADMINISTRATOR],
+    hasPermission: (permission) => (currentUser ? checkPermission(currentUser, permission) : false),
     notifications,
     unreadCount,
     markAsRead,
@@ -321,6 +311,31 @@ export function useApp() {
     throw new Error('useApp must be used within an AppProvider');
   }
   return context;
+}
+
+export function useAuth() {
+  const {
+    currentUser,
+    isAuthenticated,
+    currentRole,
+    login,
+    logout,
+    roleDefinition,
+    hasPermission,
+    switchRole,
+    updateProfile,
+  } = useApp();
+  return {
+    currentUser,
+    isAuthenticated,
+    currentRole,
+    login,
+    logout,
+    roleDefinition,
+    hasPermission,
+    switchRole,
+    updateProfile,
+  };
 }
 
 export function useSites() {

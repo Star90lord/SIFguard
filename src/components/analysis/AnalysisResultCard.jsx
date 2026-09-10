@@ -20,7 +20,7 @@ export default function AnalysisResultCard({ report, onSelectReport }) {
   return (
     <div
       onClick={() => onSelectReport && onSelectReport(report)}
-      className="p-4 sm:p-5 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-sm transition-all duration-150 cursor-pointer group space-y-3"
+      className="p-4 sm:p-5 rounded-xl border border-slate-200/90 dark:border-[#263244] bg-white dark:bg-[#0D1420] hover:border-slate-300 dark:hover:border-[#3B4D6B] hover:shadow-sm dark:hover:shadow-none transition-all duration-150 cursor-pointer group space-y-3"
       role="button"
       tabIndex={0}
       aria-label={`Inspect report from ${siteName} on ${formattedDate}`}
@@ -34,10 +34,10 @@ export default function AnalysisResultCard({ report, onSelectReport }) {
       {/* Top Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs">
-          <span className="font-mono font-bold text-slate-700">{formattedDate}</span>
-          <span className="text-slate-300">·</span>
-          <span className="inline-flex items-center gap-1 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/70">
-            <Building2 size={12} className="text-slate-400" />
+          <span className="font-mono font-bold text-slate-700 dark:text-[#CBD5E1]">{formattedDate}</span>
+          <span className="text-slate-300 dark:text-[#3B4D6B]">·</span>
+          <span className="inline-flex items-center gap-1 font-semibold text-slate-600 dark:text-[#CBD5E1] bg-slate-100 dark:bg-[#172033] px-2 py-0.5 rounded border border-slate-200/70 dark:border-[#263244]">
+            <Building2 size={12} className="text-slate-400 dark:text-[#94A3B8]" />
             <span>{siteName}</span>
           </span>
         </div>
@@ -48,34 +48,34 @@ export default function AnalysisResultCard({ report, onSelectReport }) {
       {/* Primary Hazard & Operational Attributes */}
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between gap-2">
-          <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+          <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {report.hazard || 'Safety Observation'}
           </h4>
-          <span className="text-xs text-slate-500 font-medium">{report.activity}</span>
+          <span className="text-xs text-slate-500 dark:text-[#94A3B8] font-medium">{report.activity}</span>
         </div>
 
-        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+        <p className="text-xs text-slate-600 dark:text-[#94A3B8] line-clamp-2 leading-relaxed">
           {report.text_snippet || report.full_text || report.report_text}
         </p>
       </div>
 
       {/* Location and Barrier Failure Strip */}
-      <div className="pt-2.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-        <div className="flex items-center gap-1.5 text-slate-500 truncate">
-          <MapPin size={12} className="text-slate-400 shrink-0" />
+      <div className="pt-2.5 border-t border-slate-100 dark:border-[#263244] grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        <div className="flex items-center gap-1.5 text-slate-500 dark:text-[#94A3B8] truncate">
+          <MapPin size={12} className="text-slate-400 dark:text-[#94A3B8] shrink-0" />
           <span className="truncate">{report.location || siteName}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-slate-700 font-medium justify-between sm:justify-end">
-          <div className="flex items-center gap-1 truncate text-amber-900">
-            <ShieldX size={12} className="text-amber-600 shrink-0" />
+        <div className="flex items-center gap-1.5 text-slate-700 dark:text-[#CBD5E1] font-medium justify-between sm:justify-end">
+          <div className="flex items-center gap-1 truncate text-amber-900 dark:text-amber-300">
+            <ShieldX size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="truncate text-[11px]">
               {report.barrier_failure ? `Barrier: ${report.barrier_failure}` : 'Barrier: None'}
             </span>
           </div>
           <ChevronRight
             size={14}
-            className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0 ml-1"
+            className="text-slate-300 dark:text-[#3B4D6B] group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-1"
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileSearch,
@@ -13,12 +13,20 @@ import {
   UserCheck,
   Repeat,
   SlidersHorizontal,
+  LogOut,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { canAccessAdmin } from '../../config/roles';
 
 export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
-  const { currentUser, roleDefinition, activeScope } = useApp();
+  const navigate = useNavigate();
+  const { currentUser, roleDefinition, activeScope, logout } = useApp();
+
+  async function handleLogout() {
+    if (onCloseMobile) onCloseMobile();
+    await logout();
+    navigate('/login', { replace: true });
+  }
 
   // Dynamically configure navigation sections based on user role
   const navSections = [
@@ -237,21 +245,36 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
         </div>
 
         {/* Operator Profile Footer */}
-        <div className="p-3 border-t border-[#D1D5DB] dark:border-[#263244] bg-slate-50/60 dark:bg-[#0A0F18] shrink-0">
+        <div className="p-2.5 sm:p-3 border-t border-[#D1D5DB] dark:border-[#263244] bg-slate-50/60 dark:bg-[#0A0F18] shrink-0 flex items-center justify-between gap-1.5">
           <Link
             to="/settings?tab=profile"
             onClick={() => onCloseMobile && onCloseMobile()}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#111827] transition-colors group"
+            className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#111827] transition-colors group min-w-0 flex-1"
             title="Open Profile Settings"
           >
             <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-[#172033] border border-slate-700 dark:border-[#263244] text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-2xs group-hover:bg-blue-600 transition-colors">
-              {currentUser.initials}
+              {currentUser?.initials || 'OP'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F8FAFC] truncate">{currentUser.name}</p>
-              <p className="text-[13px] text-[#64748B] dark:text-[#94A3B8] truncate">{roleDefinition.label} · OIL</p>
+              <p className="text-[14px] font-bold text-[#0F172A] dark:text-[#F8FAFC] truncate">
+                {currentUser?.name || 'HSE Operator'}
+              </p>
+              <p className="text-[12px] text-[#64748B] dark:text-[#94A3B8] truncate">
+                {roleDefinition?.label || 'Administrator'} · OIL
+              </p>
             </div>
           </Link>
+
+          {/* Sign Out Trigger Button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-[#172033] transition-colors shrink-0"
+            title="Sign Out of SIFguard"
+            aria-label="Sign Out"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
     </>

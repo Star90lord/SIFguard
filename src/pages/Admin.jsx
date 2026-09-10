@@ -317,11 +317,11 @@ export default function Admin() {
                     <tr className="hover:bg-slate-50/70 dark:hover:bg-[#172033]">
                       <td className="py-2.5 sm:py-3 px-3 font-bold text-slate-900 dark:text-[#F8FAFC]">
                         Site Safety Officer
-                        <span className="block text-[10px] font-normal text-slate-500 dark:text-[#94A3B8]">sso.field@oilindia.example</span>
+                        <span className="block text-[10px] font-normal text-slate-500 dark:text-[#94A3B8]">safety.officer@oilindia.example</span>
                       </td>
                       <td className="py-2.5 sm:py-3 px-3">
                         <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-[#172033] text-slate-700 dark:text-[#CBD5E1] border border-[#D1D5DB] dark:border-[#263244] font-medium font-mono text-[11px]">
-                          Safety Officer
+                          Site Safety Officer
                         </span>
                       </td>
                       <td className="py-2.5 sm:py-3 px-3 text-slate-700 dark:text-[#CBD5E1] font-medium">Field Logging</td>

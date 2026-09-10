@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   VIEW_REPORTS: 'VIEW_REPORTS',
   ANALYZE_REPORTS: 'ANALYZE_REPORTS',
   SUBMIT_REPORTS: 'SUBMIT_REPORTS',
+  SUBMIT_SAFETY_REPORT: 'SUBMIT_REPORTS',
   COMPARE_SITES: 'COMPARE_SITES',
   COMPARE_HAZARDS: 'COMPARE_HAZARDS',
   MANAGE_ACTIONS: 'MANAGE_ACTIONS',
@@ -22,19 +23,19 @@ export const PERMISSIONS = {
 export const ROLES = {
   ADMINISTRATOR: 'ADMINISTRATOR',
   HSE_MANAGER: 'HSE_MANAGER',
-  HSE_REVIEWER: 'HSE_REVIEWER',
-  HSE_VIEWER: 'HSE_VIEWER',
+  SITE_SAFETY_OFFICER: 'SITE_SAFETY_OFFICER',
 
   // Backward-compatibility aliases for existing code
   ADMIN: 'ADMINISTRATOR',
   MANAGER: 'HSE_MANAGER',
+  SSO: 'SITE_SAFETY_OFFICER',
 };
 
 // ─── Role Definitions & Capability Mappings ─────────────────────────
 export const ROLE_DEFINITIONS = {
   [ROLES.ADMINISTRATOR]: {
     key: ROLES.ADMINISTRATOR,
-    label: 'Administrator',
+    label: 'HSE Administrator',
     badgeText: 'Administrator',
     accessLevel: 'Full Enterprise Administration',
     description: 'Complete administrative access across users, sites, report submissions, analytics, system configuration, and audit settings.',
@@ -58,7 +59,7 @@ export const ROLE_DEFINITIONS = {
     label: 'HSE Manager',
     badgeText: 'HSE Manager',
     accessLevel: 'Operational Safety Supervision',
-    description: 'Operational safety oversight, review queue, reports analysis, cross-site comparisons, hazard tracking, and corrective actions.',
+    description: 'Operational safety oversight, dashboard, reports, review queue, site comparison, hazard comparison, and corrective actions.',
     permissions: [
       PERMISSIONS.VIEW_DASHBOARD,
       PERMISSIONS.VIEW_REPORTS,
@@ -70,33 +71,19 @@ export const ROLE_DEFINITIONS = {
     canAdminister: false,
     canSubmitReports: false,
   },
-  [ROLES.HSE_REVIEWER]: {
-    key: ROLES.HSE_REVIEWER,
-    label: 'HSE Reviewer / Analyst',
-    badgeText: 'HSE Analyst',
-    accessLevel: 'Review & Safety Investigation',
-    description: 'Review queue triage, safety report analysis, cross-site hazard comparison, and incident pattern analysis.',
+  [ROLES.SITE_SAFETY_OFFICER]: {
+    key: ROLES.SITE_SAFETY_OFFICER,
+    label: 'Site Safety Officer',
+    badgeText: 'Site Safety Officer',
+    accessLevel: 'Site Safety Operations',
+    description: 'Site-level safety work, safety report submission and review, site monitoring, risk analysis, and corrective actions.',
     permissions: [
       PERMISSIONS.VIEW_DASHBOARD,
       PERMISSIONS.VIEW_REPORTS,
       PERMISSIONS.ANALYZE_REPORTS,
       PERMISSIONS.COMPARE_SITES,
       PERMISSIONS.COMPARE_HAZARDS,
-    ],
-    canAdminister: false,
-    canSubmitReports: false,
-  },
-  [ROLES.HSE_VIEWER]: {
-    key: ROLES.HSE_VIEWER,
-    label: 'HSE Viewer',
-    badgeText: 'HSE Viewer',
-    accessLevel: 'Read-Only Intelligence',
-    description: 'Read-only visibility for executive dashboards, safety reports, site health metrics, and facility comparison benchmarks.',
-    permissions: [
-      PERMISSIONS.VIEW_DASHBOARD,
-      PERMISSIONS.VIEW_REPORTS,
-      PERMISSIONS.COMPARE_SITES,
-      PERMISSIONS.COMPARE_HAZARDS,
+      PERMISSIONS.MANAGE_ACTIONS,
     ],
     canAdminister: false,
     canSubmitReports: false,
@@ -106,6 +93,7 @@ export const ROLE_DEFINITIONS = {
 // Aliases in definition dictionary
 ROLE_DEFINITIONS.ADMIN = ROLE_DEFINITIONS[ROLES.ADMINISTRATOR];
 ROLE_DEFINITIONS.MANAGER = ROLE_DEFINITIONS[ROLES.HSE_MANAGER];
+ROLE_DEFINITIONS.SSO = ROLE_DEFINITIONS[ROLES.SITE_SAFETY_OFFICER];
 
 // ─── Centralized Permission & Role Utilities ────────────────────────
 /**
@@ -115,8 +103,7 @@ export function normalizeRole(role) {
   if (!role) return ROLES.ADMINISTRATOR;
   if (role === 'ADMIN' || role === ROLES.ADMINISTRATOR) return ROLES.ADMINISTRATOR;
   if (role === 'MANAGER' || role === ROLES.HSE_MANAGER) return ROLES.HSE_MANAGER;
-  if (role === ROLES.HSE_REVIEWER) return ROLES.HSE_REVIEWER;
-  if (role === ROLES.HSE_VIEWER) return ROLES.HSE_VIEWER;
+  if (role === 'SSO' || role === ROLES.SITE_SAFETY_OFFICER) return ROLES.SITE_SAFETY_OFFICER;
   return role;
 }
 
@@ -148,7 +135,6 @@ export function canAccessAdmin(user) {
 
 /**
  * Checks if a user can submit or upload safety reports
- * In accordance with specification: ADMINISTRATOR is allowed, others are not.
  */
 export function canSubmitReports(user) {
   return hasPermission(user, PERMISSIONS.SUBMIT_REPORTS);
@@ -189,20 +175,13 @@ export function getRoleNavigation(role) {
         { title: 'Facilities', items: [ALL_ITEMS.sites] },
         { title: 'System', items: [ALL_ITEMS.settings] },
       ];
-    case ROLES.HSE_REVIEWER:
+    case ROLES.SITE_SAFETY_OFFICER:
       return [
         { title: 'Overview', items: [ALL_ITEMS.dashboard] },
         { title: 'HSE Workflow', items: [ALL_ITEMS.review, ALL_ITEMS.reports] },
         { title: 'Intelligence & Analysis', items: [ALL_ITEMS.submit, ALL_ITEMS.compare] },
         { title: 'Facilities', items: [ALL_ITEMS.sites] },
         { title: 'System', items: [ALL_ITEMS.settings] },
-      ];
-    case ROLES.HSE_VIEWER:
-      return [
-        { title: 'Overview', items: [ALL_ITEMS.dashboard] },
-        { title: 'HSE Workflow', items: [ALL_ITEMS.reports] },
-        { title: 'Intelligence & Analysis', items: [ALL_ITEMS.compare] },
-        { title: 'Facilities', items: [ALL_ITEMS.sites] },
       ];
     default:
       return [

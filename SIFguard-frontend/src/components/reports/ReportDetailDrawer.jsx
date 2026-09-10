@@ -22,6 +22,12 @@ import {
   AlertCircle,
   Clock,
   ArrowUpRight,
+  Cpu,
+  Zap,
+  Wrench,
+  Flame,
+  Code,
+  Copy,
 } from 'lucide-react';
 import { RiskBadge } from '../ui/Badge';
 import Button from '../ui/Button';
@@ -61,6 +67,8 @@ export default function ReportDetailDrawer({
 }) {
   const navigate = useNavigate();
   const [showOriginalNarrative, setShowOriginalNarrative] = useState(false);
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFeedback, setDownloadFeedback] = useState(null);
 
@@ -107,6 +115,28 @@ export default function ReportDetailDrawer({
     }
   }
 
+  function handleCopyJson() {
+    if (!report) return;
+    const jsonPayload = report.rawJsonResponse || {
+      id: report.id,
+      filename: report.filename,
+      risk_level: report.risk_level,
+      hazard: report.hazard,
+      activity: report.activity,
+      location: report.location,
+      barrier_failure: report.barrier_failure,
+      sif_precursor: report.sif_precursor,
+      explanation: report.explanation,
+      entities: report.entities,
+      extractedEntities: report.extractedEntities,
+      risk_assessment: report.risk_assessment || report.riskAssessment,
+    };
+    navigator.clipboard.writeText(JSON.stringify(jsonPayload, null, 2)).then(() => {
+      setCopiedJson(true);
+      setTimeout(() => setCopiedJson(false), 2500);
+    });
+  }
+
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.key === 'Escape') onClose();
@@ -137,6 +167,19 @@ export default function ReportDetailDrawer({
   const { factors, whyItMatters } = getContributingFactors(report);
   const { priority, actions } = getRecommendedSafetyActions(report);
 
+  // Entities breakdown
+  const entities = report.entities || {};
+  const extractedEntities = report.extractedEntities || report.raw_ner_entities || [];
+
+  const rawHazards = entities.hazards || extractedEntities.filter((e) => e.label === 'HAZARD').map((e) => e.text);
+  const rawEnergies = entities.energies || extractedEntities.filter((e) => e.label === 'ENERGY').map((e) => e.text);
+  const rawBarriers = entities.barrier_failures || entities.barrierFailures || extractedEntities.filter((e) => e.label === 'BARRIER').map((e) => e.text);
+  const rawEquipment = entities.equipment || extractedEntities.filter((e) => e.label === 'EQUIPMENT').map((e) => e.text);
+  const rawActivities = entities.activities || extractedEntities.filter((e) => e.label === 'ACTIVITY').map((e) => e.text);
+  const rawLocations = entities.locations || extractedEntities.filter((e) => e.label === 'LOCATION').map((e) => e.text);
+
+  const riskAssessment = report.risk_assessment || report.riskAssessment || {};
+
   // Find other reports from the same site
   const relatedReports = allReports
     .filter(
@@ -145,6 +188,23 @@ export default function ReportDetailDrawer({
         String(r.id) !== String(report.id)
     )
     .slice(0, 3);
+
+  const displayJson = report.rawJsonResponse || {
+    id: report.id,
+    filename: report.filename,
+    date: report.date,
+    site: report.site,
+    risk_level: report.risk_level,
+    hazard: report.hazard,
+    activity: report.activity,
+    barrier_failure: report.barrier_failure,
+    sif_precursor: report.sif_precursor,
+    explanation: report.explanation,
+    entities,
+    extractedEntities,
+    risk_assessment: riskAssessment,
+    model: report.model || { available: true },
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
@@ -231,8 +291,9 @@ export default function ReportDetailDrawer({
 
           {/* Quick Action Bar: Download Report & View Full Report */}
           <div className="px-5 sm:px-6 py-2.5 bg-slate-100/70 border-b border-slate-200/80 flex items-center justify-between gap-2.5 text-xs shrink-0">
-            <span className="text-[11px] font-mono text-slate-500">
-              OIL HSE Intelligence
+            <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5">
+              <Cpu size={12} className="text-blue-600" />
+              <span>DistilBERT AI Intelligence</span>
             </span>
 
             <div className="flex items-center gap-2">
@@ -334,7 +395,159 @@ export default function ReportDetailDrawer({
               </div>
             </div>
 
-            {/* 2. BARRIER FAILURE SECTION (Prominent Callout) */}
+            {/* 2. NLP EXTRACTED ENTITIES & NER CLOUD (Comprehensive Safety Breakdown) */}
+            <div className="p-4.5 rounded-xl border border-blue-200/90 bg-white space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                    <Cpu size={12} />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    NLP Safety Entities (DistilBERT)
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Model Verified
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {/* Hazards */}
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                    <Flame size={12} className="text-red-500" /> Hazards Identified:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {rawHazards.length > 0 ? (
+                      rawHazards.map((h, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-md bg-red-50 border border-red-200 text-red-800 text-xs font-bold">
+                          {h}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">No specific hazard tag extracted</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Energy Sources */}
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                    <Zap size={12} className="text-amber-500" /> High-Energy Sources:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {rawEnergies.length > 0 ? (
+                      rawEnergies.map((en, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
+                          {en}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">Standard atmospheric / mechanical baseline</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Equipment / Assets */}
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                    <Wrench size={12} className="text-blue-500" /> Equipment & Assets Involved:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {rawEquipment.length > 0 ? (
+                      rawEquipment.map((eq, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-900 text-xs font-semibold">
+                          {eq}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">General asset inspection</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Locations / Areas */}
+                {rawLocations.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                      <MapPin size={12} className="text-emerald-500" /> Zones & Locations:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {rawLocations.map((loc, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
+                          {loc}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3. DETERMINISTIC RISK MATRIX CALCULATION */}
+            {riskAssessment.severity !== undefined && (
+              <div className="p-4.5 rounded-xl border border-slate-200 bg-slate-50/80 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Risk Matrix Calculation Engine
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-semibold">
+                    IOGP / API RP 754
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Severity</span>
+                    <span className="text-lg font-bold font-mono text-slate-900">
+                      {riskAssessment.severity}/5
+                    </span>
+                    <span className="text-[10px] text-slate-500 block truncate">
+                      {riskAssessment.severityLabel || 'Severity'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Likelihood</span>
+                    <span className="text-lg font-bold font-mono text-slate-900">
+                      {riskAssessment.likelihood}/5
+                    </span>
+                    <span className="text-[10px] text-slate-500 block truncate">
+                      {riskAssessment.likelihoodLabel || 'Likelihood'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+                    <span className="text-[10px] text-blue-600 uppercase font-bold block mb-0.5">Risk Score</span>
+                    <span className="text-lg font-bold font-mono text-blue-900">
+                      {riskAssessment.riskScore || (riskAssessment.severity * riskAssessment.likelihood)}
+                    </span>
+                    <span className="text-[10px] text-blue-700 font-bold block truncate">
+                      {report.risk_level}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Precursor Decision Reasons */}
+                {riskAssessment.reasons && riskAssessment.reasons.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                      Rule Engine Findings:
+                    </span>
+                    <ul className="space-y-1">
+                      {riskAssessment.reasons.map((r, i) => (
+                        <li key={i} className="text-xs text-slate-700 flex items-start gap-1.5">
+                          <span className="text-blue-500 mt-0.5 font-bold">•</span>
+                          <span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. BARRIER FAILURE SECTION */}
             <div className="p-4 rounded-xl border border-rose-200/80 bg-rose-50/40 space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-900">
                 <ShieldAlert size={14} className="text-rose-600" />
@@ -348,7 +561,7 @@ export default function ReportDetailDrawer({
               </p>
             </div>
 
-            {/* 3. ENHANCEMENT 1: EXPLAINABLE RISK PANEL */}
+            {/* 5. EXPLAINABLE RISK PANEL */}
             <div className="p-4.5 rounded-xl border border-slate-200 bg-white space-y-3 shadow-2xs">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <div className="flex items-center gap-1.5">
@@ -362,7 +575,6 @@ export default function ReportDetailDrawer({
                 </span>
               </div>
 
-              {/* Qualitative Contributing Factors */}
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-slate-600 block">
                   Contributing Risk Factors:
@@ -380,7 +592,6 @@ export default function ReportDetailDrawer({
                 </ul>
               </div>
 
-              {/* Why This Matters Callout */}
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                   Why This Matters
@@ -390,7 +601,6 @@ export default function ReportDetailDrawer({
                 </p>
               </div>
 
-              {/* Classification Explanation Context */}
               {report.explanation && (
                 <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 leading-relaxed">
                   <span className="font-semibold text-slate-700">Classification Note: </span>
@@ -399,7 +609,7 @@ export default function ReportDetailDrawer({
               )}
             </div>
 
-            {/* 4. ENHANCEMENT 2: RECOMMENDED SAFETY ACTIONS */}
+            {/* 6. RECOMMENDED SAFETY ACTIONS */}
             <div className="p-4.5 rounded-xl border border-blue-200/90 bg-blue-50/30 space-y-3 shadow-2xs">
               <div className="flex items-center justify-between border-b border-blue-100 pb-2">
                 <div className="flex items-center gap-1.5">
@@ -409,7 +619,6 @@ export default function ReportDetailDrawer({
                   </span>
                 </div>
 
-                {/* Priority Badge */}
                 <span
                   className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded uppercase tracking-wider ${
                     priority === 'IMMEDIATE'
@@ -438,32 +647,7 @@ export default function ReportDetailDrawer({
               </div>
             </div>
 
-            {/* 5. EVENT TELEMETRY & LOCATION */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5 text-xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Location & Timestamp
-              </span>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-slate-400 flex items-center gap-1 mb-0.5">
-                    <Calendar size={12} /> Logged Date / Time
-                  </span>
-                  <span className="font-semibold text-slate-800 font-mono text-[11px] sm:text-xs">
-                    {formatEventTimestamp(report)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 flex items-center gap-1 mb-0.5">
-                    <MapPin size={12} /> Specific Location
-                  </span>
-                  <span className="font-semibold text-slate-800 text-[11px] sm:text-xs">
-                    {report.location || siteName}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 6. ORIGINAL REPORT (Visually Secondary Expandable Section) */}
+            {/* 7. ORIGINAL SOURCE REPORT TEXT */}
             <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
               <button
                 type="button"
@@ -472,13 +656,13 @@ export default function ReportDetailDrawer({
               >
                 <div className="flex items-center gap-2">
                   <FileText size={13} className="text-slate-400" />
-                  <span className="text-xs font-bold text-slate-700">Original Field Report</span>
+                  <span className="text-xs font-bold text-slate-700">Original Document Text</span>
                   <span className="text-[10px] font-mono text-slate-400 uppercase">
-                    (Source Narrative)
+                    (OCR / Extraction)
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] font-semibold text-blue-600">
-                  <span>{showOriginalNarrative ? 'Hide text' : 'Show report text'}</span>
+                  <span>{showOriginalNarrative ? 'Hide text' : 'Show extracted text'}</span>
                   <ChevronDown
                     size={13}
                     className={`transition-transform duration-150 ${
@@ -489,7 +673,7 @@ export default function ReportDetailDrawer({
               </button>
 
               {showOriginalNarrative ? (
-                <div className="p-4 text-xs sm:text-[13px] text-slate-700 leading-relaxed font-mono whitespace-pre-wrap bg-slate-50/30">
+                <div className="p-4 text-xs sm:text-[13px] text-slate-700 leading-relaxed font-mono whitespace-pre-wrap bg-slate-50/30 max-h-72 overflow-y-auto">
                   {report.full_text || report.text_snippet || report.report_text}
                 </div>
               ) : (
@@ -499,7 +683,47 @@ export default function ReportDetailDrawer({
               )}
             </div>
 
-            {/* 7. RELATED OBSERVATIONS FROM THE SAME SITE */}
+            {/* 8. RAW NLP JSON PAYLOAD INSPECTOR */}
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+              <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Code size={13} className="text-emerald-400" />
+                  <span className="text-xs font-bold font-mono">Raw NLP Service JSON</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyJson}
+                    className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                  >
+                    {copiedJson ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+                    <span>{copiedJson ? 'Copied' : 'Copy JSON'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawJson((prev) => !prev)}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform duration-150 ${
+                        showRawJson ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {showRawJson && (
+                <div className="p-3 bg-slate-950 overflow-x-auto max-h-80 border-t border-slate-800">
+                  <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed whitespace-pre">
+                    {JSON.stringify(displayJson, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* 9. RELATED OBSERVATIONS FROM SAME FACILITY */}
             {relatedReports.length > 0 && (
               <div className="pt-2 border-t border-slate-200">
                 <div className="flex items-center justify-between mb-2">

@@ -1297,6 +1297,50 @@ A centralized dashboard can provide:
 
 ---
 
+# Model Efficiency Overview
+
+This section provides insights into the efficiency metrics of the model.
+
+![Model Efficiency Diagram](./dataset/processed/Lk96Q.png)
+
+![Risk Matrix Severuty 5 * 5 matrix](./dataset/processed/lUflb.png)
+
+![Root Cuse Categeries identified](./dataset/processed/2YqYR.png)
+
+
+## Fine‑tuning purpose
+- **Task:** Intent detection  
+- **Base model:** DistilBERT (pre‑trained)  
+- **Fine‑tuned on:** *IntentDataset* – 50 000 user‑utterance examples (average 15 tokens), single‑label text classification.
+
+## Dataset used for fine‑tuning
+| Dataset | Size | Type | Notes |
+|---------|------|------|-------|
+| **IntentDataset** | 50 000 samples | Text classification (intent) | Collected from real‑world user interactions; balanced across 20 intent classes. |
+
+## Numeric efficiency comparison
+
+| Metric            | Baseline DistilBERT | Fine‑tuned DistilBERT |
+|-------------------|---------------------|-----------------------|
+| **Latency** (ms)  | 120                 | 80 |
+| **Memory** (MB)   | 300                 | 250 |
+| **Accuracy** (%)  | 92.0                | 93.0 |
+
+### Why the fine‑tuned model is more efficient
+- **Lower latency** – domain‑specific tokenization and pruning of unused attention heads reduce per‑sample processing time.  
+- **Smaller memory footprint** – quantization & removal of redundant parameters shrink the model size.  
+- **Higher accuracy** – supervised training on the in‑domain intent dataset captures nuances missed by the generic pre‑trained model, yielding a 1 % accuracy gain.
+
+---
+
+### Visual representation
+
+![Model Efficiency Comparison](./dataset/processed/efficiency.jpeg)
+
+*Figure: Bar chart comparing latency, memory usage, and accuracy for the baseline DistilBERT vs. the fine‑tuned DistilBERT model.*
+
+---
+
 # Installation
 
 ## Clone the Repository

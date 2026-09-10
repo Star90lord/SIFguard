@@ -106,7 +106,7 @@ const signIn = async (req, res) => {
         const user = result.rows[0];
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(400).json({
+            return res.status(401).json({
                 message: "Invalid email or password",
             });
         }
@@ -117,7 +117,7 @@ const signIn = async (req, res) => {
                 email: user.email,
             },
             process.env.JWT_SECRET,
-            { expiresIn: "5d" }
+            { expiresIn: process.env.JWT_EXPIRES_IN || "5d" }
         );
 
         return res.status(200).json({

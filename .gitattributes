@@ -1,1 +1,12 @@
+# Enforce LF line endings for all text files
+* text=auto eol=lf
+
+# Or enforce CRLF if your team prefers Windows style
+* text=auto eol=crlf
+# Keep binary files untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
 nlp_service/models/sif_distilbert/** filter=lfs diff=lfs merge=lfs -text

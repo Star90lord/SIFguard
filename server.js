@@ -4,6 +4,10 @@ const { connectdb } = require("./database/mongo");
 const pool = require("./database/pg");
 
 const { spawn } = require("child_process");
+const cors = require('cors');
+
+// Stub for NLP service start – disabled because NLP is launched separately.
+function startNlpService() { return null; }
 
 // API key placeholder – replace with your actual key in .env
 const SIFGUARD_API_KEY = process.env.SIFGUARD_API_KEY || "YOUR_API_KEY_HERE";
@@ -11,28 +15,12 @@ if (SIFGUARD_API_KEY === "YOUR_API_KEY_HERE") {
   console.warn("[WARN] SIFGUARD_API_KEY is not set. Please update .env with your actual API key.");
 }
 
-function startNlpService() {
-  const nlpCmd = "uvicorn";
-  const args = ["nlp_service.main:app", "--host", "0.0.0.0", "--port", "8000"];
-  const nlpProc = spawn(nlpCmd, args, {
-    cwd: process.cwd(),
-    env: { ...process.env },
-    stdio: "inherit",
-    shell: true,
-  });
-  nlpProc.on("error", (err) => {
-    console.error("Failed to start NLP service:", err);
-    process.exit(1);
-  });
-  nlpProc.on("exit", (code, signal) => {
-    console.log(`NLP service exited with code ${code} signal ${signal}`);
-    // Shut down main server if NLP dies
-    process.exit(code ?? 0);
-  });
-  return nlpProc;
-}
+// NOTE: NLP service is started separately via 'npm run nlp'.
+// The automatic spawn of the NLP service has been disabled to avoid port conflicts.
 
-let nlpProcess = null;
+
+// NLP service is started separately via 'npm run nlp'.
+const nlpProcess = null;
 
 require("dotenv").config();
 
@@ -40,6 +28,7 @@ require("dotenv").config();
 // ==================== APP SETUP ====================
 
 const app = express();
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 
 const PORT = process.env.PORT || 5000;
 
@@ -55,6 +44,8 @@ app.use(express.json());
 const authRoutes = require("./routes/authRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const sitesRoutes = require("./routes/sitesRoutes");
+const reportsRoutes = require("./routes/reportsRoutes");
 const { getNlpServiceUrl } = require("./services/nlpService");
 
 // Authentication routes
@@ -67,6 +58,26 @@ const { getNlpServiceUrl } = require("./services/nlpService");
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/sites", sitesRoutes);
+app.use("/api/reports", reportsRoutes);
+
+// Direct NLP text analysis endpoint
+const axios = require("axios");
+app.post("/api/analyze/text", async (req, res, next) => {
+    try {
+        const nlpUrl = getNlpServiceUrl();
+        const response = await axios.post(`${nlpUrl}/analyze/text`, req.body, {
+            headers: { "Content-Type": "application/json" },
+            timeout: 30000,
+        });
+        return res.status(200).json(response.data);
+    } catch (err) {
+        if (err.response) {
+            return res.status(err.response.status).json(err.response.data);
+        }
+        return next(err);
+    }
+});
 
 
 // ==================== UPLOAD ERROR HANDLER ====================

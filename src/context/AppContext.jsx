@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
-import { ROLES, ROLE_DEFINITIONS, hasPermission as checkPermission } from '../config/roles';
+import {
+  ROLES,
+  ROLE_DEFINITIONS,
+  hasPermission as checkPermission,
+  normalizeRole,
+} from '../config/roles';
 import { getMockSites } from '../data/mockData';
 import { getSites, updateSite as apiUpdateSite, addSite as apiAddSite } from '../api/sifguardApi';
 import {
@@ -106,7 +111,7 @@ export function AppProvider({ children }) {
     return session;
   }, []);
 
-  // Centralized logout action
+  // Centralized logout action — clears session, auth, role, site scope
   const logout = useCallback(async () => {
     await apiLogout();
     setCurrentUser(null);
@@ -255,12 +260,60 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  // Dynamically calculated Active Scope metrics
+  // ── Authorization: Site-Scoped Access ────────────────────────────
+
+  /**
+   * Determines if the current user has unrestricted site access.
+   * Admin always has unrestricted access. Others check siteIds.
+   */
+  const hasUnrestrictedSiteAccess = useMemo(() => {
+    if (!currentUser) return false;
+    const role = normalizeRole(currentUser.role);
+    if (role === ROLES.ADMINISTRATOR) return true;
+    const ids = currentUser.siteIds || [];
+    return ids.includes('ALL');
+  }, [currentUser]);
+
+  /**
+   * The list of site IDs the current user is authorized to access.
+   * Returns null for unrestricted access (Admin).
+   */
+  const authorizedSiteIds = useMemo(() => {
+    if (!currentUser) return [];
+    if (hasUnrestrictedSiteAccess) return null; // null = unrestricted
+    return currentUser.siteIds || [];
+  }, [currentUser, hasUnrestrictedSiteAccess]);
+
+  /**
+   * Checks if the current user can access a specific site by ID.
+   */
+  const isAuthorizedForSite = useCallback(
+    (siteId) => {
+      if (!currentUser) return false;
+      if (hasUnrestrictedSiteAccess) return true;
+      const ids = currentUser.siteIds || [];
+      return ids.includes(siteId);
+    },
+    [currentUser, hasUnrestrictedSiteAccess]
+  );
+
+  /**
+   * The filtered list of sites the current user is authorized to see.
+   */
+  const authorizedSites = useMemo(() => {
+    if (!currentUser) return [];
+    if (hasUnrestrictedSiteAccess) return sites;
+    const ids = currentUser.siteIds || [];
+    return sites.filter((s) => ids.includes(s.id));
+  }, [currentUser, sites, hasUnrestrictedSiteAccess]);
+
+  // Dynamically calculated Active Scope metrics (role-aware)
   const activeScope = useMemo(() => {
-    const total = sites.length;
-    const operational = sites.filter((s) => (s.status || '').toLowerCase() === 'active').length;
-    const maintenance = sites.filter((s) => (s.status || '').toLowerCase() === 'maintenance').length;
-    const offline = sites.filter((s) => (s.status || '').toLowerCase() === 'offline').length;
+    const scopedSites = hasUnrestrictedSiteAccess ? sites : authorizedSites;
+    const total = scopedSites.length;
+    const operational = scopedSites.filter((s) => (s.status || '').toLowerCase() === 'active').length;
+    const maintenance = scopedSites.filter((s) => (s.status || '').toLowerCase() === 'maintenance').length;
+    const offline = scopedSites.filter((s) => (s.status || '').toLowerCase() === 'offline').length;
     return {
       total,
       operational,
@@ -268,7 +321,19 @@ export function AppProvider({ children }) {
       offline,
       telemetry: 'Active',
     };
-  }, [sites]);
+  }, [sites, authorizedSites, hasUnrestrictedSiteAccess]);
+
+  // ── Centralized Permission Check ─────────────────────────────────
+
+  /**
+   * Check if the current user has a specific permission.
+   * @param {string} permission - Permission identifier from PERMISSIONS
+   * @returns {boolean}
+   */
+  const can = useCallback(
+    (permission) => (currentUser ? checkPermission(currentUser, permission) : false),
+    [currentUser]
+  );
 
   const value = {
     currentUser,
@@ -279,9 +344,16 @@ export function AppProvider({ children }) {
     updateProfile,
     switchRole,
     roleDefinition: currentUser?.role
-      ? ROLE_DEFINITIONS[currentUser.role] || ROLE_DEFINITIONS[ROLES.ADMINISTRATOR]
+      ? ROLE_DEFINITIONS[normalizeRole(currentUser.role)] || ROLE_DEFINITIONS[ROLES.ADMINISTRATOR]
       : ROLE_DEFINITIONS[ROLES.ADMINISTRATOR],
-    hasPermission: (permission) => (currentUser ? checkPermission(currentUser, permission) : false),
+    // Authorization
+    hasPermission: can,
+    can,
+    authorizedSiteIds,
+    isAuthorizedForSite,
+    authorizedSites,
+    hasUnrestrictedSiteAccess,
+    // Notifications
     notifications,
     unreadCount,
     markAsRead,
@@ -290,6 +362,7 @@ export function AppProvider({ children }) {
     clearAllNotifications,
     notificationPreferences,
     togglePreference,
+    // Theme
     theme,
     toggleTheme,
     setTheme,
@@ -322,6 +395,7 @@ export function useAuth() {
     logout,
     roleDefinition,
     hasPermission,
+    can,
     switchRole,
     updateProfile,
   } = useApp();
@@ -333,14 +407,38 @@ export function useAuth() {
     logout,
     roleDefinition,
     hasPermission,
+    can,
     switchRole,
     updateProfile,
   };
 }
 
+export function useAuthorization() {
+  const {
+    can,
+    hasPermission,
+    authorizedSiteIds,
+    isAuthorizedForSite,
+    authorizedSites,
+    hasUnrestrictedSiteAccess,
+    currentUser,
+    currentRole,
+  } = useApp();
+  return {
+    can,
+    hasPermission,
+    authorizedSiteIds,
+    isAuthorizedForSite,
+    authorizedSites,
+    hasUnrestrictedSiteAccess,
+    currentUser,
+    currentRole,
+  };
+}
+
 export function useSites() {
-  const { sites, setSites, activeScope, updateSite, addSite, refreshSites } = useApp();
-  return { sites, setSites, activeScope, updateSite, addSite, refreshSites };
+  const { sites, setSites, activeScope, updateSite, addSite, refreshSites, authorizedSites } = useApp();
+  return { sites, setSites, activeScope, updateSite, addSite, refreshSites, authorizedSites };
 }
 
 export const useAppContext = useApp;

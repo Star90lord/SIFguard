@@ -22,7 +22,8 @@ import { TableSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import AddSiteModal from '../components/sites/AddSiteModal';
 import Pagination from '../components/ui/Pagination';
-import { useSites } from '../context/AppContext';
+import { useSites, useApp } from '../context/AppContext';
+import { canManageSites } from '../config/roles';
 
 export default function Sites() {
   const navigate = useNavigate();
@@ -32,6 +33,8 @@ export default function Sites() {
   const statusParam = searchParams.get('status');
 
   const { sites, addSite: addGlobalSite, refreshSites } = useSites();
+  const { currentUser } = useApp();
+  const canManage = canManageSites(currentUser);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -165,14 +168,16 @@ export default function Sites() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="md"
-              icon={Plus}
-              onClick={() => setIsAddModalOpen(true)}
-            >
-              Add Site
-            </Button>
+            {canManage && (
+              <Button
+                variant="primary"
+                size="md"
+                icon={Plus}
+                onClick={() => setIsAddModalOpen(true)}
+              >
+                Add Site
+              </Button>
+            )}
           </div>
         </div>
 

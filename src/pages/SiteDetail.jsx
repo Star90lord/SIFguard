@@ -45,7 +45,8 @@ import { TableSkeleton } from '../components/ui/Skeleton';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
 import EditSiteModal from '../components/sites/EditSiteModal';
 import { getSiteReports } from '../api/sifguardApi';
-import { useSites } from '../context/AppContext';
+import { useSites, useApp } from '../context/AppContext';
+import { canManageSites } from '../config/roles';
 import {
   filterReports,
   getReportSummary,
@@ -58,6 +59,8 @@ export default function SiteDetail() {
   const { siteId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { currentUser } = useApp();
+  const canManage = canManageSites(currentUser);
   const { updateSite: updateGlobalSite } = useSites();
 
   const [site, setSite] = useState(null);
@@ -350,14 +353,16 @@ export default function SiteDetail() {
 
             {/* Actions: Edit Site, Analyze Reports & View Reports */}
             <div className="flex items-center gap-2 self-start lg:self-auto pt-2.5 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-[#263244]">
-              <Button
-                variant="secondary"
-                size="md"
-                icon={Pencil}
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                Edit Site
-              </Button>
+              {canManage && (
+                <Button
+                  variant="secondary"
+                  size="md"
+                  icon={Pencil}
+                  onClick={() => setIsEditModalOpen(true)}
+                >
+                  Edit Site
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 size="md"

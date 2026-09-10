@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,13 +10,25 @@ import {
   Settings,
   Radio,
   X,
-  UserCheck,
   Repeat,
   SlidersHorizontal,
   LogOut,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { canAccessAdmin } from '../../config/roles';
+import { getFilteredNavSections } from '../../config/roles';
+
+// Map string icon names from NAV_ITEMS to Lucide components
+const ICON_MAP = {
+  LayoutDashboard,
+  ClipboardCheck,
+  ClipboardList,
+  FileSearch,
+  Repeat,
+  SlidersHorizontal,
+  Building2,
+  Settings,
+  ShieldCheck,
+};
 
 export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
   const navigate = useNavigate();
@@ -28,44 +40,10 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
     navigate('/login', { replace: true });
   }
 
-  // Dynamically configure navigation sections based on user role
-  const navSections = [
-    {
-      title: 'Overview',
-      items: [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      ],
-    },
-    {
-      title: 'HSE Workflow',
-      items: [
-        { to: '/review', label: 'Review Queue', icon: ClipboardCheck },
-        { to: '/reports', label: 'Safety Reports', icon: ClipboardList },
-      ],
-    },
-    {
-      title: 'Intelligence & Analysis',
-      items: [
-        { to: '/submit', label: 'Analyze Reports', icon: FileSearch },
-        { to: '/sites/compare', label: 'Site Comparison', icon: Repeat },
-      ],
-    },
-    {
-      title: 'Facilities',
-      items: [
-        { to: '/sites', label: 'Sites Directory', icon: Building2 },
-      ],
-    },
-    {
-      title: 'System',
-      items: [
-        { to: '/settings', label: 'Settings', icon: Settings },
-        ...(canAccessAdmin(currentUser)
-          ? [{ to: '/admin', label: 'Admin', icon: ShieldCheck }]
-          : []),
-      ],
-    },
-  ];
+  // Permission-driven navigation sections
+  const navSections = useMemo(() => {
+    return getFilteredNavSections(currentUser);
+  }, [currentUser]);
 
   return (
     <>
@@ -128,33 +106,36 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
                 {section.title}
               </div>
               <nav className="space-y-0.5">
-                {section.items.map(({ to, label, icon: Icon }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    onClick={() => onCloseMobile && onCloseMobile()}
-                    className={({ isActive }) =>
-                      `group flex items-center gap-2.5 px-3 py-1.5 sm:py-2 rounded-lg text-[14px] font-medium transition-all duration-150 relative ${
-                        isActive
-                          ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 shadow-2xs font-semibold'
-                          : 'text-[#334155] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100/70 dark:hover:bg-[#111827]/60'
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        {isActive && (
-                          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 dark:bg-blue-500 rounded-r-full" />
-                        )}
-                        <Icon
-                          size={16}
-                          className={isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'}
-                        />
-                        <span>{label}</span>
-                      </>
-                    )}
-                  </NavLink>
-                ))}
+                {section.items.map((item) => {
+                  const Icon = ICON_MAP[item.icon] || LayoutDashboard;
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => onCloseMobile && onCloseMobile()}
+                      className={({ isActive }) =>
+                        `group flex items-center gap-2.5 px-3 py-1.5 sm:py-2 rounded-lg text-[14px] font-medium transition-all duration-150 relative ${
+                          isActive
+                            ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 shadow-2xs font-semibold'
+                            : 'text-[#334155] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100/70 dark:hover:bg-[#111827]/60'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {isActive && (
+                            <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-600 dark:bg-blue-500 rounded-r-full" />
+                          )}
+                          <Icon
+                            size={16}
+                            className={isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'}
+                          />
+                          <span>{item.label}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  );
+                })}
               </nav>
             </div>
           ))}

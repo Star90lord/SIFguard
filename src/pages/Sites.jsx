@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Building2,
   Plus,
@@ -17,7 +17,7 @@ import PageContainer from '../components/layout/PageContainer';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
-import { SiteHealthBadge } from '../components/ui/Badge';
+import { SiteHealthBadge, OperationalStatusBadge } from '../components/ui/Badge';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import AddSiteModal from '../components/sites/AddSiteModal';
@@ -26,6 +26,10 @@ import { getSites, addSite } from '../api/sifguardApi';
 
 export default function Sites() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Status parameter from URL (e.g. from Sidebar Active Scope links: /sites?status=Active)
+  const statusParam = searchParams.get('status');
 
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +42,16 @@ export default function Sites() {
   const [search, setSearch] = useState('');
   const [healthFilter, setHealthFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(() => statusParam || 'ALL');
+
+  // Synchronize statusFilter when URL query changes
+  useEffect(() => {
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    } else {
+      setStatusFilter('ALL');
+    }
+  }, [statusParam]);
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -125,6 +138,11 @@ export default function Sites() {
     setTypeFilter('ALL');
     setStatusFilter('ALL');
     setCurrentPage(1);
+    if (searchParams.has('status')) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('status');
+      setSearchParams(nextParams, { replace: true });
+    }
   }
 
   return (
@@ -206,11 +224,22 @@ export default function Sites() {
               <Select
                 size="sm"
                 value={statusFilter}
-                onChange={(val) => setStatusFilter(typeof val === 'object' && val?.target ? val.target.value : val)}
+                onChange={(val) => {
+                  const nextStatus = typeof val === 'object' && val?.target ? val.target.value : val;
+                  setStatusFilter(nextStatus);
+                  const nextParams = new URLSearchParams(searchParams);
+                  if (nextStatus === 'ALL') {
+                    nextParams.delete('status');
+                  } else {
+                    nextParams.set('status', nextStatus);
+                  }
+                  setSearchParams(nextParams, { replace: true });
+                }}
                 options={[
                   { value: 'ALL', label: 'All Statuses' },
-                  { value: 'Active', label: 'Active' },
+                  { value: 'Active', label: 'Operational' },
                   { value: 'Maintenance', label: 'Maintenance' },
+                  { value: 'Offline', label: 'Offline' },
                   { value: 'Standby', label: 'Standby' },
                 ]}
               />
@@ -318,9 +347,13 @@ export default function Sites() {
                                     {site.code || 'SITE'}
                                   </span>
                                 </div>
-                                <span className="text-[11px] text-slate-400 dark:text-[#94A3B8]">
-                                  {site.type || 'Operational Site'} · {site.status || 'Active'}
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                  <span className="text-[11px] text-slate-400 dark:text-[#94A3B8]">
+                                    {site.type || 'Operational Site'}
+                                  </span>
+                                  <span className="text-slate-300 dark:text-[#263244]">·</span>
+                                  <OperationalStatusBadge status={site.status || 'Active'} size="sm" />
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -432,9 +465,13 @@ export default function Sites() {
                               {site.code || 'SITE'}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 dark:text-[#94A3B8]">
-                            {site.location} · {site.type}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className="text-[11px] text-slate-400 dark:text-[#94A3B8]">
+                              {site.location} · {site.type}
+                            </span>
+                            <span className="text-slate-300 dark:text-[#263244]">·</span>
+                            <OperationalStatusBadge status={site.status || 'Active'} size="sm" />
+                          </div>
                         </div>
                       </div>
                       <SiteHealthBadge status={site.healthStatus} size="sm" />

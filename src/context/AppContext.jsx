@@ -1,29 +1,59 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
-import { ROLES, ROLE_DEFINITIONS } from '../config/roles';
+import { ROLES, ROLE_DEFINITIONS, hasPermission as checkPermission } from '../config/roles';
 
 const AppContext = createContext(null);
 
 const DEFAULT_USERS = {
-  [ROLES.ADMIN]: {
+  [ROLES.ADMINISTRATOR]: {
+    id: 'usr-admin-001',
     name: 'HSE Administrator',
     email: 'hse.admin@oilindia.example',
     phone: '+91 94350 12345',
-    role: ROLES.ADMIN,
+    role: ROLES.ADMINISTRATOR,
     department: 'HSE Operations Division',
     organization: 'Oil India Limited (OIL)',
+    siteAccess: 'ALL',
     initials: 'HA',
     defaultSite: 'ALL',
     defaultRange: 'THIS_MONTH',
   },
-  [ROLES.MANAGER]: {
+  [ROLES.HSE_MANAGER]: {
+    id: 'usr-mgr-002',
     name: 'HSE Manager',
     email: 'hse.manager@oilindia.example',
     phone: '+91 94350 67890',
-    role: ROLES.MANAGER,
+    role: ROLES.HSE_MANAGER,
     department: 'Field Safety Monitoring',
     organization: 'Oil India Limited (OIL)',
+    siteAccess: 'rig-site-b',
     initials: 'HM',
     defaultSite: 'rig-site-b',
+    defaultRange: 'THIS_MONTH',
+  },
+  [ROLES.HSE_REVIEWER]: {
+    id: 'usr-rev-003',
+    name: 'HSE Reviewer',
+    email: 'hse.reviewer@oilindia.example',
+    phone: '+91 94350 33445',
+    role: ROLES.HSE_REVIEWER,
+    department: 'Safety Analysis & Investigation',
+    organization: 'Oil India Limited (OIL)',
+    siteAccess: 'ALL',
+    initials: 'HR',
+    defaultSite: 'ALL',
+    defaultRange: 'THIS_MONTH',
+  },
+  [ROLES.HSE_VIEWER]: {
+    id: 'usr-vw-004',
+    name: 'HSE Viewer',
+    email: 'hse.viewer@oilindia.example',
+    phone: '+91 94350 77889',
+    role: ROLES.HSE_VIEWER,
+    department: 'Executive Oversight',
+    organization: 'Oil India Limited (OIL)',
+    siteAccess: 'ALL',
+    initials: 'HV',
+    defaultSite: 'ALL',
     defaultRange: 'THIS_MONTH',
   },
 };
@@ -199,6 +229,7 @@ export function AppProvider({ children }) {
     updateProfile,
     switchRole,
     roleDefinition: ROLE_DEFINITIONS[currentUser.role] || ROLE_DEFINITIONS[ROLES.MANAGER],
+    hasPermission: (permission) => checkPermission(currentUser, permission),
     notifications,
     unreadCount,
     markAsRead,

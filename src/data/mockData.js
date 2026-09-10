@@ -943,7 +943,7 @@ export const initialSites = [
     code: 'WH-004',
     location: 'Duliajan',
     type: 'Warehouse',
-    status: 'Active',
+    status: 'Maintenance',
   },
   {
     id: 'workshop',
@@ -951,7 +951,7 @@ export const initialSites = [
     code: 'WS-005',
     location: 'Duliajan',
     type: 'Workshop',
-    status: 'Active',
+    status: 'Offline',
   },
 ];
 

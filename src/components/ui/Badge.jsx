@@ -305,3 +305,42 @@ export function OverdueBadge({ size = 'sm', className = '' }) {
   );
 }
 
+// ─── Site Operational Status Badge ─────────────────────────────────
+export function OperationalStatusBadge({
+  status = 'Active',
+  size = 'sm',
+  className = '',
+}) {
+  const norm = (status || 'Active').toLowerCase();
+  let badgeStyles = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+  let dotStyles = 'bg-emerald-500';
+  let label = status;
+
+  if (norm === 'maintenance') {
+    badgeStyles = 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+    dotStyles = 'bg-amber-500';
+  } else if (norm === 'offline') {
+    badgeStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700';
+    dotStyles = 'bg-slate-400 dark:bg-slate-500';
+  } else if (norm === 'standby') {
+    badgeStyles = 'bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800';
+    dotStyles = 'bg-sky-500';
+  }
+
+  const isLg = size === 'lg' || size === 'md';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 border font-semibold rounded-full tracking-normal select-none ${
+        isLg ? 'px-2.5 py-0.5 text-xs' : 'px-2 py-0.5 text-[11px]'
+      } ${badgeStyles} ${className}`}
+      role="status"
+      aria-label={`Facility operational status: ${label}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${dotStyles} shrink-0`} aria-hidden="true" />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+

@@ -6,6 +6,21 @@ import pandas as pd
 import numpy as np
 
 
+def _is_sif_potential(series: pd.Series) -> pd.Series:
+    """Boolean mask for SIF-potential reports.
+
+    Matches variants such as "SIF-Potential", "SIF Potential" or
+    "SIF_Potential" without matching "Non-SIF" (a plain substring search
+    for "sif" would count every Non-SIF report as SIF).
+    """
+    return (
+        series.fillna("Non-SIF")
+        .astype(str)
+        .str.lower()
+        .str.contains(r"sif[\s_\-]*potential", regex=True)
+    )
+
+
 class TrendsAnalysisEngine:
     """
     Deterministic analytics engine for historical safety reports.
@@ -280,10 +295,8 @@ class TrendsAnalysisEngine:
         total_reports = len(dataframe)
 
         sif_reports = int(
-            (
+            _is_sif_potential(
                 dataframe["sifPotential"]
-                .str.lower()
-                .str.contains("sif")
             ).sum()
         )
 
@@ -429,10 +442,8 @@ class TrendsAnalysisEngine:
             .astype(str)
         )
 
-        valid_dates["isSIF"] = (
+        valid_dates["isSIF"] = _is_sif_potential(
             valid_dates["sifPotential"]
-            .str.lower()
-            .str.contains("sif")
         )
 
         grouped = (
@@ -594,10 +605,9 @@ class TrendsAnalysisEngine:
         total = len(dataframe)
 
         sif_count = int(
-            dataframe["sifPotential"]
-            .str.lower()
-            .str.contains("sif")
-            .sum()
+            _is_sif_potential(
+                dataframe["sifPotential"]
+            ).sum()
         )
 
         if total > 0:

@@ -27,19 +27,29 @@ const storage = multer.diskStorage({
     }
 });
 
-// Allowed file types
+// Allowed file types — must stay in sync with the NLP service
+// (nlp_service/textextraction/extractor.py SUPPORTED_EXTENSIONS).
+// `.doc` uploads are stored but skipped for NLP analysis (legacy OLE
+// format); see services/nlpService.js isNlpSupportedExtension.
 const allowedExtensions = new Set([
     ".pdf",
     ".doc",
     ".docx",
-    ".txt"
+    ".txt",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp"
 ]);
 
 const allowedMimeTypes = new Set([
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "text/plain"
+    "text/plain",
+    "image/jpeg",
+    "image/png",
+    "image/webp"
 ]);
 
 // File validation
@@ -60,7 +70,7 @@ const fileFilter = (req, file, cb) => {
 
     return cb(
         new Error(
-            "Invalid file type. Only PDF, DOC, DOCX and TXT files are allowed."
+            "Invalid file type. Only PDF, DOC, DOCX, TXT, JPG, JPEG, PNG and WEBP files are allowed."
         )
     );
 };

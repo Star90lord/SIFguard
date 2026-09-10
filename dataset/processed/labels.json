@@ -1,0 +1,32 @@
+{
+  "labels": [
+    "O",
+    "B-HAZARD",
+    "I-HAZARD",
+    "B-ENERGY",
+    "I-ENERGY",
+    "B-BARRIER",
+    "I-BARRIER",
+    "B-ACTIVITY",
+    "I-ACTIVITY",
+    "B-EQUIPMENT",
+    "I-EQUIPMENT",
+    "B-LOCATION",
+    "I-LOCATION"
+  ],
+  "label2id": {
+    "O": 0,
+    "B-HAZARD": 1,
+    "I-HAZARD": 2,
+    "B-ENERGY": 3,
+    "I-ENERGY": 4,
+    "B-BARRIER": 5,
+    "I-BARRIER": 6,
+    "B-ACTIVITY": 7,
+    "I-ACTIVITY": 8,
+    "B-EQUIPMENT": 9,
+    "I-EQUIPMENT": 10,
+    "B-LOCATION": 11,
+    "I-LOCATION": 12
+  }
+}

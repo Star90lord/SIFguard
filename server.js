@@ -3,6 +3,37 @@ const multer = require("multer");
 const { connectdb } = require("./database/mongo");
 const pool = require("./database/pg");
 
+const { spawn } = require("child_process");
+
+// API key placeholder – replace with your actual key in .env
+const SIFGUARD_API_KEY = process.env.SIFGUARD_API_KEY || "YOUR_API_KEY_HERE";
+if (SIFGUARD_API_KEY === "YOUR_API_KEY_HERE") {
+  console.warn("[WARN] SIFGUARD_API_KEY is not set. Please update .env with your actual API key.");
+}
+
+function startNlpService() {
+  const nlpCmd = "uvicorn";
+  const args = ["nlp_service.main:app", "--host", "0.0.0.0", "--port", "8000"];
+  const nlpProc = spawn(nlpCmd, args, {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    stdio: "inherit",
+    shell: true,
+  });
+  nlpProc.on("error", (err) => {
+    console.error("Failed to start NLP service:", err);
+    process.exit(1);
+  });
+  nlpProc.on("exit", (code, signal) => {
+    console.log(`NLP service exited with code ${code} signal ${signal}`);
+    // Shut down main server if NLP dies
+    process.exit(code ?? 0);
+  });
+  return nlpProc;
+}
+
+let nlpProcess = null;
+
 require("dotenv").config();
 
 
@@ -62,7 +93,7 @@ app.use((error, req, res, next) => {
     if (
         error &&
         typeof error.message === "string" &&
-        error.message.includes("Only PDF, DOC, DOCX and TXT files are allowed.")
+        error.message.includes("Invalid file type")
     ) {
         return res.status(400).json({ message: error.message });
     }

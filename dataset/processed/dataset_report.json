@@ -1,0 +1,170 @@
+{
+  "input_file": "C:\\Users\\HP\\OneDrive\\Desktop\\SIFguard\\dataset\\sif_ner_dataset (1).jsonl",
+  "total_lines_parsed": 4043,
+  "malformed_lines": [],
+  "malformed_line_count": 0,
+  "split_distribution": {
+    "train": 3481,
+    "test": 283,
+    "validation": 279
+  },
+  "is_augmented_distribution": {
+    "False": 1887,
+    "True": 2156
+  },
+  "metadata_presence": {
+    "severity": 4043,
+    "risk_type": 4043,
+    "industry": 4043,
+    "source": 4043,
+    "is_augmented": 4043,
+    "split": 4043
+  },
+  "entity_counts": {
+    "ACTIVITY": 2310,
+    "EQUIPMENT": 5007,
+    "LOCATION": 1063,
+    "BARRIER": 867,
+    "ENERGY": 60,
+    "HAZARD": 203
+  },
+  "total_entities": 9510,
+  "missing_text_lines": [],
+  "missing_entities_key_lines": [],
+  "empty_entities_lines": [],
+  "entities_not_a_list_lines": [],
+  "invalid_offset_lines": [],
+  "empty_span_entities": [],
+  "unknown_label_entities": [],
+  "overlapping_span_lines": [],
+  "duplicate_text_groups": 10,
+  "duplicate_extra_records": 11,
+  "cross_split_leak_groups": 8,
+  "cross_split_leak_details": [
+    {
+      "text_start": "project of vazante that carried out sediment collection of current in the south ",
+      "occurrences": [
+        {
+          "line": 20,
+          "split": "train",
+          "is_augmented": false
+        },
+        {
+          "line": 2271,
+          "split": "validation",
+          "is_augmented": false
+        }
+      ]
+    },
+    {
+      "text_start": "in circumstances that two workers of the abratech company were doing putty work ",
+      "occurrences": [
+        {
+          "line": 478,
+          "split": "test",
+          "is_augmented": false
+        },
+        {
+          "line": 2417,
+          "split": "train",
+          "is_augmented": false
+        }
+      ]
+    },
+    {
+      "text_start": "the employees márcio and sérgio performed the pump pipe clearing activity fz1.03",
+      "occurrences": [
+        {
+          "line": 895,
+          "split": "train",
+          "is_augmented": false
+        },
+        {
+          "line": 1965,
+          "split": "test",
+          "is_augmented": false
+        }
+      ]
+    },
+    {
+      "text_start": "employees engaged in the removal of material from the excavation of the well 2 o",
+      "occurrences": [
+        {
+          "line": 2606,
+          "split": "validation",
+          "is_augmented": false
+        },
+        {
+          "line": 2613,
+          "split": "train",
+          "is_augmented": false
+        }
+      ]
+    },
+    {
+      "text_start": "at moments when the maperu truck of plate f1t 878, returned from the city of pas",
+      "occurrences": [
+        {
+          "line": 2926,
+          "split": "train",
+          "is_augmented": false
+        },
+        {
+          "line": 3522,
+          "split": "validation",
+          "is_augmented": false
+        }
+      ]
+    },
+    {
+      "text_start": "when starting the activity of removing a coil of electric cables in the warehous",
+      "occurrences": [
+        {
+          "line": 3104,
+          "split": "validation",
+          "is_augmented": false
+        },
+        {
+          "line": 3901,
+          "split": "train",
+          "is_augmented": false
+        }
+      ]
+    },
+    {
+      "text_start": "in moments when the 02 collaborators carried out the inspection of the conveyor ",
+      "occurrences": [
+        {
+          "line": 3533,
+          "split": "test",
+          "is_augmented": false
+        },
+        {
+          "line": 3882,
+          "split": "train",
+          "is_augmented": false
+        }
+      ]
+    },
+    {
+      "text_start": "in circumstance, the ahk-903 license plate (empresa which serves the supervision",
+      "occurrences": [
+        {
+          "line": 3534,
+          "split": "validation",
+          "is_augmented": false
+        },
+        {
+          "line": 3923,
+          "split": "test",
+          "is_augmented": false
+        }
+      ]
+    }
+  ],
+  "augmented_record_count": 2156,
+  "notes": [
+    "Labels are normalized case-insensitively; canonical space is HAZARD/ENERGY/BARRIER/ACTIVITY/EQUIPMENT/LOCATION.",
+    "Augmented paraphrases of the same original report cannot be grouped without origin ids; only exact-text cross-split duplicates are reported as leakage."
+  ]
+}

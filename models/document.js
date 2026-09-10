@@ -48,14 +48,24 @@ const reportSchema = new mongoose.Schema(
             default: "",
         },
 
-        // Filled after NLP processing
+        // Filled after NLP processing (six NER entity types).
         entities: {
             hazards: {
                 type: [String],
                 default: [],
             },
 
+            energies: {
+                type: [String],
+                default: [],
+            },
+
             activities: {
+                type: [String],
+                default: [],
+            },
+
+            equipment: {
                 type: [String],
                 default: [],
             },

@@ -60,10 +60,13 @@ const forwardDocumentToNlp = async ({ filePath, originalName, mimeType }) => {
 
     try {
         const response = await axios.post(url, form, {
-            headers: form.getHeaders(),
-            timeout: getNlpTimeout(),
-            maxBodyLength: Infinity,
-            maxContentLength: Infinity,
+          headers: {
+            ...form.getHeaders(),
+            ...(process.env.SIFGUARD_API_KEY ? { Authorization: `Bearer ${process.env.SIFGUARD_API_KEY}` } : {}),
+          },
+          timeout: getNlpTimeout(),
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         });
 
         return {
@@ -73,44 +76,33 @@ const forwardDocumentToNlp = async ({ filePath, originalName, mimeType }) => {
         };
     } catch (error) {
         if (error.response) {
-            // NLP service answered with 4xx/5xx — preserve its detail
-            // so the backend can report it without masking it as a 500.
-            const nlpError = new Error(
-                (error.response.data &&
-                    (error.response.data.detail ||
-                        error.response.data.message)) ||
-                    `NLP service responded with status ${error.response.status}`
-            );
-            nlpError.isNlpError = true;
-            nlpError.nlpStatus = error.response.status;
-            nlpError.nlpData = error.response.data;
-            throw nlpError;
+            // Preserve backend error details without throwing
+            return {
+                ok: false,
+                status: error.response.status,
+                data: error.response.data
+            };
         }
-
-        if (
-            error.code === "ECONNREFUSED" ||
-            error.code === "ENOTFOUND" ||
-            error.code === "EHOSTUNREACH"
-        ) {
-            const unavailable = new Error(
-                `NLP service is unavailable at ${baseUrl}. ` +
-                    "The document was stored but could not be analyzed."
-            );
-            unavailable.isNlpUnavailable = true;
-            unavailable.cause = error;
-            throw unavailable;
+        if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND" || error.code === "EHOSTUNREACH") {
+            return {
+                ok: false,
+                status: 503,
+                data: {
+                    detail: `NLP service unavailable at ${baseUrl}.`,
+                    error: error.message
+                }
+            };
         }
-
         if (error.code === "ECONNABORTED") {
-            const timeout = new Error(
-                "NLP service timed out while analyzing the document. " +
-                    "The document was stored; retry analysis later."
-            );
-            timeout.isNlpTimeout = true;
-            timeout.cause = error;
-            throw timeout;
+            return {
+                ok: false,
+                status: 504,
+                data: {
+                    detail: "NLP service timed out while analyzing the document."
+                }
+            };
         }
-
+        // Unexpected error – propagate
         throw error;
     }
 };

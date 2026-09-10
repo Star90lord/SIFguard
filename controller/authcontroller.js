@@ -117,7 +117,7 @@ const signIn = async (req, res) => {
                 email: user.email,
             },
             process.env.JWT_SECRET,
-            { expiresIn: "5d" }
+            { expiresIn: process.env.JWT_EXPIRES_IN || "5d" }
         );
 
         return res.status(200).json({

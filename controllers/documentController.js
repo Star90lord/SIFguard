@@ -13,6 +13,10 @@ const toPublicDocument = (document) => ({
     mimeType: document.mimeType,
     fileSize: document.fileSize,
     extractedText: document.extractedText,
+    cleanedText: document.cleanedText,
+    entities: document.entities,
+    riskAssessment: document.riskAssessment,
+    sif_precursor: document.sif_precursor,
     documentType: document.documentType,
     department: document.department,
     confidenceScore: document.confidenceScore,
@@ -20,6 +24,16 @@ const toPublicDocument = (document) => ({
     processingStatus: document.processingStatus,
     createdAt: document.createdAt,
 });
+
+const asStringArray = (value) => {
+    if (Array.isArray(value)) {
+        return value.map((item) => String(item)).filter(Boolean);
+    }
+    if (typeof value === "string" && value.trim()) {
+        return [value.trim()];
+    }
+    return [];
+};
 
 const uploadDocumentController = async (req, res) => {
     try {
@@ -102,40 +116,92 @@ const uploadDocumentController = async (req, res) => {
                     mimeType: req.file.mimetype,
                 });
 
-                nlpResult = nlpResponse.data || null;
-                nlpStatus = "completed";
-
-                const entities = nlpResult.entities || null;
-                const severity =
-                    nlpResult.sif_precursor_severity || null;
-
-                document.rawText = nlpResult.raw_text || "";
-                document.extractedText = nlpResult.raw_text || "";
-                document.cleanedText = nlpResult.cleaned_text || "";
-                if (entities) {
-                    document.entities = {
-                        hazards: entities.hazards || [],
-                        activities: entities.activities || [],
-                        locations: entities.locations || [],
-                        barrierFailures: entities.barrier_failures || [],
-                    };
+                if (nlpResponse.ok) {
+                    nlpResult = nlpResponse.data || null;
+                    nlpStatus = "completed";
+                } else {
+                    // Propagate NLP error details to controller handling below
+                    nlpResult = nlpResponse.data || null;
+                    nlpStatus = "nlp_error";
+                    // Throw an error object compatible with existing catch block
+                    const err = new Error(
+                        (nlpResponse.data && (nlpResponse.data.detail || nlpResponse.data.message)) ||
+                        `NLP service responded with status ${nlpResponse.status}`
+                    );
+                    err.isNlpError = true;
+                    err.nlpStatus = nlpResponse.status;
+                    err.nlpData = nlpResponse.data;
+                    throw err;
                 }
+
+                // --- text (camelCase + snake_case aliases) ---
+                const rawText =
+                    nlpResult.raw_text || nlpResult.extractedText || "";
+                const cleanedText =
+                    nlpResult.cleaned_text || nlpResult.cleanedText || "";
+                document.rawText = rawText;
+                document.extractedText = rawText;
+                document.cleanedText = cleanedText;
+
+                // --- entities: grouped object (all six NER types) ---
+                const entities = nlpResult.entities || {};
+                document.entities = {
+                    hazards: asStringArray(entities.hazards),
+                    energies: asStringArray(entities.energies),
+                    activities: asStringArray(entities.activities),
+                    equipment: asStringArray(entities.equipment),
+                    locations: asStringArray(entities.locations),
+                    barrierFailures: asStringArray(
+                        entities.barrier_failures || entities.barrierFailures
+                    ),
+                };
+
+                // --- flat entity list with offsets + confidence ---
+                const flatEntities =
+                    nlpResult.extractedEntities ||
+                    nlpResult.raw_ner_entities ||
+                    [];
+                if (Array.isArray(flatEntities)) {
+                    document.rawNerEntities = flatEntities;
+                    if (flatEntities.length > 0) {
+                        const confidences = flatEntities
+                            .map((entity) => Number(entity.confidence))
+                            .filter((value) => Number.isFinite(value));
+                        if (confidences.length > 0) {
+                            document.confidenceScore =
+                                confidences.reduce((a, b) => a + b, 0) /
+                                confidences.length;
+                        }
+                    }
+                }
+
+                // --- deterministic risk matrix result ---
+                const risk =
+                    nlpResult.risk_assessment || nlpResult.riskAnalysis || null;
+                if (risk) {
+                    document.riskAssessment = risk;
+                }
+
+                // --- SIF precursor severity (analytics reads
+                // `sif_precursor.severity`) ---
+                const severity =
+                    nlpResult.sif_precursor_severity ||
+                    nlpResult.sifPrecursorSeverity ||
+                    null;
                 if (severity) {
                     document.sifPrecursorSeverity = severity;
-                    // Analytics queries `sif_precursor.severity`.
                     document.sif_precursor = {
-                        severity: severity.score,
+                        severity:
+                            severity.score !== undefined
+                                ? severity.score
+                                : severity.severity,
                         level: severity.level,
                         scale: severity.scale,
+                        sifPotential: severity.sifPotential,
                         reasons: severity.reasons,
                     };
                 }
-                if (nlpResult.risk_assessment) {
-                    document.riskAssessment = nlpResult.risk_assessment;
-                }
-                if (Array.isArray(nlpResult.raw_ner_entities)) {
-                    document.rawNerEntities = nlpResult.raw_ner_entities;
-                }
+
                 document.status = "Completed";
                 document.processingStatus = "Completed";
                 await document.save();
@@ -171,8 +237,13 @@ const uploadDocumentController = async (req, res) => {
         if (nlpResult) {
             responseBody.nlpResult = {
                 entities: nlpResult.entities,
-                sif_precursor_severity: nlpResult.sif_precursor_severity,
-                risk_assessment: nlpResult.risk_assessment,
+                extractedEntities:
+                    nlpResult.extractedEntities || nlpResult.raw_ner_entities,
+                riskAnalysis:
+                    nlpResult.risk_assessment || nlpResult.riskAnalysis,
+                sif_precursor_severity:
+                    nlpResult.sif_precursor_severity,
+                model: nlpResult.model,
             };
         }
 
@@ -203,4 +274,3 @@ module.exports = {
     // `uploadAndRouteDocument`. Same handler, same flow.
     uploadAndRouteDocument: uploadDocumentController,
 };
-

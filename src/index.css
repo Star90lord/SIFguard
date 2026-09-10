@@ -1,47 +1,87 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Industrial Navy Palette */
-  --color-navy-950: #090d16;
-  --color-navy-900: #0f172a;
-  --color-navy-800: #1e293b;
+  /* Industrial HSE Operations Palette (Refined Neutral Grey & Charcoal Dark) */
+  --color-page-bg: #E9ECEF;
+  --color-page-bg-dark: #070B12;
+  --color-sidebar-dark: #0A0F18;
+  --color-card-dark: #111827;
+  --color-card-elevated-dark: #172033;
+  --color-border-light: #D1D5DB;
+  --color-border-dark: #263244;
+
+  /* Primary Industrial Navy/Slate Palette */
+  --color-navy-950: #070B12;
+  --color-navy-900: #0F172A;
+  --color-navy-800: #1E293B;
   --color-navy-700: #334155;
   --color-navy-600: #475569;
-  --color-navy-500: #64748b;
+  --color-navy-500: #64748B;
 
-  /* Crisp Neutral Slates */
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
+  /* Neutral Slates */
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-300: #CBD5E1;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
   --color-slate-600: #475569;
   --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
 
-  /* Page background — subtle cool-gray that separates white cards from page */
-  --color-page-bg: #F4F7FA;
+  /* Semantic Safety Colors */
+  --color-risk-low: #10B981;
+  --color-risk-low-bg: #F0FDF4;
+  --color-risk-low-border: #BBF7D0;
 
-  /* Semantic Risk Colors */
-  --color-risk-low: #15803d;
-  --color-risk-low-bg: #f0fdf4;
-  --color-risk-low-border: #bbf7d0;
+  --color-risk-medium: #F59E0B;
+  --color-risk-medium-bg: #FFFBEB;
+  --color-risk-medium-border: #FDE68A;
 
-  --color-risk-medium: #b45309;
-  --color-risk-medium-bg: #fffbeb;
-  --color-risk-medium-border: #fde68a;
+  --color-risk-high: #F97316;
+  --color-risk-high-bg: #FFF7ED;
+  --color-risk-high-border: #FED7AA;
 
-  --color-risk-high: #c2410c;
-  --color-risk-high-bg: #fff7ed;
-  --color-risk-high-border: #fed7aa;
+  --color-risk-sif: #DC2626;
+  --color-risk-sif-bg: #FEF2F2;
+  --color-risk-sif-border: #FECACA;
+}
 
-  --color-risk-sif: #b91c1c;
-  --color-risk-sif-bg: #fef2f2;
-  --color-risk-sif-border: #fecaca;
+:root {
+  --background: #E9ECEF;
+  --surface: #FFFFFF;
+  --surface-elevated: #F8FAFC;
+  --border: #D1D5DB;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --primary: #2563EB;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --sif: #DC2626;
+}
+
+html.dark {
+  --background: #070B12;
+  --sidebar: #0A0F18;
+  --surface: #111827;
+  --surface-elevated: #172033;
+  --border: #263244;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --primary: #3B82F6;
+  --primary-hover: #60A5FA;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --sif: #F43F5E;
 }
 
 @layer base {
@@ -51,11 +91,21 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     font-family: var(--font-sans);
-    color: #0f172a;
-    background-color: #F4F7FA;
-    line-height: 1.5;
+    color: #0F172A;
+    background-color: #E9ECEF;
+    line-height: 1.6;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  html.dark body {
+    color: #F8FAFC;
+    background-color: #070B12;
   }
 
   /* Custom scrollbars */
@@ -67,16 +117,23 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: #CBD5E1;
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: #94A3B8;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb {
+    background: #263244;
+  }
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
   }
 
   /* Accessible focus ring */
   :focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid #2563EB;
     outline-offset: 2px;
   }
 }
@@ -92,8 +149,8 @@
   @media (min-width: 1024px) {
     .app-main {
       margin-left: 240px;
-      width: calc(100vw - 240px);
-      max-width: calc(100vw - 240px);
+      width: calc(100% - 240px);
+      max-width: calc(100% - 240px);
       min-width: 0;
     }
   }

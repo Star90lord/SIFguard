@@ -17,6 +17,7 @@ export const ROLE_DEFINITIONS = {
     accessLevel: 'Operational Access',
     description: 'Operational safety monitoring, reporting, barrier review, and hazard intervention.',
     canAdminister: false,
+    canSubmitReports: false,
   },
   [ROLES.ADMIN]: {
     key: ROLES.ADMIN,
@@ -25,6 +26,7 @@ export const ROLE_DEFINITIONS = {
     accessLevel: 'Full Access',
     description: 'System administration, site configuration, safety classification parameters, and role directory.',
     canAdminister: true,
+    canSubmitReports: true,
   },
 };
 
@@ -40,6 +42,14 @@ export function hasRole(user, role) {
  * Checks if a user can access administration console
  */
 export function canAccessAdmin(user) {
+  if (!user || !user.role) return false;
+  return user.role === ROLES.ADMIN;
+}
+
+/**
+ * Checks if a user can submit/upload safety reports (Admin-only)
+ */
+export function canSubmitReports(user) {
   if (!user || !user.role) return false;
   return user.role === ROLES.ADMIN;
 }

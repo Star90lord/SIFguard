@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { ROLES, ROLE_DEFINITIONS } from '../config/roles';
 
 const AppContext = createContext(null);
@@ -85,8 +85,18 @@ const INITIAL_PREFERENCES = {
 };
 
 export function AppProvider({ children }) {
-  // Current user state (defaults to Administrator)
-  const [currentUser, setCurrentUser] = useState(DEFAULT_USERS[ROLES.ADMIN]);
+  // Current user state (defaults to Administrator, persists demo role in sessionStorage)
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedRole = sessionStorage.getItem('sifguard_demo_role');
+      if (savedRole && DEFAULT_USERS[savedRole]) {
+        return DEFAULT_USERS[savedRole];
+      }
+    } catch (e) {
+      // sessionStorage unavailable
+    }
+    return DEFAULT_USERS[ROLES.ADMIN];
+  });
 
   // Notifications state
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
@@ -114,6 +124,11 @@ export function AppProvider({ children }) {
 
   // Switch role between ADMIN and MANAGER for live demo
   function switchRole(targetRole) {
+    try {
+      sessionStorage.setItem('sifguard_demo_role', targetRole);
+    } catch (e) {
+      // sessionStorage unavailable
+    }
     if (DEFAULT_USERS[targetRole]) {
       setCurrentUser(DEFAULT_USERS[targetRole]);
     } else {
@@ -151,6 +166,34 @@ export function AppProvider({ children }) {
     }));
   }
 
+  // Theme state: 'light' | 'dark'
+  const [theme, setThemeState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sifguard-theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {}
+    return 'light';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sifguard-theme', theme);
+    } catch {}
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  function toggleTheme() {
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }
+
+  function setTheme(t) {
+    if (t === 'dark' || t === 'light') setThemeState(t);
+  }
+
   const value = {
     currentUser,
     updateProfile,
@@ -164,6 +207,9 @@ export function AppProvider({ children }) {
     clearAllNotifications,
     notificationPreferences,
     togglePreference,
+    theme,
+    toggleTheme,
+    setTheme,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -176,3 +222,5 @@ export function useApp() {
   }
   return context;
 }
+
+export const useAppContext = useApp;

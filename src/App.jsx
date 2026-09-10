@@ -24,13 +24,19 @@ export default function App() {
           <Route path="/analyze" element={<Navigate to="/submit" replace />} />
           <Route path="/review" element={<ReviewQueue />} />
           <Route path="/review-queue" element={<Navigate to="/review" replace />} />
+          <Route path="/actions" element={<Navigate to="/review" replace />} />
+          <Route path="/action-tracking" element={<Navigate to="/review" replace />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/:reportId" element={<ReportDetail />} />
+          <Route path="/report/:reportId" element={<ReportDetail />} />
+          <Route path="/full-report/:reportId" element={<ReportDetail />} />
           <Route path="/sites" element={<Sites />} />
           <Route path="/sites/compare" element={<SiteComparison />} />
           <Route path="/compare" element={<Navigate to="/sites/compare" replace />} />
+          <Route path="/site-comparison" element={<Navigate to="/sites/compare" replace />} />
           <Route path="/sites/:siteId" element={<SiteDetail />} />
           <Route path="/compare/hazard" element={<HazardComparison />} />
+          <Route path="/hazard-comparison" element={<Navigate to="/compare/hazard" replace />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

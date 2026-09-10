@@ -40,6 +40,7 @@ import Select from '../components/ui/Select';
 import Card from '../components/ui/Card';
 import KpiCard from '../components/ui/KpiCard';
 import EmptyState from '../components/ui/EmptyState';
+import Pagination from '../components/ui/Pagination';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
 import EditSiteModal from '../components/sites/EditSiteModal';
@@ -169,6 +170,27 @@ export default function SiteDetail() {
     reportSort,
   ]);
 
+  const [reportPage, setReportPage] = useState(1);
+  const REPORT_PAGE_SIZE = 10;
+
+  useEffect(() => {
+    setReportPage(1);
+  }, [
+    reportSearch,
+    reportRiskFilter,
+    reportPriorityFilter,
+    reportStatusFilter,
+    reportHazardFilter,
+    reportActivityFilter,
+    reportTimeRange,
+    reportSort,
+  ]);
+
+  const paginatedReports = useMemo(() => {
+    const start = (reportPage - 1) * REPORT_PAGE_SIZE;
+    return filteredReports.slice(start, start + REPORT_PAGE_SIZE);
+  }, [filteredReports, reportPage]);
+
   // Filtered reports for History tab based on selected time range
   const filteredHistoryReports = useMemo(() => {
     return filterReports(rawSiteReports, {
@@ -268,66 +290,66 @@ export default function SiteDetail() {
 
   return (
     <AppShell title={site.name} subtitle="Site Safety Intelligence">
-      <PageContainer className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-6">
         {/* Back Link Breadcrumb */}
         <div className="flex items-center justify-between">
           <Link
             to="/sites"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-[#F8FAFC] transition-colors"
           >
             <ArrowLeft size={13} />
             <span>Back to Sites Directory</span>
           </Link>
 
-          <span className="text-[11px] font-mono text-slate-400">
+          <span className="text-[11px] font-mono text-slate-400 dark:text-[#94A3B8]">
             OIL Facility ID: {site.id}
           </span>
         </div>
 
         {/* Edit Success Notification */}
         {editSuccessMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900 flex items-center justify-between shadow-2xs animate-in fade-in">
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center justify-between shadow-xs animate-in fade-in">
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{editSuccessMessage}</span>
             </div>
-            <span className="text-[11px] font-mono text-emerald-700">Updated</span>
+            <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400">Updated</span>
           </div>
         )}
 
         {/* Site Profile Header Card */}
-        <div className="p-6 rounded-xl border border-slate-200 bg-white shadow-2xs">
+        <div className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             {/* Facility Identity */}
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-700 dark:text-[#CBD5E1] shrink-0">
                 <Building2 size={24} />
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     {site.name}
                   </h1>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono font-bold text-xs">
+                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-[#172033] text-slate-700 dark:text-[#CBD5E1] border border-slate-200 dark:border-[#263244] font-mono font-bold text-xs">
                     {site.code || 'SITE'}
                   </span>
                   <SiteHealthBadge status={site.healthStatus} size="md" />
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold">
                     {site.status || 'Active'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-2">
+                <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1.5 flex items-center gap-2">
                   <span>{site.location || 'Assam'}</span>
                   <span>·</span>
                   <span>{site.type || 'Operational Site'}</span>
                   <span>·</span>
-                  <span className="text-slate-600 font-medium">{site.healthDescription}</span>
+                  <span className="text-slate-600 dark:text-[#CBD5E1] font-medium">{site.healthDescription}</span>
                 </p>
               </div>
             </div>
 
             {/* Actions: Edit Site, Analyze Reports & View Reports */}
-            <div className="flex items-center gap-2.5 self-start lg:self-auto pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+            <div className="flex items-center gap-2.5 self-start lg:self-auto pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-[#263244]">
               <Button
                 variant="secondary"
                 size="md"
@@ -355,7 +377,7 @@ export default function SiteDetail() {
           </div>
 
           {/* Facility KPI Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-6 pt-5 border-t border-slate-100">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-6 pt-5 border-t border-slate-100 dark:border-[#263244]">
             <KpiCard
               label="Reports"
               value={site.totalReports}
@@ -384,14 +406,14 @@ export default function SiteDetail() {
         </div>
 
         {/* Navigation Tabs (Overview, Reports, History, Trends) */}
-        <div className="flex items-center gap-1 border-b border-slate-200 pb-px">
+        <div className="flex items-center gap-1 border-b border-[#D1D5DB] dark:border-[#263244] pb-px">
           <button
             type="button"
             onClick={() => handleTabChange('overview')}
             className={`px-4 py-2.5 text-xs font-bold rounded-t-lg transition-all border-b-2 ${
               activeTab === 'overview'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#111827] shadow-xs font-semibold'
+                : 'border-transparent text-slate-500 dark:text-[#94A3B8] hover:text-slate-800 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172033]'
             }`}
           >
             Overview
@@ -401,12 +423,12 @@ export default function SiteDetail() {
             onClick={() => handleTabChange('reports')}
             className={`px-4 py-2.5 text-xs font-bold rounded-t-lg transition-all border-b-2 flex items-center gap-1.5 ${
               activeTab === 'reports'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#111827] shadow-xs font-semibold'
+                : 'border-transparent text-slate-500 dark:text-[#94A3B8] hover:text-slate-800 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172033]'
             }`}
           >
             <span>Reports</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 text-[10px] font-mono">
+            <span className="px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-[#172033] text-slate-600 dark:text-[#CBD5E1] text-[10px] font-mono">
               {rawSiteReports.length}
             </span>
           </button>
@@ -415,8 +437,8 @@ export default function SiteDetail() {
             onClick={() => handleTabChange('history')}
             className={`px-4 py-2.5 text-xs font-bold rounded-t-lg transition-all border-b-2 flex items-center gap-1.5 ${
               activeTab === 'history'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#111827] shadow-xs font-semibold'
+                : 'border-transparent text-slate-500 dark:text-[#94A3B8] hover:text-slate-800 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172033]'
             }`}
           >
             <Clock size={13} />
@@ -427,8 +449,8 @@ export default function SiteDetail() {
             onClick={() => handleTabChange('trends')}
             className={`px-4 py-2.5 text-xs font-bold rounded-t-lg transition-all border-b-2 flex items-center gap-1.5 ${
               activeTab === 'trends'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#111827] shadow-xs font-semibold'
+                : 'border-transparent text-slate-500 dark:text-[#94A3B8] hover:text-slate-800 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172033]'
             }`}
           >
             <BarChart3 size={13} />
@@ -576,7 +598,7 @@ export default function SiteDetail() {
         {activeTab === 'reports' && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
+            <div className="p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                 {/* Search */}
                 <div className="sm:col-span-8">
@@ -591,11 +613,11 @@ export default function SiteDetail() {
 
                 {/* Sort Selector */}
                 <div className="sm:col-span-4 flex items-center justify-end gap-2">
-                  <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Sort:</span>
+                  <span className="text-xs text-slate-500 dark:text-[#94A3B8] font-medium whitespace-nowrap">Sort:</span>
                   <select
                     value={reportSort}
                     onChange={(e) => setReportSort(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-[#0A0F18] border border-slate-200 dark:border-[#263244] rounded-lg text-slate-800 dark:text-[#F8FAFC] outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -611,16 +633,16 @@ export default function SiteDetail() {
               </div>
 
               {/* Second Row: Detailed Filters */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100 dark:border-[#263244]">
                 {/* Time Range */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] block mb-1">
                     Time Range
                   </label>
                   <select
                     value={reportTimeRange}
                     onChange={(e) => setReportTimeRange(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-2 py-1.5 text-xs bg-white dark:bg-[#0A0F18] border border-slate-300 dark:border-[#263244] rounded-lg text-slate-900 dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="ALL">All Time</option>
                     <option value="TODAY">Today (09 Sep 2026)</option>
@@ -632,13 +654,13 @@ export default function SiteDetail() {
 
                 {/* Risk Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] block mb-1">
                     Risk Level
                   </label>
                   <select
                     value={reportRiskFilter}
                     onChange={(e) => setReportRiskFilter(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-2 py-1.5 text-xs bg-white dark:bg-[#0A0F18] border border-slate-300 dark:border-[#263244] rounded-lg text-slate-900 dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="ALL">All Risk Levels</option>
                     <option value="SIF-Precursor">SIF Precursor</option>
@@ -650,13 +672,13 @@ export default function SiteDetail() {
 
                 {/* Priority Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] block mb-1">
                     Priority
                   </label>
                   <select
                     value={reportPriorityFilter}
                     onChange={(e) => setReportPriorityFilter(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-2 py-1.5 text-xs bg-white dark:bg-[#0A0F18] border border-slate-300 dark:border-[#263244] rounded-lg text-slate-900 dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="ALL">All Priorities</option>
                     <option value="IMMEDIATE">Immediate</option>
@@ -667,13 +689,13 @@ export default function SiteDetail() {
 
                 {/* Status Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] block mb-1">
                     Status
                   </label>
                   <select
                     value={reportStatusFilter}
                     onChange={(e) => setReportStatusFilter(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-2 py-1.5 text-xs bg-white dark:bg-[#0A0F18] border border-slate-300 dark:border-[#263244] rounded-lg text-slate-900 dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="ALL">All Statuses</option>
                     <option value="ACTION REQUIRED">Action Required</option>
@@ -688,13 +710,13 @@ export default function SiteDetail() {
 
                 {/* Hazard Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] block mb-1">
                     Hazard
                   </label>
                   <select
                     value={reportHazardFilter}
                     onChange={(e) => setReportHazardFilter(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-2 py-1.5 text-xs bg-white dark:bg-[#0A0F18] border border-slate-300 dark:border-[#263244] rounded-lg text-slate-900 dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="ALL">All Hazards</option>
                     {uniqueHazards.map((h) => (
@@ -726,8 +748,8 @@ export default function SiteDetail() {
                 }}
               />
             ) : (
-              <div className="bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+              <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-[#263244] flex items-center justify-between text-xs text-slate-600 dark:text-[#94A3B8] font-medium">
                   <span>Showing {filteredReports.length} reports for {site?.name}</span>
                   {(reportSearch || reportRiskFilter !== 'ALL' || reportPriorityFilter !== 'ALL' || reportStatusFilter !== 'ALL' || reportHazardFilter !== 'ALL' || reportTimeRange !== 'ALL' || reportSort !== 'newest') && (
                     <button
@@ -742,7 +764,7 @@ export default function SiteDetail() {
                         setReportTimeRange('ALL');
                         setReportSort('newest');
                       }}
-                      className="text-rose-600 hover:text-rose-800 font-bold text-xs underline cursor-pointer"
+                      className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 font-bold text-xs underline cursor-pointer"
                     >
                       Reset filters
                     </button>
@@ -751,7 +773,7 @@ export default function SiteDetail() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-slate-100/90 dark:bg-[#0A0F18] text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#94A3B8]">
                         <th className="py-3 px-4 font-semibold">Date</th>
                         <th className="py-3 px-4 font-semibold">Report</th>
                         <th className="py-3 px-4 font-semibold">Risk</th>
@@ -762,24 +784,24 @@ export default function SiteDetail() {
                         <th className="py-3 px-3 w-8"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredReports.map((r) => {
+                    <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
+                      {paginatedReports.map((r) => {
                         const code = r.code || formatReportCode(r.id);
 
                         return (
                           <tr
                             key={r.id}
                             onClick={() => setSelectedReport(r)}
-                            className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                            className="hover:bg-slate-50/80 dark:hover:bg-[#172033] transition-colors cursor-pointer group"
                           >
-                            <td className="py-3 px-4 font-mono font-medium text-slate-600 whitespace-nowrap">
+                            <td className="py-3 px-4 font-mono font-medium text-slate-700 dark:text-[#CBD5E1] whitespace-nowrap">
                               {formatDateTime(r)}
                             </td>
                             <td className="py-3 px-4 max-w-md">
-                              <span className="font-mono text-xs font-bold text-slate-700 mr-2">
+                              <span className="font-mono text-xs font-bold text-slate-800 dark:text-[#F8FAFC] mr-2">
                                 {code}
                               </span>
-                              <span className="text-xs text-slate-800 font-medium group-hover:text-blue-600 transition-colors">
+                              <span className="text-xs text-slate-800 dark:text-[#CBD5E1] font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                 {r.text_snippet || r.full_text || r.report_text}
                               </span>
                             </td>
@@ -792,16 +814,16 @@ export default function SiteDetail() {
                             <td className="py-3 px-4 whitespace-nowrap">
                               <ReportStatusBadge status={r.status} size="sm" />
                             </td>
-                            <td className="py-3 px-4 text-slate-700 font-semibold whitespace-nowrap">
+                            <td className="py-3 px-4 text-slate-800 dark:text-[#F8FAFC] font-semibold whitespace-nowrap">
                               {r.hazard}
                             </td>
-                            <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
+                            <td className="py-3 px-4 text-slate-600 dark:text-[#CBD5E1] whitespace-nowrap">
                               {r.activity}
                             </td>
                             <td className="py-3 px-3 text-right">
                               <ChevronRight
                                 size={15}
-                                className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all"
+                                className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all"
                               />
                             </td>
                           </tr>
@@ -811,11 +833,23 @@ export default function SiteDetail() {
                   </table>
                 </div>
 
-                <div className="px-4 py-2.5 bg-slate-50/60 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+                {filteredReports.length > REPORT_PAGE_SIZE && (
+                  <div className="p-4 border-t border-[#D1D5DB] dark:border-[#263244] bg-slate-50/50 dark:bg-[#0A0F18]">
+                    <Pagination
+                      currentPage={reportPage}
+                      totalItems={filteredReports.length}
+                      pageSize={REPORT_PAGE_SIZE}
+                      onPageChange={setReportPage}
+                      itemLabel="reports"
+                    />
+                  </div>
+                )}
+
+                <div className="px-4 py-2.5 bg-slate-50/60 dark:bg-[#0A0F18] border-t border-[#D1D5DB] dark:border-[#263244] text-xs text-slate-600 dark:text-[#94A3B8] flex items-center justify-between">
                   <span>
-                    Showing {filteredReports.length} of {rawSiteReports.length} observations for {site.name}
+                    Showing {Math.min(filteredReports.length, (reportPage - 1) * REPORT_PAGE_SIZE + 1)}–{Math.min(filteredReports.length, reportPage * REPORT_PAGE_SIZE)} of {filteredReports.length} observations for {site.name}
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-xs font-mono text-slate-500 dark:text-[#94A3B8]">
                     Click any report to inspect details
                   </span>
                 </div>
@@ -827,28 +861,28 @@ export default function SiteDetail() {
         {/* TAB 3: HISTORY (UPGRADED SITE DETAIL HISTORY PER PART 3) */}
         {activeTab === 'history' && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-6">
+            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-5 sm:p-6 shadow-xs space-y-6">
               {/* History Header & Time Range Filter */}
-              <div className="pb-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="pb-4 border-b border-[#D1D5DB] dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Safety History
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5">
                     Site-specific safety events over time for {site.name}.
                   </p>
                 </div>
 
                 {/* Time Range Selector */}
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                    <Calendar size={13} className="text-blue-600" />
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-[#94A3B8] font-medium">
+                    <Calendar size={13} className="text-blue-600 dark:text-blue-400" />
                     <span>Time Range:</span>
                   </div>
                   <select
                     value={historyTimeRange}
                     onChange={(e) => setHistoryTimeRange(e.target.value)}
-                    className="px-3 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none focus:border-blue-600 cursor-pointer"
+                    className="px-3 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-[#0A0F18] border border-slate-200 dark:border-[#263244] rounded-lg text-slate-800 dark:text-[#F8FAFC] outline-none focus:border-blue-600 cursor-pointer"
                     aria-label="Select history time range"
                   >
                     <option value="ALL">All Time</option>
@@ -863,70 +897,70 @@ export default function SiteDetail() {
 
               {/* Conditional Custom Range Inputs */}
               {historyTimeRange === 'CUSTOM' && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-                  <span className="font-semibold text-slate-700">From:</span>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-[#0A0F18] border border-slate-200 dark:border-[#263244] text-xs">
+                  <span className="font-semibold text-slate-700 dark:text-[#CBD5E1]">From:</span>
                   <input
                     type="date"
                     value={historyStartDate}
                     onChange={(e) => setHistoryStartDate(e.target.value)}
-                    className="px-2 py-1 bg-white border border-slate-200 rounded font-mono"
+                    className="px-2 py-1 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] text-slate-900 dark:text-[#F8FAFC] rounded font-mono"
                   />
-                  <span className="font-semibold text-slate-700">To:</span>
+                  <span className="font-semibold text-slate-700 dark:text-[#CBD5E1]">To:</span>
                   <input
                     type="date"
                     value={historyEndDate}
                     onChange={(e) => setHistoryEndDate(e.target.value)}
-                    className="px-2 py-1 bg-white border border-slate-200 rounded font-mono"
+                    className="px-2 py-1 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] text-slate-900 dark:text-[#F8FAFC] rounded font-mono"
                   />
                 </div>
               )}
 
               {/* History Summary KPIs (Derived from Filtered Mock Data) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                <div className="p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#172033]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block">
                     Reports
                   </span>
-                  <span className="text-xl font-bold text-slate-900 font-mono mt-0.5 block">
+                  <span className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC] font-mono mt-0.5 block">
                     {historySummary.totalReports}
                   </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                  <span className="text-[10px] text-slate-400 dark:text-[#94A3B8] block mt-0.5">
                     In selected period
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-lg border border-amber-200 bg-amber-50/50">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 block">
+                <div className="p-3.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block">
                     High Risk
                   </span>
-                  <span className="text-xl font-bold text-amber-950 font-mono mt-0.5 block">
+                  <span className="text-xl font-bold text-amber-950 dark:text-amber-300 font-mono mt-0.5 block">
                     {historySummary.highCount}
                   </span>
-                  <span className="text-[10px] text-amber-700 block mt-0.5">
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 block mt-0.5">
                     Escalated events
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50/50">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-rose-800 block">
+                <div className="p-3.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-rose-800 dark:text-rose-400 block">
                     SIF Precursors
                   </span>
-                  <span className="text-xl font-bold text-rose-950 font-mono mt-0.5 block">
+                  <span className="text-xl font-bold text-rose-950 dark:text-rose-300 font-mono mt-0.5 block">
                     {historySummary.sifCount}
                   </span>
-                  <span className="text-[10px] text-rose-700 block mt-0.5">
+                  <span className="text-[10px] text-rose-700 dark:text-rose-400 block mt-0.5">
                     Critical precursors
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                <div className="p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#172033]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block">
                     Top Hazard
                   </span>
-                  <span className="text-sm font-bold text-slate-900 truncate mt-1.5 block">
+                  <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] truncate mt-1.5 block">
                     {historySummary.primaryHazard}
                   </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                  <span className="text-[10px] text-slate-400 dark:text-[#94A3B8] block mt-0.5">
                     Predominant exposure
                   </span>
                 </div>
@@ -947,22 +981,22 @@ export default function SiteDetail() {
                     <div key={period} className="space-y-3">
                       {/* Period Header */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-700 bg-slate-100 px-2.5 py-1 rounded border border-slate-200 font-mono">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#CBD5E1] bg-slate-100 dark:bg-[#172033] px-2.5 py-1 rounded border border-slate-200 dark:border-[#263244] font-mono">
                           {period}
                         </span>
-                        <div className="h-px bg-slate-200 flex-1" />
-                        <span className="text-[11px] font-mono text-slate-400">
+                        <div className="h-px bg-slate-200 dark:bg-[#263244] flex-1" />
+                        <span className="text-[11px] font-mono text-slate-400 dark:text-[#94A3B8]">
                           {events.length} {events.length === 1 ? 'event' : 'events'}
                         </span>
                       </div>
 
                       {/* Operational Event Cards Feed */}
-                      <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                      <div className="divide-y divide-slate-100 dark:divide-[#263244] rounded-xl border border-slate-200 dark:border-[#263244] bg-white dark:bg-[#111827] overflow-hidden shadow-xs">
                         {events.map((ev) => (
                           <div
                             key={ev.id}
                             onClick={() => setSelectedReport(ev)}
-                            className="p-4 sm:p-5 hover:bg-slate-50/90 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-4 group"
+                            className="p-4 sm:p-5 hover:bg-slate-50/90 dark:hover:bg-[#172033] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-4 group"
                           >
                             {/* LEFT: Risk Badge (Dedicated Layout Column) */}
                             <div className="w-auto sm:w-36 shrink-0 pt-0.5">
@@ -972,24 +1006,24 @@ export default function SiteDetail() {
                             {/* MIDDLE: Date+time, Activity title, Context/activity, Location, Barrier */}
                             <div className="min-w-0 flex-1 space-y-2">
                               <div>
-                                <time className="font-mono text-xs font-semibold text-slate-500 block mb-1">
+                                <time className="font-mono text-xs font-semibold text-slate-500 dark:text-[#94A3B8] block mb-1">
                                   {formatDateTime(ev)}
                                 </time>
-                                <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug break-words group-hover:text-blue-600 transition-colors">
+                                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-[#F8FAFC] leading-snug break-words group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                   {ev.hazard}
                                 </h3>
-                                <p className="text-xs text-slate-600 font-medium break-words mt-0.5">
+                                <p className="text-xs text-slate-600 dark:text-[#CBD5E1] font-medium break-words mt-0.5">
                                   {ev.activity}
                                 </p>
                               </div>
 
-                              <p className="text-xs text-slate-600 font-medium break-words">
-                                Location: <span className="text-slate-800 font-semibold">{ev.location || site.name}</span>
+                              <p className="text-xs text-slate-600 dark:text-[#CBD5E1] font-medium break-words">
+                                Location: <span className="text-slate-800 dark:text-[#F8FAFC] font-semibold">{ev.location || site.name}</span>
                               </p>
 
                               {/* Prominent Barrier Failure Callout */}
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-rose-50 border border-rose-200 text-rose-900 text-xs font-medium break-words">
-                                <ShieldAlert size={13} className="text-rose-600 shrink-0" />
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-900 dark:text-rose-300 text-xs font-medium break-words">
+                                <ShieldAlert size={13} className="text-rose-600 dark:text-rose-400 shrink-0" />
                                 <span>
                                   Barrier: <strong className="font-semibold">{ev.barrier_failure || 'None'}</strong>
                                 </span>
@@ -1001,7 +1035,7 @@ export default function SiteDetail() {
                               {ev.priority && (
                                 <PriorityBadge priority={ev.priority} size="sm" />
                               )}
-                              <span className="text-xs text-blue-600 font-semibold group-hover:underline flex items-center gap-1">
+                              <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold group-hover:underline flex items-center gap-1">
                                 <span>Inspect</span>
                                 <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                               </span>
@@ -1021,23 +1055,23 @@ export default function SiteDetail() {
         {activeTab === 'trends' && (
           <div className="space-y-6">
             {/* Header & Filter */}
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                  <BarChart3 size={18} className="text-blue-600" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight flex items-center gap-2">
+                  <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
                   <span>Time-Based Safety Analysis & Trends</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5">
                   Longitudinal hazard patterns, barrier failure frequencies, and precursor distribution for {site.name}.
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-medium">Time Window:</span>
+                <span className="text-xs text-slate-500 dark:text-[#94A3B8] font-medium">Time Window:</span>
                 <select
                   value={trendTimeRange}
                   onChange={(e) => setTrendTimeRange(e.target.value)}
-                  className="px-3 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none focus:border-blue-600 cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-[#0A0F18] border border-slate-200 dark:border-[#263244] rounded-lg text-slate-800 dark:text-[#F8FAFC] outline-none focus:border-blue-600 cursor-pointer"
                   aria-label="Filter trend time window"
                 >
                   <option value="ALL">All Recorded Events</option>
@@ -1048,24 +1082,24 @@ export default function SiteDetail() {
             </div>
 
             {/* 1. Recharts Risk Reports Over Time */}
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Risk Reports Over Time
                   </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5">
                     Chronological distribution of safety event severity ratings.
                   </p>
                 </div>
-                <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                <span className="text-xs font-mono font-bold text-slate-600 dark:text-[#CBD5E1] bg-slate-100 dark:bg-[#172033] px-2 py-0.5 rounded border border-slate-200 dark:border-[#263244]">
                   {filteredTrendReports.length} Events Analyzed
                 </span>
               </div>
 
               <div className="h-64 w-full pt-2">
                 {trendChartSeries.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                  <div className="h-full flex items-center justify-center text-xs text-slate-400 dark:text-[#94A3B8]">
                     No trend data recorded for this time range.
                   </div>
                 ) : (
@@ -1112,12 +1146,12 @@ export default function SiteDetail() {
             {/* 2. Top Hazards & Top Activities Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Top Hazards */}
-              <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3.5">
-                <div className="border-b border-slate-100 pb-2">
-                  <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+              <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+                <div className="border-b border-slate-100 dark:border-[#263244] pb-2">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Top Recurring Hazards
                   </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5">
                     Hazard domains observed in {site.name} safety logs.
                   </p>
                 </div>
@@ -1126,12 +1160,12 @@ export default function SiteDetail() {
                   {trendSummary.topHazards.slice(0, 5).map((h) => (
                     <div key={h.hazard} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-800">{h.hazard}</span>
-                        <span className="font-mono text-slate-600 font-bold">
+                        <span className="font-semibold text-slate-800 dark:text-[#F8FAFC]">{h.hazard}</span>
+                        <span className="font-mono text-slate-600 dark:text-[#CBD5E1] font-bold">
                           {h.count} ({h.percentage}%)
                         </span>
                       </div>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="w-full bg-slate-100 dark:bg-[#172033] h-2 rounded-full overflow-hidden">
                         <div
                           className="bg-blue-600 h-full rounded-full transition-all"
                           style={{ width: `${Math.min(100, Math.max(8, h.percentage))}%` }}
@@ -1140,18 +1174,18 @@ export default function SiteDetail() {
                     </div>
                   ))}
                   {trendSummary.topHazards.length === 0 && (
-                    <p className="text-xs text-slate-400 py-3 text-center">No hazards recorded.</p>
+                    <p className="text-xs text-slate-400 dark:text-[#94A3B8] py-3 text-center">No hazards recorded.</p>
                   )}
                 </div>
               </div>
 
               {/* Top Activities */}
-              <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3.5">
-                <div className="border-b border-slate-100 pb-2">
-                  <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+              <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+                <div className="border-b border-slate-100 dark:border-[#263244] pb-2">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Top Operational Activities
                   </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5">
                     Work activities during which deviations or events were logged.
                   </p>
                 </div>
@@ -1160,38 +1194,38 @@ export default function SiteDetail() {
                   {trendSummary.topActivities.slice(0, 5).map((act) => (
                     <div key={act.activity} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-800">{act.activity}</span>
-                        <span className="font-mono text-slate-600 font-bold">
+                        <span className="font-semibold text-slate-800 dark:text-[#F8FAFC]">{act.activity}</span>
+                        <span className="font-mono text-slate-600 dark:text-[#CBD5E1] font-bold">
                           {act.count} ({act.percentage}%)
                         </span>
                       </div>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="w-full bg-slate-100 dark:bg-[#172033] h-2 rounded-full overflow-hidden">
                         <div
-                          className="bg-slate-700 h-full rounded-full transition-all"
+                          className="bg-slate-700 dark:bg-slate-500 h-full rounded-full transition-all"
                           style={{ width: `${Math.min(100, Math.max(8, act.percentage))}%` }}
                         />
                       </div>
                     </div>
                   ))}
                   {trendSummary.topActivities.length === 0 && (
-                    <p className="text-xs text-slate-400 py-3 text-center">No activities recorded.</p>
+                    <p className="text-xs text-slate-400 dark:text-[#94A3B8] py-3 text-center">No activities recorded.</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* 3. Barrier Failures Section */}
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3.5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Recurring Barrier Failures
                   </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5">
                     Identified breaches in procedural, mechanical, or physical safeguards.
                   </p>
                 </div>
-                <span className="text-[11px] font-mono text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded font-bold">
+                <span className="text-[11px] font-mono text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded font-bold">
                   {trendSummary.barrierFailures.length} Distinct Failure Modes
                 </span>
               </div>
@@ -1200,16 +1234,16 @@ export default function SiteDetail() {
                 {trendSummary.barrierFailures.map((bf) => (
                   <div
                     key={bf.barrier}
-                    className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-1"
+                    className="p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50/70 dark:bg-[#172033] space-y-1"
                   >
-                    <span className="text-xs font-bold text-slate-900 block truncate">
+                    <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] block truncate">
                       {bf.barrier}
                     </span>
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500">Breach Count:</span>
-                      <span className="font-mono font-bold text-slate-800">{bf.count}</span>
+                      <span className="text-slate-500 dark:text-[#94A3B8]">Breach Count:</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-[#F8FAFC]">{bf.count}</span>
                     </div>
-                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-1">
+                    <div className="w-full bg-slate-200 dark:bg-[#263244] h-1.5 rounded-full overflow-hidden mt-1">
                       <div
                         className="bg-rose-600 h-full rounded-full"
                         style={{ width: `${Math.min(100, bf.percentage)}%` }}
@@ -1221,15 +1255,15 @@ export default function SiteDetail() {
             </div>
 
             {/* 4. SIF Precursor Section */}
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
                 <div className="flex items-center gap-2">
-                  <AlertOctagon size={16} className="text-rose-600" />
-                  <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                  <AlertOctagon size={16} className="text-rose-600 dark:text-rose-400" />
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     SIF Precursors — {sifPrecursorReports.length} Detected
                   </h4>
                 </div>
-                <span className="text-xs font-semibold text-rose-700">
+                <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">
                   Critical Life-Safety Alerts
                 </span>
               </div>
@@ -1246,24 +1280,24 @@ export default function SiteDetail() {
                     <div
                       key={sif.id}
                       onClick={() => setSelectedReport(sif)}
-                      className="p-3.5 rounded-lg border border-rose-200 bg-rose-50/40 hover:bg-rose-50/70 transition-colors cursor-pointer space-y-2 group"
+                      className="p-3.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/70 dark:hover:bg-rose-950/30 transition-colors cursor-pointer space-y-2 group"
                     >
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-mono font-bold text-rose-950">
+                        <span className="font-mono font-bold text-rose-950 dark:text-rose-300">
                           {formatDateTime(sif)}
                         </span>
                         <RiskBadge level={sif.risk_level} size="sm" />
                       </div>
 
                       <div className="text-xs space-y-0.5">
-                        <p className="font-bold text-slate-900">Hazard: {sif.hazard}</p>
-                        <p className="text-slate-600">Activity: {sif.activity}</p>
-                        <p className="text-rose-900 font-semibold pt-0.5">
+                        <p className="font-bold text-slate-900 dark:text-[#F8FAFC]">Hazard: {sif.hazard}</p>
+                        <p className="text-slate-600 dark:text-[#CBD5E1]">Activity: {sif.activity}</p>
+                        <p className="text-rose-900 dark:text-rose-300 font-semibold pt-0.5">
                           Barrier: {sif.barrier_failure || 'None'}
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-rose-700 font-semibold pt-1 border-t border-rose-100">
+                      <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400 font-semibold pt-1 border-t border-rose-100 dark:border-rose-900/50">
                         <span>Click to inspect assessment</span>
                         <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                       </div>

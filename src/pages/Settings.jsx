@@ -17,6 +17,9 @@ import {
   ExternalLink,
   ShieldAlert,
   Layers,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';
@@ -40,6 +43,8 @@ export default function Settings() {
     markAllAsRead,
     notificationPreferences,
     togglePreference,
+    theme,
+    setTheme,
   } = useApp();
 
   // Active tab: 'profile' | 'notifications' | 'preferences'
@@ -97,61 +102,61 @@ export default function Settings() {
 
   return (
     <AppShell title="Settings" subtitle="System & User Preferences">
-      <PageContainer className="space-y-6 max-w-4xl">
+      <PageContainer className="space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
                 Operational Workspace
               </span>
             </div>
-            <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+            <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight leading-none">
               Settings
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 font-normal">
+            <p className="text-sm text-slate-600 dark:text-[#CBD5E1] mt-1.5 font-normal">
               Manage operator profile, safety notification preferences, and application parameters.
             </p>
           </div>
 
           {/* Feedback Badges */}
           {profileSaved && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold animate-in fade-in">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold animate-in fade-in">
               <Check size={14} /> Profile preferences saved
             </div>
           )}
           {prefSaved && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold animate-in fade-in">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold animate-in fade-in">
               <Check size={14} /> Operational parameters updated
             </div>
           )}
         </div>
 
         {/* Tab Navigation */}
-        <div className="border-b border-slate-200 flex items-center gap-2 overflow-x-auto">
+        <div className="border-b border-[#D1D5DB] dark:border-[#263244] flex items-center gap-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => handleTabChange('profile')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'profile'
-                ? 'border-blue-600 text-blue-700 bg-blue-50/40'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                : 'border-transparent text-slate-600 dark:text-[#CBD5E1] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:border-slate-300 dark:hover:border-slate-600'
             }`}
           >
-            <User size={14} className={activeTab === 'profile' ? 'text-blue-600' : 'text-slate-400'} />
+            <User size={14} className={activeTab === 'profile' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-[#94A3B8]'} />
             <span>Profile</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleTabChange('notifications')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap relative ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap relative cursor-pointer ${
               activeTab === 'notifications'
-                ? 'border-blue-600 text-blue-700 bg-blue-50/40'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                : 'border-transparent text-slate-600 dark:text-[#CBD5E1] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:border-slate-300 dark:hover:border-slate-600'
             }`}
           >
-            <Bell size={14} className={activeTab === 'notifications' ? 'text-blue-600' : 'text-slate-400'} />
+            <Bell size={14} className={activeTab === 'notifications' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-[#94A3B8]'} />
             <span>Notifications</span>
             {unreadCount > 0 && (
               <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-red-600 text-white font-mono leading-none">
@@ -163,13 +168,13 @@ export default function Settings() {
           <button
             type="button"
             onClick={() => handleTabChange('preferences')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'preferences'
-                ? 'border-blue-600 text-blue-700 bg-blue-50/40'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                : 'border-transparent text-slate-600 dark:text-[#CBD5E1] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:border-slate-300 dark:hover:border-slate-600'
             }`}
           >
-            <Sliders size={14} className={activeTab === 'preferences' ? 'text-blue-600' : 'text-slate-400'} />
+            <Sliders size={14} className={activeTab === 'preferences' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-[#94A3B8]'} />
             <span>Preferences</span>
           </button>
         </div>
@@ -180,23 +185,23 @@ export default function Settings() {
         {activeTab === 'profile' && (
           <form onSubmit={handleProfileSave} className="space-y-6">
             {/* Identity Card */}
-            <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 {/* Professional Initials Avatar */}
-                <div className="w-14 h-14 rounded-xl bg-slate-900 text-white font-bold text-lg flex items-center justify-center tracking-wider shadow-2xs shrink-0">
+                <div className="w-14 h-14 rounded-xl bg-slate-900 dark:bg-[#070B12] text-white font-bold text-lg flex items-center justify-center tracking-wider shadow-xs shrink-0 border border-slate-700 dark:border-[#263244]">
                   {currentUser.initials}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-slate-900">{currentUser.name}</h2>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 text-blue-800 border border-blue-200 font-mono">
+                    <h2 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">{currentUser.name}</h2>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-mono">
                       {roleDefinition.badgeText}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-600 dark:text-[#CBD5E1] mt-0.5">
                     {currentUser.department} · {currentUser.organization}
                   </p>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  <p className="text-[11px] text-slate-400 dark:text-[#94A3B8] font-mono mt-0.5">
                     Privilege: {roleDefinition.accessLevel}
                   </p>
                 </div>
@@ -204,7 +209,7 @@ export default function Settings() {
 
               {/* Role Switcher for Hackathon Demonstration */}
               <div className="flex items-center gap-2 self-end sm:self-center">
-                <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium hidden sm:inline">
                   Demo Role:
                 </span>
                 {currentUser.role === ROLES.ADMIN ? (
@@ -224,7 +229,7 @@ export default function Settings() {
                     variant="secondary"
                     size="sm"
                     onClick={() => switchRole(ROLES.ADMIN)}
-                    className="text-xs text-blue-600 border-blue-200"
+                    className="text-xs text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900"
                     title="Switch to Administrator to access Administration Console"
                   >
                     Switch to Administrator
@@ -249,12 +254,12 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] mb-1.5">
                     Operational Role
                   </label>
-                  <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center justify-between">
+                  <div className="px-3 py-2 bg-slate-50 dark:bg-[#070B12] border border-slate-200 dark:border-[#263244] rounded-lg text-xs font-medium text-slate-700 dark:text-[#F8FAFC] flex items-center justify-between">
                     <span>{roleDefinition.label}</span>
-                    <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
+                    <span className="text-[10px] font-mono text-slate-400 dark:text-[#94A3B8] font-bold uppercase">
                       {roleDefinition.accessLevel}
                     </span>
                   </div>
@@ -362,16 +367,16 @@ export default function Settings() {
               subtitle="Configure which operational safety signals trigger notifications and topbar alerts."
             >
               <div className="space-y-3 text-xs">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 pb-1 border-b border-slate-100">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] pb-1 border-b border-[#D1D5DB] dark:border-[#263244]">
                   Critical Safety Alerts
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* High Risk */}
-                  <label className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
-                      <span className="font-bold text-slate-900 block">High-Risk Observations</span>
-                      <span className="text-[11px] text-slate-500">Alert on High severity classifications</span>
+                      <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">High-Risk Observations</span>
+                      <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Alert on High severity classifications</span>
                     </div>
                     <input
                       type="checkbox"
@@ -383,10 +388,10 @@ export default function Settings() {
                   </label>
 
                   {/* SIF Precursor */}
-                  <label className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
-                      <span className="font-bold text-slate-900 block">SIF Precursor Signals</span>
-                      <span className="text-[11px] text-slate-500">Immediate alerts on fatal precursor detection</span>
+                      <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">SIF Precursor Signals</span>
+                      <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Immediate alerts on fatal precursor detection</span>
                     </div>
                     <input
                       type="checkbox"
@@ -398,10 +403,10 @@ export default function Settings() {
                   </label>
 
                   {/* Barrier Failure */}
-                  <label className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
-                      <span className="font-bold text-slate-900 block">Recurring Barrier Breakdowns</span>
-                      <span className="text-[11px] text-slate-500">Repeated physical or administrative breaches</span>
+                      <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">Recurring Barrier Breakdowns</span>
+                      <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Repeated physical or administrative breaches</span>
                     </div>
                     <input
                       type="checkbox"
@@ -413,10 +418,10 @@ export default function Settings() {
                   </label>
 
                   {/* Batch Completed */}
-                  <label className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
-                      <span className="font-bold text-slate-900 block">Batch Screening Completed</span>
-                      <span className="text-[11px] text-slate-500">Notifications when multi-report screening ends</span>
+                      <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">Batch Screening Completed</span>
+                      <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Notifications when multi-report screening ends</span>
                     </div>
                     <input
                       type="checkbox"
@@ -431,18 +436,18 @@ export default function Settings() {
             </Card>
 
             {/* Notification History Feed */}
-            <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-[#263244]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                       Notification Feed
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 dark:bg-[#070B12] text-slate-700 dark:text-[#CBD5E1]">
                       {notifications.length} Total · {unreadCount} Unread
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-600 dark:text-[#CBD5E1] mt-0.5">
                     Chronological record of safety alerts and operational notices.
                   </p>
                 </div>
@@ -463,11 +468,11 @@ export default function Settings() {
 
               {notifications.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#070B12] flex items-center justify-center text-slate-400 dark:text-[#94A3B8] mx-auto">
                     <Bell size={18} />
                   </div>
-                  <p className="text-xs font-semibold text-slate-700">No active notifications</p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1]">No active notifications</p>
+                  <p className="text-[11px] text-slate-400 dark:text-[#94A3B8]">
                     All safety intelligence alerts have been acknowledged.
                   </p>
                 </div>
@@ -481,49 +486,49 @@ export default function Settings() {
                         key={notif.id}
                         className={`p-3.5 rounded-xl border transition-colors ${
                           notif.read
-                            ? 'bg-white border-slate-200/80 text-slate-600'
+                            ? 'bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] text-slate-600 dark:text-[#94A3B8]'
                             : isCritical
-                            ? 'bg-rose-50/40 border-rose-200/90 text-slate-900'
+                            ? 'bg-rose-50/40 dark:bg-rose-950/30 border-rose-200/90 dark:border-rose-900/60 text-slate-900 dark:text-[#F8FAFC]'
                             : isHigh
-                            ? 'bg-amber-50/30 border-amber-200/80 text-slate-900'
-                            : 'bg-blue-50/30 border-blue-200/80 text-slate-900'
+                            ? 'bg-amber-50/30 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/50 text-slate-900 dark:text-[#F8FAFC]'
+                            : 'bg-blue-50/30 dark:bg-blue-950/20 border-blue-200/80 dark:border-blue-900/50 text-slate-900 dark:text-[#F8FAFC]'
                         }`}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                           <div className="flex items-start gap-3">
                             <div className="pt-0.5 shrink-0">
                               {isCritical ? (
-                                <AlertOctagon size={16} className="text-rose-600" />
+                                <AlertOctagon size={16} className="text-rose-600 dark:text-rose-400" />
                               ) : isHigh ? (
-                                <AlertTriangle size={16} className="text-amber-600" />
+                                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />
                               ) : (
-                                <CheckCircle2 size={16} className="text-blue-600" />
+                                <CheckCircle2 size={16} className="text-blue-600 dark:text-blue-400" />
                               )}
                             </div>
 
                             <div className="space-y-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-bold text-xs text-slate-900">
+                                <span className="font-bold text-xs text-slate-900 dark:text-[#F8FAFC]">
                                   {notif.title}
                                 </span>
-                                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white border border-slate-200 text-slate-600 font-semibold">
+                                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white dark:bg-[#070B12] border border-slate-200 dark:border-[#263244] text-slate-700 dark:text-[#CBD5E1] font-semibold">
                                   {notif.location}
                                 </span>
                                 {!notif.read && (
-                                  <span className="w-2 h-2 rounded-full bg-blue-600" title="Unread" />
+                                  <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400" title="Unread" />
                                 )}
                               </div>
-                              <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                              <p className="text-xs text-slate-700 dark:text-[#CBD5E1] leading-relaxed font-normal">
                                 {notif.message}
                               </p>
-                              <div className="flex items-center gap-3 pt-0.5 text-[11px] text-slate-400 font-mono">
+                              <div className="flex items-center gap-3 pt-0.5 text-[11px] text-slate-400 dark:text-[#94A3B8] font-mono">
                                 <span className="flex items-center gap-1">
                                   <Clock size={11} /> {notif.timestamp}
                                 </span>
                                 {notif.link && (
                                   <Link
                                     to={notif.link}
-                                    className="text-blue-600 hover:underline font-semibold flex items-center gap-0.5"
+                                    className="text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-0.5"
                                   >
                                     <span>Inspect Observation</span>
                                     <ExternalLink size={10} />
@@ -538,7 +543,7 @@ export default function Settings() {
                             <button
                               type="button"
                               onClick={() => markAsRead(notif.id)}
-                              className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 self-end sm:self-start px-2 py-1 rounded hover:bg-white/80 transition-colors shrink-0"
+                              className="text-[11px] font-semibold text-slate-500 dark:text-[#94A3B8] hover:text-slate-800 dark:hover:text-[#F8FAFC] self-end sm:self-start px-2 py-1 rounded hover:bg-white/80 dark:hover:bg-[#172033] transition-colors shrink-0 cursor-pointer"
                               aria-label={`Mark ${notif.title} as read`}
                             >
                               Mark Read
@@ -555,10 +560,86 @@ export default function Settings() {
         )}
 
         {/* ------------------------------------------------------------ */}
-        {/* TAB 3: PREFERENCES (Existing Operational Parameters) */}
+        {/* TAB 3: PREFERENCES (Operational Parameters & Theme) */}
         {/* ------------------------------------------------------------ */}
         {activeTab === 'preferences' && (
           <form onSubmit={handlePrefSave} className="space-y-6">
+            {/* Appearance & Operational Environment */}
+            <Card
+              title="Display Theme & Operational Environment"
+              subtitle="Select visual appearance optimized for control room lighting conditions."
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Light Mode Option */}
+                <div
+                  onClick={() => setTheme('light')}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between ${
+                    theme === 'light'
+                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 ring-2 ring-blue-600/20'
+                      : 'border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] hover:border-slate-400 dark:hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-amber-100 text-amber-800 shrink-0">
+                      <Sun size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 dark:text-[#F8FAFC] text-sm">Light Operations</span>
+                        {theme === 'light' && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-600 text-white">
+                            ACTIVE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-600 dark:text-[#CBD5E1] text-xs mt-1">
+                        High-contrast workspace (#E9ECEF) with white cards and crisp slate typography.
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                    theme === 'light' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-400'
+                  }`}>
+                    {theme === 'light' && <Check size={10} strokeWidth={3} />}
+                  </div>
+                </div>
+
+                {/* Dark Mode Option */}
+                <div
+                  onClick={() => setTheme('dark')}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between ${
+                    theme === 'dark'
+                      ? 'border-blue-500 bg-blue-950/30 ring-2 ring-blue-500/20'
+                      : 'border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] hover:border-slate-400 dark:hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-slate-800 text-blue-400 shrink-0 border border-slate-700">
+                      <Moon size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 dark:text-[#F8FAFC] text-sm">HSE Command Center</span>
+                        {theme === 'dark' && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500 text-white">
+                            ACTIVE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-600 dark:text-[#CBD5E1] text-xs mt-1">
+                        Enterprise near-black canvas (#070B12) with charcoal cards (#111827) and white text.
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                    theme === 'dark' ? 'border-blue-500 bg-blue-500 text-white' : 'border-slate-400'
+                  }`}>
+                    {theme === 'dark' && <Check size={10} strokeWidth={3} />}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             {/* Risk Classification Thresholds */}
             <Card
               title="Risk Classification & SIF Precursor Rules"
@@ -577,7 +658,7 @@ export default function Settings() {
                         { value: 'manual', label: 'Manual Safety Officer Review' },
                       ]}
                     />
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       Triggers immediate high-contrast attention banners upon report ingestion.
                     </p>
                   </div>
@@ -591,7 +672,7 @@ export default function Settings() {
                       min="1"
                       max="20"
                     />
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       Automatically elevates facility health status when threshold is exceeded.
                     </p>
                   </div>

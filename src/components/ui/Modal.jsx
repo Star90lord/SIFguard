@@ -43,19 +43,19 @@ export default function Modal({
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
       {/* Modal Surface */}
-      <div className="relative w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden z-10 animate-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-md bg-white dark:bg-[#172033] rounded-xl border border-slate-300 dark:border-slate-700 shadow-xl overflow-hidden z-10 animate-in zoom-in-95 duration-150">
         <div className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-700 shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0">
                 {CustomIcon ? <CustomIcon size={18} /> : <AlertTriangle size={18} />}
               </div>
               <div>
-                <h3 id="modal-title" className="text-base font-bold text-slate-900 leading-snug">
+                <h3 id="modal-title" className="text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
                   {title}
                 </h3>
                 {description && (
-                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                     {description}
                   </p>
                 )}
@@ -64,7 +64,7 @@ export default function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:dark:text-slate-200 hover:bg-slate-100 hover:dark:bg-slate-800 transition-colors"
               aria-label="Close dialog"
             >
               <X size={16} />
@@ -73,7 +73,7 @@ export default function Modal({
 
           {children && <div className="mt-4">{children}</div>}
 
-          <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+          <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-700/80">
             <Button variant="secondary" size="sm" onClick={onClose}>
               {cancelLabel}
             </Button>

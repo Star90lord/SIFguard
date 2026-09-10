@@ -25,6 +25,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { getReviewQueue, getSites } from '../api/sifguardApi';
 import { formatReportCode, formatDateTime } from '../utils/filterReports';
+import Pagination from '../components/ui/Pagination';
 
 export default function ReviewQueue() {
   const navigate = useNavigate();
@@ -114,6 +115,21 @@ export default function ReviewQueue() {
     return Array.from(set).sort();
   }, [reports]);
 
+  // Local Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  // Whenever filters, search, or sorting change, reset pagination to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [siteFilter, riskFilter, priorityFilter, statusFilter, hazardFilter, datePreset, search, sortField, sortDirection]);
+
+  // Paginated subset of prioritized reports: DATA -> FILTER -> SORT -> PAGINATE -> DISPLAY
+  const paginatedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return reports.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [reports, currentPage, PAGE_SIZE]);
+
   function handleSort(field) {
     if (sortField === field) {
       setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
@@ -141,6 +157,7 @@ export default function ReviewQueue() {
     setStatusFilter('ALL');
     setHazardFilter('ALL');
     setDatePreset('ALL');
+    setCurrentPage(1);
   }
 
   const hasActiveFilters = Boolean(
@@ -155,20 +172,20 @@ export default function ReviewQueue() {
 
   return (
     <AppShell title="HSE Review Queue" subtitle="Operational Triage & Review">
-      <PageContainer className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-6">
         {/* Header Block */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <ClipboardCheck size={14} className="text-blue-600" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1.5">
+                <ClipboardCheck size={14} className="text-blue-600 dark:text-blue-400" />
                 Operational HSE Workflow
               </span>
             </div>
-            <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+            <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight leading-none">
               HSE Review Queue
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 font-normal">
+            <p className="text-sm text-[#64748B] dark:text-[#94A3B8] mt-1.5 font-normal">
               Reports requiring attention and manager review. Prioritized by life-safety severity.
             </p>
           </div>
@@ -223,26 +240,26 @@ export default function ReviewQueue() {
         </div>
 
         {/* 2. FILTER STRIP */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-4 shadow-xs space-y-3.5">
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[260px]">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                <Search size={15} />
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] dark:text-[#94A3B8] pointer-events-none">
+                <Search size={16} />
               </div>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search queue by ID, hazard, activity, location or site..."
-                className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all"
+                className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] dark:placeholder:text-[#94A3B8] focus:bg-white dark:focus:bg-[#111827] focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all"
                 aria-label="Search review queue"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 rounded"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded"
                   title="Clear search"
                 >
                   <X size={14} />
@@ -256,25 +273,25 @@ export default function ReviewQueue() {
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilters}
-                className="text-slate-500 hover:text-slate-800 self-end md:self-auto"
+                className="text-rose-600 dark:text-rose-400 hover:text-rose-800 self-end md:self-auto font-semibold"
               >
                 Clear Filters
               </Button>
             )}
           </div>
 
-          {/* Filter Dropdowns */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-2 border-t border-slate-100 text-xs">
+          {/* Filter Dropdowns - Responsive Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 pt-3 border-t border-[#D1D5DB]/60 dark:border-[#263244] text-xs">
             {/* Site */}
             <div>
-              <label htmlFor="filter-site" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              <label htmlFor="filter-site" className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                 Site
               </label>
               <select
                 id="filter-site"
                 value={siteFilter}
                 onChange={(e) => setSiteFilter(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Sites</option>
                 {sites.map((s) => (
@@ -287,14 +304,14 @@ export default function ReviewQueue() {
 
             {/* Risk Level */}
             <div>
-              <label htmlFor="filter-risk" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              <label htmlFor="filter-risk" className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                 Risk
               </label>
               <select
                 id="filter-risk"
                 value={riskFilter}
                 onChange={(e) => setRiskFilter(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Risk Levels</option>
                 <option value="SIF-Precursor">SIF Precursor</option>
@@ -306,14 +323,14 @@ export default function ReviewQueue() {
 
             {/* Task Priority */}
             <div>
-              <label htmlFor="filter-priority" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              <label htmlFor="filter-priority" className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                 Priority
               </label>
               <select
                 id="filter-priority"
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Priorities</option>
                 <option value="IMMEDIATE">Immediate</option>
@@ -324,14 +341,14 @@ export default function ReviewQueue() {
 
             {/* Workflow Status */}
             <div>
-              <label htmlFor="filter-status" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              <label htmlFor="filter-status" className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                 Status
               </label>
               <select
                 id="filter-status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="ACTION REQUIRED">Action Required</option>
@@ -346,14 +363,14 @@ export default function ReviewQueue() {
 
             {/* Hazard */}
             <div>
-              <label htmlFor="filter-hazard" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              <label htmlFor="filter-hazard" className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                 Hazard
               </label>
               <select
                 id="filter-hazard"
                 value={hazardFilter}
                 onChange={(e) => setHazardFilter(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Hazards</option>
                 {hazardOptions.map((h) => (
@@ -364,21 +381,22 @@ export default function ReviewQueue() {
               </select>
             </div>
 
-            {/* Date Preset */}
+            {/* Time Window */}
             <div>
-              <label htmlFor="filter-date" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Date Range
+              <label htmlFor="filter-period" className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
+                Time Window
               </label>
               <select
-                id="filter-date"
+                id="filter-period"
                 value={datePreset}
                 onChange={(e) => setDatePreset(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
               >
                 <option value="ALL">All Time</option>
-                <option value="TODAY">Today</option>
-                <option value="THIS_WEEK">This Week</option>
-                <option value="THIS_MONTH">This Month</option>
+                <option value="TODAY">Today (09 Sep 2026)</option>
+                <option value="THIS_WEEK">This Week (Last 7d)</option>
+                <option value="THIS_MONTH">This Month (Sep 2026)</option>
+                <option value="THIS_YEAR">This Year (2026)</option>
               </select>
             </div>
           </div>
@@ -388,13 +406,13 @@ export default function ReviewQueue() {
         {loading ? (
           <TableSkeleton rows={8} />
         ) : error ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 max-w-md mx-auto text-center my-12 shadow-2xs space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 mx-auto">
+          <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-8 max-w-md mx-auto text-center my-12 shadow-xs space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 flex items-center justify-center text-red-600 dark:text-red-400 mx-auto">
               <AlertTriangle size={24} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Unable to load Review Queue</h3>
-              <p className="text-xs text-slate-500 mt-1">{error}</p>
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">Unable to load Review Queue</h3>
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">{error}</p>
             </div>
             <Button variant="primary" onClick={loadData} icon={RefreshCw}>
               Retry
@@ -413,155 +431,155 @@ export default function ReviewQueue() {
             onAction={hasActiveFilters ? handleResetFilters : undefined}
           />
         ) : (
-          <div className="bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden">
-            <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-slate-500">
-              <span>Showing {reports.length} prioritized reports</span>
+          <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs overflow-hidden">
+            <div className="px-5 py-3 border-b border-[#D1D5DB]/60 dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
+              <span>Showing <strong className="text-[#0F172A] dark:text-[#F8FAFC]">{reports.length}</strong> prioritized reports</span>
               <div className="flex items-center gap-3">
                 {sortField !== 'default' ? (
                   <>
-                    <span className="text-blue-700 font-semibold flex items-center gap-1">
+                    <span className="text-blue-700 dark:text-blue-400 font-semibold flex items-center gap-1">
                       Sorted by: <span className="uppercase">{sortField}</span> {sortDirection === 'asc' ? '↑ Ascending' : '↓ Descending'}
                     </span>
                     <button
                       type="button"
                       onClick={handleResetSort}
-                      className="text-rose-600 hover:text-rose-800 font-bold text-xs underline cursor-pointer"
+                      className="text-rose-600 dark:text-rose-400 hover:text-rose-800 font-bold text-xs underline cursor-pointer"
                     >
                       Reset sorting
                     </button>
                   </>
                 ) : (
-                  <span className="font-mono text-[11px] text-slate-400">Default: SIF Precursor → High Risk → Action Required</span>
+                  <span className="font-mono text-[11px] text-[#64748B] dark:text-[#94A3B8]">Default: SIF Precursor → High Risk → Action Required</span>
                 )}
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse min-w-[960px]">
+              <table className="w-full text-left text-sm border-collapse min-w-[960px]">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <tr className="bg-[#F8FAFC] dark:bg-[#0A0F18] border-b border-[#D1D5DB] dark:border-[#263244] text-[12px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                     {/* Report ID */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-700 transition-colors select-none group"
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('id')}
                       title="Click to sort by Report ID"
                     >
                       <div className="flex items-center gap-1.5">
                         <span>Report</span>
                         {sortField === 'id' ? (
-                          <span className="text-blue-600 font-bold font-mono text-xs">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">
                             {sortDirection === 'asc' ? '↑' : '↓'}
                           </span>
                         ) : (
-                          <span className="text-slate-300 group-hover:text-slate-500 font-mono text-xs">↕</span>
+                          <span className="text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">↕</span>
                         )}
                       </div>
                     </th>
 
                     {/* Site */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-700 transition-colors select-none group"
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('site')}
                       title="Click to sort by Site"
                     >
                       <div className="flex items-center gap-1.5">
                         <span>Site</span>
                         {sortField === 'site' ? (
-                          <span className="text-blue-600 font-bold font-mono text-xs">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">
                             {sortDirection === 'asc' ? '↑' : '↓'}
                           </span>
                         ) : (
-                          <span className="text-slate-300 group-hover:text-slate-500 font-mono text-xs">↕</span>
+                          <span className="text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">↕</span>
                         )}
                       </div>
                     </th>
 
                     {/* Hazard */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-700 transition-colors select-none group"
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('hazard')}
                       title="Click to sort by Hazard"
                     >
                       <div className="flex items-center gap-1.5">
                         <span>Hazard</span>
                         {sortField === 'hazard' ? (
-                          <span className="text-blue-600 font-bold font-mono text-xs">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">
                             {sortDirection === 'asc' ? '↑' : '↓'}
                           </span>
                         ) : (
-                          <span className="text-slate-300 group-hover:text-slate-500 font-mono text-xs">↕</span>
+                          <span className="text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">↕</span>
                         )}
                       </div>
                     </th>
 
                     {/* Risk */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-700 transition-colors select-none group"
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('risk')}
                       title="Click to sort by Risk Level (SIF-PRECURSOR → HIGH → MEDIUM → LOW)"
                     >
                       <div className="flex items-center gap-1.5">
                         <span>Risk</span>
                         {sortField === 'risk' ? (
-                          <span className="text-blue-600 font-bold font-mono text-xs">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">
                             {sortDirection === 'asc' ? '↑' : '↓'}
                           </span>
                         ) : (
-                          <span className="text-slate-300 group-hover:text-slate-500 font-mono text-xs">↕</span>
+                          <span className="text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">↕</span>
                         )}
                       </div>
                     </th>
 
                     {/* Priority */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-700 transition-colors select-none group"
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('priority')}
                       title="Click to sort by Priority (IMMEDIATE → PRIORITY → STANDARD)"
                     >
                       <div className="flex items-center gap-1.5">
                         <span>Priority</span>
                         {sortField === 'priority' ? (
-                          <span className="text-blue-600 font-bold font-mono text-xs">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">
                             {sortDirection === 'asc' ? '↑' : '↓'}
                           </span>
                         ) : (
-                          <span className="text-slate-300 group-hover:text-slate-500 font-mono text-xs">↕</span>
+                          <span className="text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">↕</span>
                         )}
                       </div>
                     </th>
 
                     {/* Status */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-700 transition-colors select-none group"
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('status')}
                       title="Click to sort by Workflow Status"
                     >
                       <div className="flex items-center gap-1.5">
                         <span>Status</span>
                         {sortField === 'status' ? (
-                          <span className="text-blue-600 font-bold font-mono text-xs">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">
                             {sortDirection === 'asc' ? '↑' : '↓'}
                           </span>
                         ) : (
-                          <span className="text-slate-300 group-hover:text-slate-500 font-mono text-xs">↕</span>
+                          <span className="text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">↕</span>
                         )}
                       </div>
                     </th>
 
                     {/* Date */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-700 transition-colors select-none group"
+                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('date')}
                       title="Click to sort by Date (Newest first on ↓)"
                     >
                       <div className="flex items-center gap-1.5">
                         <span>Date</span>
                         {sortField === 'date' ? (
-                          <span className="text-blue-600 font-bold font-mono text-xs">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">
                             {sortDirection === 'asc' ? '↑' : '↓'}
                           </span>
                         ) : (
-                          <span className="text-slate-300 group-hover:text-slate-500 font-mono text-xs">↕</span>
+                          <span className="text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">↕</span>
                         )}
                       </div>
                     </th>
@@ -569,33 +587,35 @@ export default function ReviewQueue() {
                     <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {reports.map((r) => {
+                <tbody className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60">
+                  {paginatedReports.map((r) => {
                     const code = formatReportCode(r.id);
                     const isSif = r.risk_level === 'SIF-Precursor' || r.sif_precursor === true;
 
                     return (
                       <tr
                         key={r.id}
-                        className={`hover:bg-slate-50/80 transition-colors group ${
-                          isSif ? 'bg-rose-50/30' : ''
+                        className={`transition-colors group ${
+                          isSif
+                            ? 'bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50/70 dark:hover:bg-red-950/30'
+                            : 'hover:bg-blue-50/50 dark:hover:bg-blue-950/20'
                         }`}
                       >
                         {/* Report ID */}
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-mono font-bold whitespace-nowrap">
                           <Link
                             to={`/reports/${r.id}`}
-                            className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                            className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                           >
                             <span>{code}</span>
-                            <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <ChevronRight size={13} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                           </Link>
                         </td>
 
                         {/* Site */}
-                        <td className="py-3.5 px-4 font-semibold text-slate-900">
+                        <td className="py-3.5 px-4 font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC]">
                           <div className="flex items-center gap-1.5">
-                            <Building2 size={13} className="text-slate-400 shrink-0" />
+                            <Building2 size={13} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" />
                             <span className="truncate max-w-[160px]" title={r.site || r.siteName}>
                               {r.site || r.siteName}
                             </span>
@@ -603,7 +623,7 @@ export default function ReviewQueue() {
                         </td>
 
                         {/* Hazard */}
-                        <td className="py-3.5 px-4 font-medium text-slate-800">
+                        <td className="py-3.5 px-4 font-medium text-sm text-[#0F172A] dark:text-[#CBD5E1]">
                           <span className="truncate max-w-[170px] block" title={r.hazard}>
                             {r.hazard || 'None Specified'}
                           </span>
@@ -628,7 +648,7 @@ export default function ReviewQueue() {
                         </td>
 
                         {/* Date */}
-                        <td className="py-3.5 px-4 font-mono text-slate-600 whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-mono text-xs text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
                           {formatDateTime(r)}
                         </td>
 
@@ -638,7 +658,7 @@ export default function ReviewQueue() {
                             variant="primary"
                             size="sm"
                             onClick={() => navigate(`/reports/${r.id}`)}
-                            className="font-semibold shadow-2xs"
+                            className="font-semibold shadow-xs"
                             aria-label={`Review report ${code}`}
                           >
                             Review
@@ -650,6 +670,15 @@ export default function ReviewQueue() {
                 </tbody>
               </table>
             </div>
+
+            {/* Local Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={reports.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+              itemLabel="prioritized reports"
+            />
           </div>
         )}
       </PageContainer>

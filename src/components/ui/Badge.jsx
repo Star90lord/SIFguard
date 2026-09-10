@@ -11,17 +11,17 @@ export default function Badge({
   className = '',
 }) {
   const variantStyles = {
-    default: 'bg-slate-100 text-slate-800 border-slate-200',
-    primary: 'bg-blue-50 text-blue-700 border-blue-200',
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-900 border-amber-200',
-    danger: 'bg-red-50 text-red-900 border-red-200',
-    outline: 'bg-transparent text-slate-700 border-slate-300',
+    default: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700',
+    primary: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    success: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    warning: 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    danger: 'bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-300 border-red-200 dark:border-red-800',
+    outline: 'bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600',
   };
 
   const sizeStyles = {
-    sm: 'px-2 py-0.5 text-[11px] font-medium rounded',
-    md: 'px-2.5 py-1 text-xs font-semibold rounded-md',
+    sm: 'px-2.5 py-0.5 text-xs font-medium rounded',
+    md: 'px-3 py-1 text-xs font-semibold rounded-md',
   };
 
   return (
@@ -40,25 +40,25 @@ const SITE_HEALTH_MAP = {
   Critical: {
     label: 'Critical',
     dot: 'bg-red-600',
-    className: 'bg-red-50 text-red-800 border-red-200',
+    className: 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800',
     description: 'Active SIF-precursors; immediate intervention required',
   },
   Elevated: {
     label: 'Elevated',
     dot: 'bg-orange-500',
-    className: 'bg-orange-50 text-orange-800 border-orange-200',
+    className: 'bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800',
     description: 'Elevated risk conditions under heightened supervision',
   },
   Watch: {
     label: 'Watch',
     dot: 'bg-amber-500',
-    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    className: 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
     description: 'Multiple moderate hazards under active monitoring',
   },
   Stable: {
     label: 'Stable',
     dot: 'bg-emerald-600',
-    className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
     description: 'Operations within standard safety limits',
   },
 };
@@ -77,7 +77,7 @@ export function SiteHealthBadge({
       className={`inline-flex items-center border font-semibold rounded-md tracking-normal select-none transition-colors ${
         isLg
           ? 'px-2.5 py-1 text-xs gap-1.5'
-          : 'px-2 py-0.5 text-[11px] gap-1.5'
+          : 'px-2 py-0.5 text-xs gap-1.5'
       } ${config.className} ${className}`}
       role="status"
       aria-label={`Site status: ${config.label}`}
@@ -99,37 +99,37 @@ const REPORT_STATUS_MAP = {
   NEW: {
     label: 'New',
     dot: 'bg-slate-500',
-    className: 'bg-slate-100 text-slate-700 border-slate-300',
+    className: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700',
   },
   'UNDER REVIEW': {
     label: 'Under Review',
     dot: 'bg-blue-600',
-    className: 'bg-blue-50 text-blue-800 border-blue-200',
+    className: 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
   },
   'ACTION REQUIRED': {
     label: 'Action Required',
     dot: 'bg-rose-600',
-    className: 'bg-rose-50 text-rose-800 border-rose-200',
+    className: 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800',
   },
   'IN PROGRESS': {
     label: 'In Progress',
     dot: 'bg-amber-600',
-    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    className: 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
   },
   'PENDING VERIFICATION': {
     label: 'Pending Verification',
     dot: 'bg-sky-600',
-    className: 'bg-sky-50 text-sky-800 border-sky-200',
+    className: 'bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800',
   },
   RESOLVED: {
     label: 'Resolved',
     dot: 'bg-teal-600',
-    className: 'bg-teal-50 text-teal-800 border-teal-200',
+    className: 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
   },
   CLOSED: {
     label: 'Closed',
     dot: 'bg-emerald-600',
-    className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
   },
 };
 
@@ -146,7 +146,7 @@ export function ReportStatusBadge({
   return (
     <span
       className={`inline-flex items-center border font-semibold rounded-md tracking-normal select-none transition-colors ${
-        isLg ? 'px-2.5 py-1 text-xs gap-1.5' : 'px-2 py-0.5 text-[11px] gap-1.5'
+        isLg ? 'px-2.5 py-1 text-xs gap-1.5' : 'px-2 py-0.5 text-xs gap-1.5'
       } ${config.className} ${className}`}
       role="status"
       aria-label={`Report status: ${config.label}`}
@@ -167,32 +167,32 @@ const ACTION_STATUS_MAP = {
   OPEN: {
     label: 'Open',
     dot: 'bg-slate-400',
-    className: 'bg-slate-100 text-slate-700 border-slate-300',
+    className: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700',
   },
   'ACTION REQUIRED': {
     label: 'Action Required',
     dot: 'bg-rose-600',
-    className: 'bg-rose-50 text-rose-800 border-rose-200',
+    className: 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800',
   },
   'IN PROGRESS': {
     label: 'In Progress',
     dot: 'bg-amber-500',
-    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    className: 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
   },
   'PENDING VERIFICATION': {
     label: 'Pending Verification',
     dot: 'bg-sky-500',
-    className: 'bg-sky-50 text-sky-800 border-sky-200',
+    className: 'bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800',
   },
   RESOLVED: {
     label: 'Resolved',
     dot: 'bg-teal-600',
-    className: 'bg-teal-50 text-teal-800 border-teal-200',
+    className: 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
   },
   CLOSED: {
     label: 'Closed',
     dot: 'bg-emerald-600',
-    className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
   },
 };
 
@@ -209,7 +209,7 @@ export function ActionStatusBadge({
   return (
     <span
       className={`inline-flex items-center border font-semibold rounded-md tracking-normal select-none transition-colors ${
-        isLg ? 'px-2.5 py-1 text-xs gap-1.5' : 'px-2 py-0.5 text-[11px] gap-1.5'
+        isLg ? 'px-2.5 py-1 text-xs gap-1.5' : 'px-2 py-0.5 text-xs gap-1.5'
       } ${config.className} ${className}`}
       role="status"
       aria-label={`Action status: ${config.label}`}
@@ -230,17 +230,17 @@ const ACTION_PRIORITY_MAP = {
   IMMEDIATE: {
     label: 'Immediate',
     dot: 'bg-rose-600',
-    className: 'bg-rose-50 text-rose-800 border-rose-200 font-mono font-bold',
+    className: 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800 font-mono font-bold',
   },
   PRIORITY: {
     label: 'Priority',
     dot: 'bg-amber-500',
-    className: 'bg-amber-50 text-amber-900 border-amber-200 font-mono font-bold',
+    className: 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-800 font-mono font-bold',
   },
   STANDARD: {
     label: 'Standard',
     dot: 'bg-slate-400',
-    className: 'bg-slate-100 text-slate-700 border-slate-300 font-mono font-medium',
+    className: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-mono font-medium',
   },
 };
 
@@ -257,7 +257,7 @@ export function ActionPriorityBadge({
   return (
     <span
       className={`inline-flex items-center gap-1.5 border uppercase rounded-md tracking-wider select-none ${
-        isLg ? 'px-2.5 py-0.5 text-xs' : 'px-2 py-0.5 text-[10px]'
+        isLg ? 'px-2.5 py-0.5 text-xs' : 'px-2 py-0.5 text-[11px]'
       } ${config.className} ${className}`}
       role="status"
       aria-label={`Task priority: ${config.label}`}
@@ -292,14 +292,14 @@ export function OverdueBadge({ size = 'sm', className = '' }) {
   const isLg = size === 'lg' || size === 'md';
   return (
     <span
-      className={`inline-flex items-center gap-1 border uppercase font-mono font-bold tracking-wider select-none bg-red-100 text-red-800 border-red-300 rounded ${
-        isLg ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-0.5 text-[10px]'
+      className={`inline-flex items-center gap-1 border uppercase font-mono font-bold tracking-wider select-none bg-red-100 dark:bg-rose-950/60 text-red-800 dark:text-rose-200 border-red-300 dark:border-rose-700/60 rounded ${
+        isLg ? 'px-2.5 py-0.5 text-xs' : 'px-2 py-0.5 text-xs'
       } ${className}`}
       role="status"
       aria-label="Overdue action"
       title="Action is past due date and unresolved"
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0" aria-hidden="true" />
+      <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-rose-500 shrink-0" aria-hidden="true" />
       <span>OVERDUE</span>
     </span>
   );

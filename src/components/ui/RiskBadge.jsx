@@ -1,33 +1,28 @@
 import React from 'react';
-import { ShieldCheck, AlertTriangle, AlertOctagon, Flame } from 'lucide-react';
 
 const RISK_CONFIG = {
   Low: {
     label: 'LOW',
-    icon: ShieldCheck,
-    className: 'bg-emerald-50 text-emerald-800 border-emerald-300/80',
-    iconColor: 'text-emerald-600',
+    dot: 'bg-emerald-500',
+    className: 'bg-emerald-50/80 text-emerald-900 border-emerald-300/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/80',
     description: 'Standard operational risk; routine controls in place',
   },
   Medium: {
     label: 'MEDIUM',
-    icon: AlertTriangle,
-    className: 'bg-amber-50 text-amber-900 border-amber-300/80',
-    iconColor: 'text-amber-600',
+    dot: 'bg-amber-500',
+    className: 'bg-amber-50/80 text-amber-900 border-amber-300/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/80',
     description: 'Moderate hazard requiring supervisory awareness',
   },
   High: {
     label: 'HIGH',
-    icon: AlertOctagon,
-    className: 'bg-orange-50 text-orange-950 border-orange-300/90',
-    iconColor: 'text-orange-600',
+    dot: 'bg-orange-500',
+    className: 'bg-orange-50/80 text-orange-950 border-orange-300/80 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/80',
     description: 'Elevated risk requiring active verification and control',
   },
   'SIF-Precursor': {
     label: 'SIF-PRECURSOR',
-    icon: Flame,
-    className: 'bg-red-100/80 text-red-950 border-red-400 font-bold shadow-2xs',
-    iconColor: 'text-red-600',
+    dot: 'bg-red-600 dark:bg-rose-500',
+    className: 'bg-red-50 text-red-950 border-red-300 font-bold dark:bg-rose-950/50 dark:text-rose-200 dark:border-rose-700',
     description: 'Potential Serious Injury or Fatality precursor; immediate review required',
   },
 };
@@ -35,7 +30,7 @@ const RISK_CONFIG = {
 export default function RiskBadge({
   level = 'Low',
   size = 'sm',
-  showIcon = true,
+  showDot = true,
   className = '',
 }) {
   const normalizedKey =
@@ -48,27 +43,25 @@ export default function RiskBadge({
       : 'Low';
 
   const config = RISK_CONFIG[normalizedKey] || RISK_CONFIG.Low;
-  const Icon = config.icon;
   const isLg = size === 'lg';
   const isMd = size === 'md';
 
   return (
     <span
-      className={`inline-flex items-center font-bold tracking-wider uppercase border transition-colors select-none ${
+      className={`inline-flex items-center font-bold tracking-wider uppercase border transition-colors select-none rounded-md ${
         isLg
-          ? 'px-3 py-1 text-xs gap-1.5 rounded-full'
+          ? 'px-3 py-1 text-xs gap-1.5'
           : isMd
-          ? 'px-2.5 py-0.5 text-[11px] gap-1.5 rounded-full'
-          : 'px-2 py-0.5 text-[10px] gap-1 rounded-full'
+          ? 'px-2.5 py-0.5 text-xs gap-1.5'
+          : 'px-2 py-0.5 text-[11px] gap-1.5'
       } ${config.className} ${className}`}
       role="status"
       aria-label={`Risk level: ${config.label}`}
       title={config.description}
     >
-      {showIcon && (
-        <Icon
-          size={isLg ? 14 : isMd ? 12 : 11}
-          className={`${config.iconColor} shrink-0`}
+      {showDot && (
+        <span
+          className={`w-2 h-2 rounded-full ${config.dot} shrink-0`}
           aria-hidden="true"
         />
       )}

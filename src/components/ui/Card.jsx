@@ -15,21 +15,21 @@ export default function Card({
 
   return (
     <div
-      className={`bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden transition-all duration-150 ${className}`}
+      className={`bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs overflow-hidden transition-all duration-150 ${className}`}
       {...props}
     >
       {hasHeader && (
         <div
-          className={`p-4 sm:p-5 border-b border-slate-100 flex items-start justify-between gap-4 ${headerClassName}`}
+          className={`p-4 sm:p-5 border-b border-[#D1D5DB]/80 dark:border-[#263244] flex items-start justify-between gap-4 ${headerClassName}`}
         >
           <div>
             {title && (
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+              <h3 className="text-sm sm:text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5 leading-relaxed">
                 {subtitle}
               </p>
             )}
@@ -41,7 +41,7 @@ export default function Card({
       <div className={`p-4 sm:p-5 ${bodyClassName}`}>{children}</div>
 
       {footer && (
-        <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500 flex items-center justify-between">
+        <div className="px-4 sm:px-5 py-3 border-t border-[#D1D5DB]/80 dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12]/50 text-xs text-[#334155] dark:text-[#CBD5E1] flex items-center justify-between">
           {footer}
         </div>
       )}
@@ -51,7 +51,7 @@ export default function Card({
 
 export function CardHeader({ children, className = '' }) {
   return (
-    <div className={`p-4 sm:p-5 border-b border-slate-100 flex items-start justify-between gap-4 ${className}`}>
+    <div className={`p-4 sm:p-5 border-b border-[#D1D5DB]/80 dark:border-[#263244] flex items-start justify-between gap-4 ${className}`}>
       {children}
     </div>
   );
@@ -59,15 +59,15 @@ export function CardHeader({ children, className = '' }) {
 
 export function CardTitle({ children, className = '' }) {
   return (
-    <h3 className={`text-sm sm:text-base font-bold text-slate-900 tracking-tight ${className}`}>
+    <h3 className={`text-sm sm:text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight ${className}`}>
       {children}
     </h3>
   );
 }
 
-export function CardSubtitle({ children, className = '' }) {
+export function CardDescription({ children, className = '' }) {
   return (
-    <p className={`text-xs text-slate-500 mt-0.5 leading-relaxed ${className}`}>
+    <p className={`text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5 leading-relaxed ${className}`}>
       {children}
     </p>
   );
@@ -79,7 +79,9 @@ export function CardContent({ children, className = '' }) {
 
 export function CardFooter({ children, className = '' }) {
   return (
-    <div className={`px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500 flex items-center justify-between ${className}`}>
+    <div
+      className={`px-4 sm:px-5 py-3 border-t border-[#D1D5DB]/80 dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12]/50 text-xs text-[#334155] dark:text-[#CBD5E1] flex items-center justify-between ${className}`}
+    >
       {children}
     </div>
   );

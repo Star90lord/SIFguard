@@ -31,6 +31,7 @@ import Select from '../components/ui/Select';
 import EmptyState from '../components/ui/EmptyState';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
+import Pagination from '../components/ui/Pagination';
 import {
   getReports,
   getSites,
@@ -186,6 +187,34 @@ export default function Reports() {
   const overallSummary = useMemo(() => getReportSummary(rawReports), [rawReports]);
   const activeSummary = useMemo(() => getReportSummary(filteredReports), [filteredReports]);
 
+  // Local Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  // Whenever filters, search, or sorting change, reset pagination to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    siteFilter,
+    riskFilter,
+    priorityFilter,
+    statusFilter,
+    hazardFilter,
+    activityFilter,
+    datePreset,
+    specificDate,
+    startDate,
+    endDate,
+    sortOption,
+  ]);
+
+  // Paginated subset of filtered reports: DATA -> FILTER -> SORT -> PAGINATE -> DISPLAY
+  const paginatedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredReports.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredReports, currentPage, PAGE_SIZE]);
+
   // Check if any filter is active
   const hasActiveFilters = Boolean(
     search.trim() ||
@@ -214,6 +243,7 @@ export default function Reports() {
     setStartDate('');
     setEndDate('');
     setSortOption('newest');
+    setCurrentPage(1);
     setSearchParams({});
   }
 
@@ -348,19 +378,19 @@ export default function Reports() {
 
   return (
     <AppShell title="Safety Reports" subtitle="Report Intelligence Workspace">
-      <PageContainer className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-6">
         {/* Header Block */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                 Operational Safety Intelligence
               </span>
             </div>
-            <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+            <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight leading-none">
               Safety Reports
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 font-normal">
+            <p className="text-sm text-[#64748B] dark:text-[#94A3B8] mt-1.5 font-normal">
               Review, filter and investigate reported safety events across operations.
             </p>
           </div>
@@ -397,15 +427,15 @@ export default function Reports() {
 
         {/* Non-blocking feedback notification banner */}
         {exportFeedback && (
-          <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 font-medium animate-fadeIn shadow-2xs">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/50 rounded-lg text-xs text-blue-900 dark:text-blue-200 font-medium animate-fadeIn shadow-2xs">
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={15} className="text-blue-600 shrink-0" />
+              <CheckCircle2 size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <span>{exportFeedback}</span>
             </div>
             <button
               type="button"
               onClick={() => setExportFeedback(null)}
-              className="text-blue-600 hover:text-blue-900 p-0.5"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 p-0.5"
             >
               <X size={13} />
             </button>
@@ -470,12 +500,12 @@ export default function Reports() {
             </div>
 
             {/* QUICK PRESETS & SAVED VIEWS BAR */}
-            <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs space-y-2.5">
+            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3.5 shadow-xs space-y-2.5">
               {/* Top Row: Quick Presets */}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
-                    <SlidersHorizontal size={12} className="text-slate-400" />
+                  <span className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] mr-1 flex items-center gap-1">
+                    <SlidersHorizontal size={13} className="text-[#64748B] dark:text-[#94A3B8]" />
                     <span>Quick Presets:</span>
                   </span>
                   <button
@@ -488,8 +518,8 @@ export default function Reports() {
                     }}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
                       statusFilter === 'ACTION REQUIRED'
-                        ? 'bg-amber-100 text-amber-900 border border-amber-300 font-semibold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-semibold'
+                        : 'bg-[#F1F5F9] dark:bg-[#1E293B] hover:bg-[#E2E8F0] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] border border-[#D1D5DB]/60 dark:border-[#263244]'
                     }`}
                   >
                     Action Required
@@ -503,8 +533,8 @@ export default function Reports() {
                     }}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
                       riskFilter === 'SIF-Precursor'
-                        ? 'bg-red-100 text-red-900 border border-red-300 font-semibold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? 'bg-red-100 dark:bg-red-950/60 text-red-900 dark:text-red-300 border border-red-300 dark:border-red-700 font-semibold'
+                        : 'bg-[#F1F5F9] dark:bg-[#1E293B] hover:bg-[#E2E8F0] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] border border-[#D1D5DB]/60 dark:border-[#263244]'
                     }`}
                   >
                     SIF Precursors
@@ -518,8 +548,8 @@ export default function Reports() {
                     }}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
                       riskFilter === 'High'
-                        ? 'bg-orange-100 text-orange-900 border border-orange-300 font-semibold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? 'bg-orange-100 dark:bg-orange-950/60 text-orange-900 dark:text-orange-300 border border-orange-300 dark:border-orange-700 font-semibold'
+                        : 'bg-[#F1F5F9] dark:bg-[#1E293B] hover:bg-[#E2E8F0] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] border border-[#D1D5DB]/60 dark:border-[#263244]'
                     }`}
                   >
                     High Risk
@@ -533,8 +563,8 @@ export default function Reports() {
                     }}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
                       datePreset === 'THIS_MONTH'
-                        ? 'bg-blue-100 text-blue-900 border border-blue-300 font-semibold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-700 font-semibold'
+                        : 'bg-[#F1F5F9] dark:bg-[#1E293B] hover:bg-[#E2E8F0] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] border border-[#D1D5DB]/60 dark:border-[#263244]'
                     }`}
                   >
                     This Month
@@ -549,8 +579,8 @@ export default function Reports() {
                     }}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
                       riskFilter === 'SIF-Precursor' && statusFilter === 'ACTION REQUIRED'
-                        ? 'bg-blue-100 text-blue-900 border border-blue-300 font-semibold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-700 font-semibold'
+                        : 'bg-[#F1F5F9] dark:bg-[#1E293B] hover:bg-[#E2E8F0] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] border border-[#D1D5DB]/60 dark:border-[#263244]'
                     }`}
                   >
                     My Attention
@@ -573,23 +603,23 @@ export default function Reports() {
               </div>
 
               {/* Bottom Row: Saved Views List */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
-                  <Bookmark size={11} className="text-slate-400" />
+              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#D1D5DB]/60 dark:border-[#263244] text-xs">
+                <span className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] mr-1 flex items-center gap-1">
+                  <Bookmark size={11} className="text-[#64748B] dark:text-[#94A3B8]" />
                   <span>Saved Views:</span>
                 </span>
                 {savedViews.length === 0 ? (
-                  <span className="text-slate-400 text-xs italic">No saved views yet.</span>
+                  <span className="text-[#64748B] dark:text-[#94A3B8] text-xs italic">No saved views yet.</span>
                 ) : (
                   savedViews.map((sv) => (
                     <div
                       key={sv.id}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-700 hover:border-blue-300 transition-all text-xs"
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] hover:border-blue-400 dark:hover:border-blue-500 transition-all text-xs"
                     >
                       <button
                         type="button"
                         onClick={() => handleApplySavedView(sv)}
-                        className="font-medium hover:text-blue-700 cursor-pointer"
+                        className="font-medium hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                         title={`Apply "${sv.name}" filters`}
                       >
                         {sv.name}
@@ -600,7 +630,7 @@ export default function Reports() {
                           setRenamingView(sv);
                           setRenamingName(sv.name);
                         }}
-                        className="p-0.5 text-slate-400 hover:text-slate-700 rounded ml-0.5"
+                        className="p-0.5 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded ml-0.5"
                         title="Rename view"
                       >
                         <Edit3 size={11} />
@@ -608,7 +638,7 @@ export default function Reports() {
                       <button
                         type="button"
                         onClick={() => handleDeleteSavedView(sv.id)}
-                        className="p-0.5 text-slate-400 hover:text-rose-600 rounded"
+                        className="p-0.5 text-[#64748B] dark:text-[#94A3B8] hover:text-rose-600 dark:hover:text-rose-400 rounded"
                         title="Delete view"
                       >
                         <Trash2 size={11} />
@@ -620,27 +650,27 @@ export default function Reports() {
             </div>
 
             {/* 2. REPORT FILTER & SEARCH PANEL */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
+            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-4 shadow-xs space-y-4">
               {/* Top Row: Search & Sort Controls */}
               <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                 {/* Search Bar */}
                 <div className="relative flex-1 min-w-[280px]">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                    <Search size={15} />
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] dark:text-[#94A3B8] pointer-events-none">
+                    <Search size={16} />
                   </div>
                   <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search reports by ID, hazard, activity, location, site or narrative..."
-                    className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all"
+                    className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] dark:placeholder:text-[#94A3B8] focus:bg-white dark:focus:bg-[#111827] focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all"
                     aria-label="Search safety reports"
                   />
                   {search && (
                     <button
                       type="button"
                       onClick={() => setSearch('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 rounded"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded"
                       title="Clear search"
                     >
                       <X size={14} />
@@ -650,14 +680,14 @@ export default function Reports() {
 
                 {/* Sort Selector */}
                 <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                    <ArrowUpDown size={13} className="text-slate-400" />
+                  <div className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#94A3B8] font-medium">
+                    <ArrowUpDown size={13} className="text-[#64748B] dark:text-[#94A3B8]" />
                     <span>Sort:</span>
                   </div>
                   <select
                     value={sortOption}
                     onChange={(e) => setSortOption(e.target.value)}
-                    className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none focus:border-blue-600 cursor-pointer"
+                    className="px-3 py-2 text-xs font-semibold bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] outline-none focus:border-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Sort reports"
                   >
                     <option value="newest">Date: Newest First</option>
@@ -681,26 +711,26 @@ export default function Reports() {
                     <button
                       type="button"
                       onClick={handleResetSort}
-                      className="text-xs text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
+                      className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 font-bold underline cursor-pointer ml-1"
                       title="Reset sorting to Newest First"
                     >
-                      Reset sort
+                      Reset
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Bottom Row: Filter Dropdowns */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 pt-2 border-t border-slate-100">
+              {/* Bottom Section: 4-Column Responsive Filter Grid (Section 12 requirement) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
                 {/* Site Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     Site
                   </label>
                   <select
                     value={siteFilter}
                     onChange={(e) => setSiteFilter(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Filter by site"
                   >
                     <option value="ALL">All Sites</option>
@@ -714,13 +744,13 @@ export default function Reports() {
 
                 {/* Risk Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     Risk Level
                   </label>
                   <select
                     value={riskFilter}
                     onChange={(e) => setRiskFilter(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Filter by risk level"
                   >
                     <option value="ALL">All Risk Levels</option>
@@ -733,13 +763,13 @@ export default function Reports() {
 
                 {/* Priority Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     Priority
                   </label>
                   <select
                     value={priorityFilter}
                     onChange={(e) => setPriorityFilter(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Filter by task priority"
                   >
                     <option value="ALL">All Priorities</option>
@@ -751,13 +781,13 @@ export default function Reports() {
 
                 {/* Status Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     Status
                   </label>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Filter by workflow status"
                   >
                     <option value="ALL">All Statuses</option>
@@ -773,13 +803,13 @@ export default function Reports() {
 
                 {/* Hazard Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     Hazard
                   </label>
                   <select
                     value={hazardFilter}
                     onChange={(e) => setHazardFilter(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Filter by hazard"
                   >
                     <option value="ALL">All Hazards</option>
@@ -793,13 +823,13 @@ export default function Reports() {
 
                 {/* Activity Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     Activity
                   </label>
                   <select
                     value={activityFilter}
                     onChange={(e) => setActivityFilter(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Filter by activity"
                   >
                     <option value="ALL">All Activities</option>
@@ -813,13 +843,13 @@ export default function Reports() {
 
                 {/* Date Preset Filter */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     Time Range
                   </label>
                   <select
                     value={datePreset}
                     onChange={(e) => setDatePreset(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer shadow-2xs"
                     aria-label="Filter by time range"
                   >
                     <option value="ALL">All Time</option>
@@ -831,22 +861,36 @@ export default function Reports() {
                     <option value="CUSTOM">Custom Range...</option>
                   </select>
                 </div>
+
+                {/* Reset button inside grid on desktop */}
+                <div className="flex items-end">
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="w-full py-2 px-3 inline-flex items-center justify-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 rounded-lg font-semibold transition-colors shadow-2xs cursor-pointer"
+                    >
+                      <RotateCcw size={13} />
+                      <span>Clear All Filters</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Conditional Specific Date Input */}
               {datePreset === 'SPECIFIC_DATE' && (
-                <div className="flex items-center gap-3 pt-2.5 border-t border-slate-100 bg-slate-50/50 p-2.5 rounded-lg">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                    <Calendar size={13} className="text-blue-600" />
+                <div className="flex items-center gap-3 pt-2.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] p-2.5 rounded-lg">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#334155] dark:text-[#CBD5E1]">
+                    <Calendar size={13} className="text-blue-600 dark:text-blue-400" />
                     <span>Select Specific Date:</span>
                   </div>
                   <input
                     type="date"
                     value={specificDate}
                     onChange={(e) => setSpecificDate(e.target.value)}
-                    className="px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-md font-mono text-slate-800 outline-none focus:border-blue-600"
+                    className="px-2.5 py-1 text-xs bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-md font-mono text-[#0F172A] dark:text-[#F8FAFC] outline-none focus:border-blue-600"
                   />
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
                     (Default simulation day: 2026-09-09)
                   </span>
                 </div>
@@ -854,27 +898,27 @@ export default function Reports() {
 
               {/* Conditional Custom Date Range Inputs */}
               {datePreset === 'CUSTOM' && (
-                <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-slate-100 bg-slate-50/50 p-2.5 rounded-lg">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                    <Calendar size={13} className="text-blue-600" />
+                <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] p-2.5 rounded-lg">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#334155] dark:text-[#CBD5E1]">
+                    <Calendar size={13} className="text-blue-600 dark:text-blue-400" />
                     <span>Custom Date Span:</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">From</span>
+                    <span className="text-xs text-[#64748B] dark:text-[#94A3B8]">From</span>
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-md font-mono text-slate-800 outline-none focus:border-blue-600"
+                      className="px-2.5 py-1 text-xs bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-md font-mono text-[#0F172A] dark:text-[#F8FAFC] outline-none focus:border-blue-600"
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">To</span>
+                    <span className="text-xs text-[#64748B] dark:text-[#94A3B8]">To</span>
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-md font-mono text-slate-800 outline-none focus:border-blue-600"
+                      className="px-2.5 py-1 text-xs bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-md font-mono text-[#0F172A] dark:text-[#F8FAFC] outline-none focus:border-blue-600"
                     />
                   </div>
                 </div>
@@ -882,18 +926,18 @@ export default function Reports() {
 
               {/* 3. ACTIVE FILTERS REMOVABLE CHIPS */}
               {hasActiveFilters && (
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
+                  <span className="text-[11px] font-bold text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">
                     Active:
                   </span>
 
                   {search.trim() && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300 text-xs font-medium">
                       <span>Query: "{search}"</span>
                       <button
                         type="button"
                         onClick={() => setSearch('')}
-                        className="hover:text-blue-950 p-0.5"
+                        className="hover:text-blue-950 dark:hover:text-blue-100 p-0.5"
                       >
                         <X size={11} />
                       </button>
@@ -901,12 +945,12 @@ export default function Reports() {
                   )}
 
                   {siteFilter !== 'ALL' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium">
                       <span>Site: {sites.find((s) => s.id === siteFilter)?.name || siteFilter}</span>
                       <button
                         type="button"
                         onClick={() => setSiteFilter('ALL')}
-                        className="hover:text-slate-900 p-0.5"
+                        className="hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5"
                       >
                         <X size={11} />
                       </button>
@@ -914,12 +958,12 @@ export default function Reports() {
                   )}
 
                   {riskFilter !== 'ALL' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium">
                       <span>Risk: {riskFilter}</span>
                       <button
                         type="button"
                         onClick={() => setRiskFilter('ALL')}
-                        className="hover:text-slate-900 p-0.5"
+                        className="hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5"
                       >
                         <X size={11} />
                       </button>
@@ -927,12 +971,12 @@ export default function Reports() {
                   )}
 
                   {priorityFilter !== 'ALL' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium">
                       <span>Priority: {priorityFilter}</span>
                       <button
                         type="button"
                         onClick={() => setPriorityFilter('ALL')}
-                        className="hover:text-slate-900 p-0.5"
+                        className="hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5"
                       >
                         <X size={11} />
                       </button>
@@ -940,12 +984,12 @@ export default function Reports() {
                   )}
 
                   {statusFilter !== 'ALL' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium">
                       <span>Status: {statusFilter.replace(/_/g, ' ')}</span>
                       <button
                         type="button"
                         onClick={() => setStatusFilter('ALL')}
-                        className="hover:text-slate-900 p-0.5"
+                        className="hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5"
                       >
                         <X size={11} />
                       </button>
@@ -953,12 +997,12 @@ export default function Reports() {
                   )}
 
                   {hazardFilter !== 'ALL' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium">
                       <span>Hazard: {hazardFilter}</span>
                       <button
                         type="button"
                         onClick={() => setHazardFilter('ALL')}
-                        className="hover:text-slate-900 p-0.5"
+                        className="hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5"
                       >
                         <X size={11} />
                       </button>
@@ -966,12 +1010,12 @@ export default function Reports() {
                   )}
 
                   {activityFilter !== 'ALL' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium">
                       <span>Activity: {activityFilter}</span>
                       <button
                         type="button"
                         onClick={() => setActivityFilter('ALL')}
-                        className="hover:text-slate-900 p-0.5"
+                        className="hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5"
                       >
                         <X size={11} />
                       </button>
@@ -979,7 +1023,7 @@ export default function Reports() {
                   )}
 
                   {datePreset !== 'ALL' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium">
                       <span>Time: {datePreset.replace('_', ' ')}</span>
                       <button
                         type="button"
@@ -989,44 +1033,35 @@ export default function Reports() {
                           setStartDate('');
                           setEndDate('');
                         }}
-                        className="hover:text-slate-900 p-0.5"
+                        className="hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5"
                       >
                         <X size={11} />
                       </button>
                     </span>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={handleResetFilters}
-                    className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-0.5 rounded hover:bg-rose-50 transition-colors ml-auto"
-                  >
-                    <RotateCcw size={11} />
-                    <span>Clear all</span>
-                  </button>
                 </div>
               )}
             </div>
 
             {/* 4. RESULT COUNT & STATUS BAR */}
-            <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+            <div className="flex items-center justify-between text-xs text-[#64748B] dark:text-[#94A3B8] px-1">
               <span>
-                Showing <strong className="text-slate-900 font-bold">{filteredReports.length}</strong> of{' '}
-                <strong className="text-slate-900 font-bold">{rawReports.length}</strong> reports
+                Showing <strong className="text-[#0F172A] dark:text-[#F8FAFC] font-bold">{filteredReports.length}</strong> of{' '}
+                <strong className="text-[#0F172A] dark:text-[#F8FAFC] font-bold">{rawReports.length}</strong> reports
                 {hasActiveFilters && ' (filtered)'}
               </span>
 
               {filteredReports.length > 0 && (
                 <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono">
-                  <span className="text-rose-600 font-bold">
+                  <span className="text-rose-600 dark:text-rose-400 font-bold">
                     SIF Precursors: {activeSummary.sifCount}
                   </span>
                   <span>·</span>
-                  <span className="text-amber-600 font-bold">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold">
                     High Risk: {activeSummary.highCount}
                   </span>
                   <span>·</span>
-                  <span className="text-slate-500">
+                  <span className="text-[#64748B] dark:text-[#94A3B8]">
                     Sites: {activeSummary.sitesReporting}
                   </span>
                 </div>
@@ -1045,14 +1080,14 @@ export default function Reports() {
             ) : (
               <>
                 {/* DESKTOP TABLE (Hidden on mobile < 768px) */}
-                <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                <div className="hidden md:block bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
+                    <table className="w-full text-left text-sm border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50/90 select-none text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#0A0F18] select-none text-[12px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                           {/* Date / Time */}
                           <th
-                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('date')}
                             title="Click to sort by Date"
                           >
@@ -1064,7 +1099,7 @@ export default function Reports() {
 
                           {/* Report */}
                           <th
-                            className="py-3 px-4 w-28 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-28 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('id')}
                             title="Click to sort by Report ID"
                           >
@@ -1076,7 +1111,7 @@ export default function Reports() {
 
                           {/* Site */}
                           <th
-                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-40 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('site')}
                             title="Click to sort by Site"
                           >
@@ -1088,7 +1123,7 @@ export default function Reports() {
 
                           {/* Risk */}
                           <th
-                            className="py-3 px-4 w-32 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-32 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('risk')}
                             title="Click to sort by Risk Level"
                           >
@@ -1100,7 +1135,7 @@ export default function Reports() {
 
                           {/* Priority */}
                           <th
-                            className="py-3 px-4 w-28 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-28 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('priority')}
                             title="Click to sort by Priority"
                           >
@@ -1112,7 +1147,7 @@ export default function Reports() {
 
                           {/* Status */}
                           <th
-                            className="py-3 px-4 w-32 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('status')}
                             title="Click to sort by Workflow Status"
                           >
@@ -1124,7 +1159,7 @@ export default function Reports() {
 
                           {/* Hazard */}
                           <th
-                            className="py-3 px-4 w-32 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('hazard')}
                             title="Click to sort by Hazard"
                           >
@@ -1136,7 +1171,7 @@ export default function Reports() {
 
                           {/* Activity */}
                           <th
-                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-700 transition-colors"
+                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('activity')}
                             title="Click to sort by Activity"
                           >
@@ -1150,8 +1185,8 @@ export default function Reports() {
                           <th className="py-3 px-3 w-10 text-right"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {filteredReports.map((r) => {
+                      <tbody className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60">
+                        {paginatedReports.map((r) => {
                           const siteName = r.site || r.siteName || r.location || 'Industrial Site';
                           const code = r.code || formatReportCode(r.id);
 
@@ -1159,24 +1194,24 @@ export default function Reports() {
                             <tr
                               key={r.id}
                               onClick={() => setSelectedReport(r)}
-                              className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
+                              className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer group"
                             >
                               {/* Date / Time */}
-                              <td className="py-3 px-4 font-mono font-medium text-slate-500 whitespace-nowrap">
+                              <td className="py-3 px-4 font-mono font-medium text-xs text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
                                 {formatDateTime(r)}
                               </td>
 
                               {/* Report Code */}
                               <td className="py-3 px-4 whitespace-nowrap">
-                                <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 group-hover:border-blue-300 group-hover:text-blue-700 transition-colors">
+                                <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] bg-[#F1F5F9] dark:bg-[#1E293B] px-2 py-0.5 rounded border border-[#D1D5DB] dark:border-[#263244] group-hover:border-blue-400 dark:group-hover:border-blue-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                   {code}
                                 </span>
                               </td>
 
                               {/* Site */}
                               <td className="py-3 px-4 whitespace-nowrap">
-                                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                  <Building2 size={12} className="text-slate-400" />
+                                <span className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+                                  <Building2 size={13} className="text-[#64748B] dark:text-[#94A3B8]" />
                                   <span>{siteName}</span>
                                 </span>
                               </td>
@@ -1197,25 +1232,25 @@ export default function Reports() {
                               </td>
 
                               {/* Hazard */}
-                              <td className="py-3 px-4 font-semibold text-slate-700 whitespace-nowrap">
+                              <td className="py-3 px-4 font-medium text-sm text-[#0F172A] dark:text-[#CBD5E1] whitespace-nowrap">
                                 {r.hazard || '—'}
                               </td>
 
                               {/* Activity */}
-                              <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
+                              <td className="py-3 px-4 text-sm text-[#334155] dark:text-[#94A3B8] whitespace-nowrap">
                                 {r.activity || '—'}
                               </td>
 
                               {/* Location */}
-                              <td className="py-3 px-4 text-slate-500 truncate max-w-xs">
+                              <td className="py-3 px-4 text-xs text-[#64748B] dark:text-[#94A3B8] truncate max-w-xs">
                                 {r.location || siteName}
                               </td>
 
                               {/* Action Chevron */}
                               <td className="py-3 px-3 text-right">
                                 <ChevronRight
-                                  size={15}
-                                  className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all"
+                                  size={16}
+                                  className="text-[#94A3B8] dark:text-[#64748B] group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all"
                                 />
                               </td>
                             </tr>
@@ -1228,7 +1263,7 @@ export default function Reports() {
 
                 {/* MOBILE STACKED LIST (Visible on < 768px) */}
                 <div className="md:hidden space-y-2.5">
-                  {filteredReports.map((r) => {
+                  {paginatedReports.map((r) => {
                     const siteName = r.site || r.siteName || r.location || 'Industrial Site';
                     const code = r.code || formatReportCode(r.id);
 
@@ -1236,15 +1271,15 @@ export default function Reports() {
                       <div
                         key={r.id}
                         onClick={() => setSelectedReport(r)}
-                        className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs hover:border-slate-300 transition-colors cursor-pointer space-y-2 group"
+                        className="p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-colors cursor-pointer space-y-2 group"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                            <span className="font-mono text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] bg-[#F1F5F9] dark:bg-[#1E293B] px-1.5 py-0.5 rounded border border-[#D1D5DB] dark:border-[#263244]">
                               {code}
                             </span>
-                            <span className="font-semibold text-xs text-slate-900 flex items-center gap-1">
-                              <Building2 size={11} className="text-slate-400" />
+                            <span className="font-semibold text-xs text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1">
+                              <Building2 size={11} className="text-[#64748B] dark:text-[#94A3B8]" />
                               <span>{siteName}</span>
                             </span>
                           </div>
@@ -1255,13 +1290,13 @@ export default function Reports() {
                           </div>
                         </div>
 
-                        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-[#334155] dark:text-[#CBD5E1] line-clamp-2 leading-relaxed">
                           {r.text_snippet || r.full_text || r.report_text}
                         </p>
 
-                        <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                          <span className="font-mono text-slate-400">{formatDateTime(r)}</span>
-                          <span className="font-semibold text-slate-700 font-sans break-words">
+                        <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-[#64748B] dark:text-[#94A3B8] pt-1 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
+                          <span className="font-mono">{formatDateTime(r)}</span>
+                          <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] font-sans break-words">
                             {r.hazard} · {r.activity}
                           </span>
                         </div>
@@ -1269,6 +1304,15 @@ export default function Reports() {
                     );
                   })}
                 </div>
+
+                {/* Local Pagination */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredReports.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setCurrentPage}
+                  itemLabel="reports"
+                />
               </>
             )}
           </div>
@@ -1284,17 +1328,17 @@ export default function Reports() {
 
         {/* Save View Modal */}
         {isSaveViewModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
-            <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Bookmark size={16} className="text-blue-600" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+            <div className="bg-white dark:bg-[#111827] rounded-xl shadow-xl border border-[#D1D5DB] dark:border-[#263244] max-w-md w-full p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
+                  <Bookmark size={16} className="text-blue-600 dark:text-blue-400" />
                   <span>Save Current View</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsSaveViewModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1"
+                  className="text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-1"
                 >
                   <X size={16} />
                 </button>
@@ -1302,7 +1346,7 @@ export default function Reports() {
 
               <form onSubmit={handleSaveCurrentView} className="space-y-3.5">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     View Name
                   </label>
                   <input
@@ -1311,26 +1355,26 @@ export default function Reports() {
                     value={newViewName}
                     onChange={(e) => setNewViewName(e.target.value)}
                     placeholder="e.g. Critical Fall Risks"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none focus:bg-white focus:border-blue-600"
+                    className="w-full px-3 py-2 text-xs bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] outline-none focus:bg-white dark:focus:bg-[#111827] focus:border-blue-600"
                     autoFocus
                   />
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1.5 text-slate-600">
-                  <span className="font-bold text-slate-700 block text-[11px] uppercase tracking-wider">
+                <div className="p-3 bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-xs space-y-1.5 text-[#334155] dark:text-[#CBD5E1]">
+                  <span className="font-bold text-[#0F172A] dark:text-[#F8FAFC] block text-[11px] uppercase tracking-wider">
                     Filters to be saved:
                   </span>
                   <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                    <div>Site: <span className="font-semibold text-slate-900">{siteFilter}</span></div>
-                    <div>Risk: <span className="font-semibold text-slate-900">{riskFilter}</span></div>
-                    <div>Status: <span className="font-semibold text-slate-900">{statusFilter}</span></div>
-                    <div>Hazard: <span className="font-semibold text-slate-900">{hazardFilter}</span></div>
-                    <div>Time: <span className="font-semibold text-slate-900">{datePreset}</span></div>
-                    <div>Sort: <span className="font-semibold text-slate-900">{sortOption}</span></div>
+                    <div>Site: <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{siteFilter}</span></div>
+                    <div>Risk: <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{riskFilter}</span></div>
+                    <div>Status: <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{statusFilter}</span></div>
+                    <div>Hazard: <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{hazardFilter}</span></div>
+                    <div>Time: <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{datePreset}</span></div>
+                    <div>Sort: <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{sortOption}</span></div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -1355,17 +1399,17 @@ export default function Reports() {
 
         {/* Rename View Modal */}
         {renamingView && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
-            <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Edit3 size={16} className="text-blue-600" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+            <div className="bg-white dark:bg-[#111827] rounded-xl shadow-xl border border-[#D1D5DB] dark:border-[#263244] max-w-md w-full p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
+                  <Edit3 size={16} className="text-blue-600 dark:text-blue-400" />
                   <span>Rename Saved View</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => setRenamingView(null)}
-                  className="text-slate-400 hover:text-slate-600 p-1"
+                  className="text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-1"
                 >
                   <X size={16} />
                 </button>
@@ -1373,7 +1417,7 @@ export default function Reports() {
 
               <form onSubmit={handleRenameSavedView} className="space-y-3.5">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-[#334155] dark:text-[#CBD5E1] block mb-1">
                     New View Name
                   </label>
                   <input
@@ -1382,12 +1426,12 @@ export default function Reports() {
                     value={renamingName}
                     onChange={(e) => setRenamingName(e.target.value)}
                     placeholder="Enter new name"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none focus:bg-white focus:border-blue-600"
+                    className="w-full px-3 py-2 text-xs bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-[#0F172A] dark:text-[#F8FAFC] outline-none focus:bg-white dark:focus:bg-[#111827] focus:border-blue-600"
                     autoFocus
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
                   <Button
                     variant="secondary"
                     size="sm"

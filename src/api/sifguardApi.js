@@ -22,6 +22,8 @@ import {
   getSiteRiskOverview,
   formatReportCode,
 } from '../utils/filterReports.js';
+import { canSubmitReports } from '../config/roles.js';
+import { countWords, MAX_REPORT_WORDS } from '../utils/wordCount.js';
 
 // ─── Mock helpers ───────────────────────────────────────────────────
 function delay(ms = 400) {
@@ -975,6 +977,86 @@ export async function getDashboardSummary(filters = {}) {
 
 // Alias analyzeReports to analyzeFiles for seamless backend contract compatibility
 export const analyzeReports = analyzeFiles;
+
+/**
+ * Enterprise Admin Report Ingestion & Batch Screening
+ * Authorizes and analyzes safety reports submitted via upload or batch files.
+ * @param {Array<File|Object>} files - list of File objects or report descriptors
+ * @param {string} siteId - target site or 'ALL'
+ * @param {Object} options - { user, depth, autoMerge, ... }
+ * @param {Function} onProgress - progress event callback
+ */
+export async function submitSafetyReports(files, siteId = 'ALL', options = {}, onProgress = null) {
+  // Authorization validation
+  if (options.user && !canSubmitReports(options.user)) {
+    throw new Error('You do not have permission to submit safety reports. Administrator role required.');
+  }
+
+  if (!files || files.length === 0) {
+    throw new Error('Please select at least one safety report document.');
+  }
+
+  return analyzeFiles(files, { ...options, siteContext: siteId }, onProgress);
+}
+
+/**
+ * Enterprise Admin Report Ingestion for Pasted Text Narrative
+ * Authorizes, validates word limit (max 10,000 words), and analyzes raw safety report text.
+ * @param {string} text - complete safety narrative text
+ * @param {string} siteId - target site or 'ALL'
+ * @param {Object} options - { user, siteName, ... }
+ */
+export async function submitSafetyReportText(text, siteId = 'ALL', options = {}) {
+  // Authorization validation
+  if (options.user && !canSubmitReports(options.user)) {
+    throw new Error('You do not have permission to submit safety reports. Administrator role required.');
+  }
+
+  const trimmed = (text || '').trim();
+  if (!trimmed) {
+    throw new Error('Please paste a safety report before continuing.');
+  }
+
+  const wordCount = countWords(trimmed);
+  if (wordCount > MAX_REPORT_WORDS) {
+    throw new Error(`This report exceeds the ${MAX_REPORT_WORDS.toLocaleString()}-word limit (${wordCount.toLocaleString()} words).`);
+  }
+
+  const analysis = await analyzeText(trimmed);
+  const targetSite = siteId !== 'ALL' ? siteId : 'rig-site-b';
+  const siteName = options.siteName || (targetSite === 'rig-site-b' ? 'Rig Site B' : targetSite);
+
+  const record = {
+    id: `paste-${Date.now()}`,
+    batchId: `batch-${Date.now()}`,
+    filename: `manual-report-${new Date().toISOString().slice(0, 10)}.txt`,
+    date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    siteId: targetSite,
+    siteName,
+    site: siteName,
+    location: `${siteName} - Operational Area`,
+    report_text: trimmed,
+    full_text: trimmed,
+    risk_level: analysis.risk_level || 'Medium',
+    hazard: analysis.hazard || 'Hazard Identified',
+    activity: analysis.activity || 'Field Operation',
+    barrier_failure: analysis.barrier_failure || 'Procedures Verification',
+    sif_precursor: analysis.risk_level === 'SIF-Precursor' || analysis.risk_level === 'High',
+    explanation: analysis.explanation || `System analyzed observation: ${wordCount} words evaluated.`,
+    timestamp: new Date().toISOString(),
+    wordCount,
+  };
+
+  return {
+    batchId: `batch-${Date.now()}`,
+    totalAnalyzed: 1,
+    totalFailed: 0,
+    results: [record],
+    failedFiles: [],
+    durationSeconds: 1,
+  };
+}
 
 export async function getTrends() {
   if (USE_MOCK) {

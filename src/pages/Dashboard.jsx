@@ -37,7 +37,9 @@ import { DashboardSkeleton } from '../components/ui/Skeleton';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
+import Pagination from '../components/ui/Pagination';
 import { getSites, getReports, getActionSummary } from '../api/sifguardApi';
+import { useAppContext } from '../context/AppContext';
 import {
   filterReports,
   getReportSummary,
@@ -110,6 +112,7 @@ function CustomRiskTrendTooltip({ active, payload, label }) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { theme } = useAppContext();
 
   const [sites, setSites] = useState([]);
   const [allReports, setAllReports] = useState([]);
@@ -259,10 +262,40 @@ export default function Dashboard() {
     return getSiteRiskOverview(scopedReports, sites);
   }, [scopedReports, sites]);
 
-  // Recent 5 reports for activity feed
-  const recentReports = useMemo(() => {
-    return [...scopedReports].slice(0, 5);
-  }, [scopedReports]);
+  // Local Pagination states for high-density sections
+  const [sifPage, setSifPage] = useState(1);
+  const SIF_PAGE_SIZE = 6;
+
+  const [recentPage, setRecentPage] = useState(1);
+  const RECENT_PAGE_SIZE = 6;
+
+  const [siteListPage, setSiteListPage] = useState(1);
+  const SITE_LIST_PAGE_SIZE = 6;
+
+  // Reset local pagination when scope changes
+  useEffect(() => {
+    setSifPage(1);
+    setRecentPage(1);
+    setSiteListPage(1);
+  }, [selectedSite, timeRange, startDate, endDate]);
+
+  // Paginated SIF precursors: DATA -> FILTER -> SORT -> PAGINATE -> DISPLAY
+  const paginatedSifReports = useMemo(() => {
+    const start = (sifPage - 1) * SIF_PAGE_SIZE;
+    return sifPrecursorReports.slice(start, start + SIF_PAGE_SIZE);
+  }, [sifPrecursorReports, sifPage, SIF_PAGE_SIZE]);
+
+  // Paginated Site Risk Overview
+  const paginatedSiteRiskList = useMemo(() => {
+    const start = (siteListPage - 1) * SITE_LIST_PAGE_SIZE;
+    return siteRiskList.slice(start, start + SITE_LIST_PAGE_SIZE);
+  }, [siteRiskList, siteListPage, SITE_LIST_PAGE_SIZE]);
+
+  // Paginated recent safety activity feed
+  const paginatedRecentReports = useMemo(() => {
+    const start = (recentPage - 1) * RECENT_PAGE_SIZE;
+    return scopedReports.slice(start, start + RECENT_PAGE_SIZE);
+  }, [scopedReports, recentPage, RECENT_PAGE_SIZE]);
 
   if (loading) {
     return (
@@ -286,7 +319,7 @@ export default function Dashboard() {
               <h3 className="text-base font-bold text-slate-900">
                 Unable to load safety intelligence
               </h3>
-              <p className="text-xs text-slate-500 mt-1">{error}</p>
+              <p className="text-[13px] text-slate-500 mt-1">{error}</p>
             </div>
             <Button variant="primary" onClick={loadDashboardData} icon={RefreshCw}>
               Retry Connection
@@ -305,19 +338,19 @@ export default function Dashboard() {
 
   return (
     <AppShell title="Safety Intelligence" subtitle="Executive Dashboard">
-      <PageContainer className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-6">
         {/* 1. DASHBOARD HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3 border-b border-slate-300">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 tracking-[0.08em]">
+              <span className="text-[13px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] tracking-[0.08em]">
                 Oil India Limited HSE Operations
               </span>
             </div>
-            <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-none">
+            <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight leading-none">
               Safety Intelligence Dashboard
             </h1>
-            <p className="text-sm text-[#475569] mt-1.5 font-normal">
+            <p className="text-[15px] text-[#334155] dark:text-[#CBD5E1] mt-1.5 font-normal">
               Monitor emerging safety risks and SIF precursor signals across operational sites.
             </p>
           </div>
@@ -325,18 +358,18 @@ export default function Dashboard() {
           {/* Controls: Site Selector & Time Selector */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Site Scope Selector */}
-            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-[#334155] shadow-sm hover:border-slate-400 transition-colors">
-              <Building2 size={14} className="text-blue-600 shrink-0" />
-              <span className="text-[#475569] font-bold">Site:</span>
+            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-sm font-semibold text-[#334155] dark:text-[#CBD5E1] shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 transition-colors">
+              <Building2 size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-[#64748B] dark:text-[#94A3B8] font-bold">Site:</span>
               <select
                 value={selectedSite}
                 onChange={(e) => setSelectedSite(e.target.value)}
-                className="bg-transparent font-semibold text-[#0F172A] border-none outline-none cursor-pointer pr-1 min-w-0"
+                className="bg-transparent font-semibold text-[#0F172A] dark:text-[#F8FAFC] border-none outline-none cursor-pointer pr-1 min-w-0"
                 aria-label="Filter site scope"
               >
-                <option value="ALL">All Sites</option>
+                <option value="ALL" className="dark:bg-[#172033] dark:text-[#F8FAFC]">All Sites</option>
                 {sites.map((s) => (
-                  <option key={s.id} value={s.id}>
+                  <option key={s.id} value={s.id} className="dark:bg-[#172033] dark:text-[#F8FAFC]">
                     {s.name}
                   </option>
                 ))}
@@ -344,21 +377,21 @@ export default function Dashboard() {
             </div>
 
             {/* Time Selector */}
-            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-[#334155] shadow-sm hover:border-slate-400 transition-colors">
-              <Calendar size={14} className="text-blue-500 shrink-0" />
-              <span className="text-[#475569] font-bold">Time:</span>
+            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-sm font-semibold text-[#334155] dark:text-[#CBD5E1] shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 transition-colors">
+              <Calendar size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
+              <span className="text-[#64748B] dark:text-[#94A3B8] font-bold">Time:</span>
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="bg-transparent font-semibold text-[#0F172A] border-none outline-none cursor-pointer pr-1"
+                className="bg-transparent font-semibold text-[#0F172A] dark:text-[#F8FAFC] border-none outline-none cursor-pointer pr-1"
                 aria-label="Filter time range"
               >
-                <option value="TODAY">Today</option>
-                <option value="THIS_WEEK">This Week</option>
-                <option value="THIS_MONTH">This Month</option>
-                <option value="THIS_YEAR">This Year</option>
-                <option value="CUSTOM">Custom Range...</option>
-                <option value="ALL">All Recorded</option>
+                <option value="TODAY" className="dark:bg-[#172033] dark:text-[#F8FAFC]">Today</option>
+                <option value="THIS_WEEK" className="dark:bg-[#172033] dark:text-[#F8FAFC]">This Week</option>
+                <option value="THIS_MONTH" className="dark:bg-[#172033] dark:text-[#F8FAFC]">This Month</option>
+                <option value="THIS_YEAR" className="dark:bg-[#172033] dark:text-[#F8FAFC]">This Year</option>
+                <option value="CUSTOM" className="dark:bg-[#172033] dark:text-[#F8FAFC]">Custom Range...</option>
+                <option value="ALL" className="dark:bg-[#172033] dark:text-[#F8FAFC]">All Recorded</option>
               </select>
             </div>
 
@@ -376,79 +409,79 @@ export default function Dashboard() {
 
         {/* Conditional Custom Date Range Bar */}
         {timeRange === 'CUSTOM' && (
-          <div className="p-3 bg-white border border-slate-300 rounded-xl flex items-center gap-3 text-xs shadow-sm">
-            <span className="font-bold text-[#334155]">Custom Period:</span>
+          <div className="p-3 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-xl flex items-center gap-3 text-xs shadow-2xs">
+            <span className="font-bold text-[#334155] dark:text-[#CBD5E1]">Custom Period:</span>
             <div className="flex items-center gap-2">
-              <span className="text-slate-400">From</span>
+              <span className="text-[#64748B] dark:text-[#94A3B8]">From</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="px-2 py-1 bg-white border border-slate-200 rounded font-mono text-xs text-slate-800"
+                className="px-2 py-1 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded font-mono text-xs text-[#0F172A] dark:text-[#F8FAFC]"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-400">To</span>
+              <span className="text-[#64748B] dark:text-[#94A3B8]">To</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-2 py-1 bg-white border border-slate-200 rounded font-mono text-xs text-slate-800"
+                className="px-2 py-1 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded font-mono text-xs text-[#0F172A] dark:text-[#F8FAFC]"
               />
             </div>
           </div>
         )}
 
         {/* CONTEXT BAR */}
-        <div className="p-3.5 rounded-xl bg-white border border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-sm">
+        <div className="p-3.5 rounded-xl bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-xs">
           <div className="flex flex-wrap items-center gap-3 font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="text-[#94A3B8] uppercase text-[10px] font-bold tracking-wider">
+              <span className="text-[#64748B] dark:text-[#94A3B8] uppercase text-[12px] font-bold tracking-wider">
                 Scope:
               </span>
-              <strong className="text-[#0F172A] font-bold">
+              <strong className="text-[14px] text-[#0F172A] dark:text-[#F8FAFC] font-bold">
                 {currentSiteObj ? `${currentSiteObj.name} (${currentSiteObj.location})` : 'All Operational Sites'}
               </strong>
             </div>
 
-            <span className="text-slate-300">|</span>
+            <span className="text-[#D1D5DB] dark:text-[#263244]">|</span>
 
             <div className="flex items-center gap-1.5">
-              <span className="text-[#94A3B8] uppercase text-[10px] font-bold tracking-wider">
+              <span className="text-[#64748B] dark:text-[#94A3B8] uppercase text-[12px] font-bold tracking-wider">
                 Period:
               </span>
-              <span className="text-[#1e293b] font-semibold font-mono">{periodLabel}</span>
+              <span className="text-[14px] text-[#1E293B] dark:text-[#CBD5E1] font-semibold font-mono">{periodLabel}</span>
             </div>
           </div>
 
-          <div className="text-[11px] font-mono text-[#64748B] font-medium">
+          <div className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] font-medium">
             {totalReports} observations evaluated
             {currentSiteObj ? ` · Health: ${currentSiteObj.healthStatus}` : ` across ${sitesReportingCount} facilities`}
           </div>
         </div>
 
-        {/* ENHANCEMENT 5: EXECUTIVE SAFETY BRIEF */}
-        <div className="rounded-xl border border-slate-300 bg-white p-4.5 sm:p-5 shadow-sm space-y-3.5">
+        {/* EXECUTIVE SAFETY BRIEF */}
+        <div className="rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] p-4.5 sm:p-5 shadow-xs space-y-3.5">
           {/* Header & Metrics Snapshot */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D1D5DB]/60 dark:border-[#263244]">
             <div className="flex items-center gap-2.5">
-              <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200 text-[10px] font-bold font-mono uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-[12px] font-bold font-mono uppercase tracking-wider">
                 Executive Safety Brief
               </span>
-              <span className="text-xs font-bold text-slate-800 font-mono">
+              <span className="text-[14px] font-bold text-[#0F172A] dark:text-[#F8FAFC] font-mono">
                 09 SEP 2026 · {currentSiteObj ? currentSiteObj.name.toUpperCase() : 'ALL SITES'}
               </span>
             </div>
 
             {/* Metric summary pills */}
             <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
+              <span className="px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] text-[#334155] dark:text-[#CBD5E1] font-semibold border border-[#D1D5DB]/60 dark:border-[#263244]">
                 {executiveBrief.totalReports} Reports
               </span>
-              <span className="px-2.5 py-1 rounded-md bg-orange-50 text-orange-800 border border-orange-200 font-semibold">
+              <span className="px-2.5 py-1 rounded-md bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-900/50 font-semibold">
                 {executiveBrief.highCount} High Risk
               </span>
-              <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-800 border border-red-200 font-bold">
+              <span className="px-2.5 py-1 rounded-md bg-red-50 dark:bg-rose-950/40 text-red-800 dark:text-rose-300 border border-red-200 dark:border-rose-900/50 font-bold">
                 {executiveBrief.sifCount} SIF Precursors
               </span>
             </div>
@@ -459,27 +492,27 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
               {/* Left: Priority Signal */}
               <div className="md:col-span-6 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
-                  <AlertOctagon size={13} className="text-rose-600" />
+                <span className="text-[12px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                  <AlertOctagon size={13} className="text-rose-600 dark:text-rose-400" />
                   <span>Priority Safety Signal</span>
                 </span>
-                <p className="text-xs sm:text-[13px] text-[#334155] font-medium leading-relaxed">
+                <p className="text-[14px] text-[#334155] dark:text-[#CBD5E1] font-medium leading-relaxed">
                   {executiveBrief.prioritySignal}
                 </p>
               </div>
 
               {/* Center: Recommended Focus */}
-              <div className="md:col-span-4 space-y-1.5 border-t md:border-t-0 md:border-l border-slate-200 pt-2 md:pt-0 md:pl-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">
+              <div className="md:col-span-4 space-y-1.5 border-t md:border-t-0 md:border-l border-[#D1D5DB]/60 dark:border-[#263244] pt-2 md:pt-0 md:pl-4">
+                <span className="text-[12px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] block">
                   Recommended Operational Focus
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {executiveBrief.recommendedFocus.map((focus, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-300 text-[#334155] text-[11px] font-medium leading-none"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F8FAFC] dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] text-[#334155] dark:text-[#CBD5E1] text-xs font-medium leading-none"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
                       <span>{focus}</span>
                     </span>
                   ))}
@@ -499,7 +532,7 @@ export default function Dashboard() {
                     if (executiveBrief.filterParams.risk) query.set('risk', executiveBrief.filterParams.risk);
                     navigate(`/reports?${query.toString()}`);
                   }}
-                  className="w-full md:w-auto font-semibold text-blue-700 hover:text-blue-900 border-blue-200 bg-blue-50/50 hover:bg-blue-100/50"
+                  className="w-full md:w-auto font-semibold"
                   aria-label="View related priority reports"
                 >
                   View Related Reports
@@ -507,7 +540,7 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="py-2 text-center text-xs text-slate-400">
+            <div className="py-2 text-center text-xs text-[#64748B] dark:text-[#94A3B8]">
               No priority pattern identified for the selected period.
             </div>
           )}
@@ -546,21 +579,21 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* 2.5 COMPACT ACTION STATUS SUMMARY (FEATURE 7) */}
-        <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+        {/* 2.5 COMPACT ACTION STATUS SUMMARY */}
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
             <div className="flex items-center gap-2 min-w-0">
-              <ClipboardCheck size={16} className="text-blue-600 shrink-0" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#334155]">
+              <ClipboardCheck size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <h3 className="text-base font-bold uppercase tracking-wider text-[#0F172A] dark:text-[#F8FAFC]">
                 Action Status
               </h3>
-              <span className="text-xs text-[#94A3B8] font-normal hidden sm:inline truncate">
+              <span className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal hidden sm:inline truncate">
                 Operational safety response & interventions
               </span>
             </div>
             <Link
               to="/review"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 hover:underline"
             >
               <span>Go to Review Queue</span>
               <ArrowRight size={12} />
@@ -579,17 +612,17 @@ export default function Dashboard() {
                   navigate('/review?status=OPEN');
                 }
               }}
-              className="p-3 bg-slate-50/80 hover:bg-amber-50/70 border border-slate-300 hover:border-amber-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-amber-50/70 dark:hover:bg-amber-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-amber-300 dark:hover:border-amber-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
               title="Filter Review Queue: Open actions"
             >
-              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-amber-800">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-amber-800 dark:group-hover:text-amber-300">
                 <span>Open</span>
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
               </div>
-              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-amber-900">
+              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-amber-900 dark:group-hover:text-amber-200">
                 {actionSummary.open}
               </div>
-              <div className="text-[11px] text-[#94A3B8] group-hover:text-amber-700 font-medium">
+              <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-amber-700 dark:group-hover:text-amber-300 font-medium">
                 Requires assignment &rarr;
               </div>
             </div>
@@ -605,17 +638,17 @@ export default function Dashboard() {
                   navigate('/review?status=IN_PROGRESS');
                 }
               }}
-              className="p-3 bg-slate-50/80 hover:bg-blue-50/70 border border-slate-300 hover:border-blue-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-blue-50/70 dark:hover:bg-blue-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-blue-300 dark:hover:border-blue-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
               title="Filter Review Queue: In Progress actions"
             >
-              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-blue-800">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-800 dark:group-hover:text-blue-300">
                 <span>In Progress</span>
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
               </div>
-              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-blue-900">
+              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-blue-900 dark:group-hover:text-blue-200">
                 {actionSummary.inProgress}
               </div>
-              <div className="text-[11px] text-[#94A3B8] group-hover:text-blue-700 font-medium">
+              <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-700 dark:group-hover:text-blue-300 font-medium">
                 Active remediation &rarr;
               </div>
             </div>
@@ -631,17 +664,17 @@ export default function Dashboard() {
                   navigate('/review?status=PENDING_VERIFICATION');
                 }
               }}
-              className="p-3 bg-slate-50/80 hover:bg-sky-50/70 border border-slate-300 hover:border-sky-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-sky-50/70 dark:hover:bg-sky-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-sky-300 dark:hover:border-sky-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
               title="Filter Review Queue: Pending Verification"
             >
-              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-sky-800">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-sky-800 dark:group-hover:text-sky-300">
                 <span>Pending Verification</span>
                 <span className="w-2 h-2 rounded-full bg-sky-500" />
               </div>
-              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-sky-900">
+              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-sky-900 dark:group-hover:text-sky-200">
                 {actionSummary.pendingVerification}
               </div>
-              <div className="text-[11px] text-[#94A3B8] group-hover:text-sky-700 font-medium">
+              <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-sky-700 dark:group-hover:text-sky-300 font-medium">
                 Awaiting sign-off &rarr;
               </div>
             </div>
@@ -657,91 +690,90 @@ export default function Dashboard() {
                   navigate('/review?status=CLOSED');
                 }
               }}
-              className="p-3 bg-slate-50/80 hover:bg-emerald-50/70 border border-slate-300 hover:border-emerald-300 rounded-lg transition-all cursor-pointer group space-y-1"
+              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-emerald-300 dark:hover:border-emerald-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
               title="Filter Review Queue: Closed actions"
             >
-              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#64748B] group-hover:text-emerald-800">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-emerald-800 dark:group-hover:text-emerald-300">
                 <span>Closed</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
               </div>
-              <div className="text-2xl font-bold font-mono text-[#0F172A] group-hover:text-emerald-900">
+              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-emerald-900 dark:group-hover:text-emerald-200">
                 {actionSummary.closed}
               </div>
-              <div className="text-[11px] text-[#94A3B8] group-hover:text-emerald-700 font-medium">
+              <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-emerald-700 dark:group-hover:text-emerald-300 font-medium">
                 Verified & resolved &rarr;
               </div>
             </div>
           </div>
 
           {/* Priority Breakdown Strip */}
-          <div className="pt-2.5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-            <div className="flex items-center gap-1.5 text-[#475569] font-semibold">
-              <AlertOctagon size={13} className="text-slate-400 shrink-0" />
+          <div className="pt-2.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+            <div className="flex items-center gap-1.5 text-[#334155] dark:text-[#CBD5E1] font-semibold">
+              <AlertOctagon size={13} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" />
               <span>Priority Breakdown:</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => navigate('/review?priority=IMMEDIATE')}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 hover:bg-rose-100/80 text-rose-800 border border-rose-200/80 transition-colors font-semibold text-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100/80 dark:hover:bg-rose-900/50 text-rose-800 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/50 transition-colors font-semibold text-xs cursor-pointer"
                 title="View Immediate priority reports in Review Queue"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
                 <span>Immediate</span>
-                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded border border-rose-200 text-rose-900 ml-0.5 text-[11px]">
+                <span className="font-mono font-bold bg-white dark:bg-rose-900/60 px-1.5 py-0.2 rounded border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 ml-0.5 text-xs">
                   {actionSummary.priorities?.immediate ?? 0}
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/review?priority=PRIORITY')}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100/80 text-amber-800 border border-amber-200/80 transition-colors font-semibold text-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100/80 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/50 transition-colors font-semibold text-xs cursor-pointer"
                 title="View Priority reports in Review Queue"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400" />
                 <span>Priority</span>
-                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded border border-amber-200 text-amber-900 ml-0.5 text-[11px]">
+                <span className="font-mono font-bold bg-white dark:bg-amber-900/60 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 ml-0.5 text-xs">
                   {actionSummary.priorities?.priority ?? 0}
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/review?priority=STANDARD')}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors font-semibold text-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F1F5F9] dark:bg-[#1E293B] hover:bg-[#E2E8F0] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] border border-[#D1D5DB] dark:border-[#263244] transition-colors font-semibold text-xs cursor-pointer"
                 title="View Standard priority reports in Review Queue"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                 <span>Standard</span>
-                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded border border-slate-200 text-slate-800 ml-0.5 text-[11px]">
+                <span className="font-mono font-bold bg-white dark:bg-[#111827] px-1.5 py-0.2 rounded border border-[#D1D5DB] dark:border-[#263244] text-[#0F172A] dark:text-[#F8FAFC] ml-0.5 text-xs">
                   {actionSummary.priorities?.standard ?? 0}
                 </span>
               </button>
             </div>
           </div>
         </div>
-
         {/* 3. REQUIRES ATTENTION / PRIORITY SECTION */}
-        <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-sm space-y-3.5">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 gap-3">
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-5 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5 gap-3">
             <div className="flex items-start gap-2 min-w-0">
-              <ShieldAlert size={18} className="text-rose-600 shrink-0 mt-0.5" />
+              <ShieldAlert size={18} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
+                <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                   Requires Attention
                 </h3>
-                <p className="text-xs text-[#64748B]">
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
                   Prioritized precursor and high-severity signals requiring operational intervention.
                 </p>
               </div>
             </div>
 
-            <span className="text-xs font-mono font-bold text-[#334155] bg-slate-100 border border-slate-300 px-2.5 py-0.5 rounded shrink-0">
+            <span className="text-xs font-mono font-semibold text-[#334155] dark:text-[#CBD5E1] bg-[#F1F5F9] dark:bg-[#1E293B] border border-[#D1D5DB] dark:border-[#263244] px-2.5 py-0.5 rounded shrink-0">
               {attentionReports.length} Priority Items
             </span>
           </div>
 
           {attentionReports.length === 0 ? (
-            <p className="text-xs text-slate-400 py-4 text-center">
+            <p className="text-sm text-[#64748B] dark:text-[#94A3B8] py-4 text-center">
               No high-priority safety signals requiring immediate attention in this period.
             </p>
           ) : (
@@ -750,35 +782,41 @@ export default function Dashboard() {
                 <div
                   key={item.id}
                   onClick={() => setSelectedReport(item)}
-                  className="p-3.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 transition-colors cursor-pointer space-y-2 group shadow-sm"
+                  className={`p-4 rounded-lg border transition-colors cursor-pointer group shadow-2xs space-y-2.5 ${
+                    item.risk_level === 'SIF-Precursor'
+                      ? 'border-[#D1D5DB] dark:border-[#263244] border-l-[3px] border-l-[#DC2626] dark:border-l-[#F43F5E] bg-white dark:bg-[#172033] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]'
+                      : item.risk_level === 'High'
+                      ? 'border-[#D1D5DB] dark:border-[#263244] border-l-[3px] border-l-[#EA580C] dark:border-l-[#FB923C] bg-white dark:bg-[#172033] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]'
+                      : 'border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#172033] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]'
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 text-xs">
                     <RiskBadge level={item.risk_level} size="sm" />
-                    <span className="font-mono text-[11px] text-[#64748B] font-medium shrink-0">
+                    <span className="font-mono text-xs text-[#64748B] dark:text-[#94A3B8] font-medium shrink-0">
                       {formatDateTime(item)}
                     </span>
                   </div>
 
                   <div className="space-y-0.5">
-                    <p className="font-bold text-xs text-[#0F172A] truncate flex items-center gap-1">
-                      <Building2 size={11} className="text-slate-400 shrink-0" />
+                    <p className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1 min-w-0">
+                      <Building2 size={12} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" />
                       <span className="truncate">{item.site || item.siteName}</span>
                     </p>
-                    <p className="text-xs font-semibold text-[#334155]">
-                      {item.hazard} · <span className="text-[#475569] font-normal">{item.activity}</span>
+                    <p className="text-sm font-semibold text-[#334155] dark:text-[#CBD5E1] leading-snug">
+                      {item.hazard} · <span className="text-[#64748B] dark:text-[#94A3B8] font-normal">{item.activity}</span>
                     </p>
                   </div>
 
                   {item.barrier_failure && item.barrier_failure !== 'None' && (
-                    <p className="text-[11px] text-rose-700 font-medium truncate pt-1 border-t border-slate-200">
+                    <p className="text-xs font-semibold pt-1.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] truncate text-rose-700 dark:text-rose-400">
                       Barrier: {item.barrier_failure}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between text-[11px] text-blue-600 font-semibold pt-0.5">
-                    <span className="font-mono text-[#94A3B8]">{formatReportCode(item.id)}</span>
-                    <span className="flex items-center gap-0.5 group-hover:underline">
-                      Inspect <ChevronRight size={11} />
+                  <div className="flex items-center justify-between pt-1.5">
+                    <span className="font-mono text-xs text-[#64748B] dark:text-[#94A3B8]">{formatReportCode(item.id)}</span>
+                    <span className="flex items-center gap-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">
+                      Inspect <ChevronRight size={12} />
                     </span>
                   </div>
                 </div>
@@ -788,60 +826,60 @@ export default function Dashboard() {
         </div>
 
         {/* 4. RISK TREND SECTION */}
-        <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-2.5">
+        <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5">
             <div>
-              <h3 className="text-sm font-bold text-[#0F172A] tracking-tight flex items-center gap-2">
-                <BarChart3 size={16} className="text-blue-600" />
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight flex items-center gap-2">
+                <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
                 <span>Risk Trend</span>
               </h3>
-              <p className="text-xs text-[#64748B] mt-0.5">
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5">
                 Timeline distribution of safety observations by severity classification.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               {/* Compact Granularity Selector */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-[#334155] shadow-sm hover:border-slate-400 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
                 <label htmlFor="risk-trend-granularity" className="sr-only">
                   Risk Trend Time Granularity
                 </label>
-                <Clock size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+                <Clock size={13} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" aria-hidden="true" />
                 <select
                   id="risk-trend-granularity"
                   aria-label="Risk Trend Time Granularity"
                   value={trendGranularity}
                   onChange={(e) => setTrendGranularity(e.target.value)}
-                  className="bg-transparent font-medium text-slate-900 border-none outline-none cursor-pointer pr-1 text-xs"
+                  className="bg-transparent font-medium text-[#0F172A] dark:text-[#F8FAFC] border-none outline-none cursor-pointer pr-1 text-xs"
                 >
-                  <option value="DAILY">Daily</option>
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="YEARLY">Yearly</option>
-                  <option value="SPECIFIC_DATE">Specific Date</option>
+                  <option value="DAILY" className="dark:bg-[#172033] dark:text-[#F8FAFC]">Daily</option>
+                  <option value="WEEKLY" className="dark:bg-[#172033] dark:text-[#F8FAFC]">Weekly</option>
+                  <option value="MONTHLY" className="dark:bg-[#172033] dark:text-[#F8FAFC]">Monthly</option>
+                  <option value="YEARLY" className="dark:bg-[#172033] dark:text-[#F8FAFC]">Yearly</option>
+                  <option value="SPECIFIC_DATE" className="dark:bg-[#172033] dark:text-[#F8FAFC]">Specific Date</option>
                 </select>
               </div>
 
               {/* Specific Date Picker Input */}
               {trendGranularity === 'SPECIFIC_DATE' && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-[#334155] shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-xs text-[#334155] dark:text-[#CBD5E1] shadow-2xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
                   <label htmlFor="risk-trend-date" className="sr-only">
                     Select Specific Date
                   </label>
-                  <Calendar size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+                  <Calendar size={13} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" aria-hidden="true" />
                   <input
                     id="risk-trend-date"
                     aria-label="Select Specific Date"
                     type="date"
                     value={trendSpecificDate}
                     onChange={(e) => setTrendSpecificDate(e.target.value)}
-                    className="bg-transparent font-mono text-xs text-slate-900 border-none outline-none cursor-pointer"
+                    className="bg-transparent font-mono text-xs text-[#0F172A] dark:text-[#F8FAFC] border-none outline-none cursor-pointer"
                   />
                 </div>
               )}
 
               {/* Dynamic Total Events */}
-              <span className="text-xs font-mono font-bold text-[#334155] bg-slate-100 px-2.5 py-1 rounded-md border border-slate-300 shrink-0">
+              <span className="text-xs font-mono font-bold text-[#334155] dark:text-[#CBD5E1] bg-[#F1F5F9] dark:bg-[#1E293B] px-2.5 py-1 rounded-md border border-[#D1D5DB] dark:border-[#263244] shrink-0">
                 {trendTotalEvents} Total Events
               </span>
             </div>
@@ -849,14 +887,14 @@ export default function Dashboard() {
 
           <div className="h-64 w-full pt-1">
             {trendSeries.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#D1D5DB] dark:border-[#263244] rounded-lg bg-[#F8FAFC] dark:bg-[#172033]">
+                <div className="w-10 h-10 rounded-full bg-[#F1F5F9] dark:bg-[#1E293B] flex items-center justify-center text-[#64748B] dark:text-[#94A3B8] mb-2">
                   <BarChart3 size={20} />
                 </div>
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] uppercase tracking-wider">
                   NO SAFETY OBSERVATIONS
                 </h4>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1 max-w-sm">
                   {trendGranularity === 'SPECIFIC_DATE'
                     ? `No safety observations recorded on ${formatDisplayDate(trendSpecificDate)}.`
                     : 'No safety observations found for the selected period.'}
@@ -868,27 +906,27 @@ export default function Dashboard() {
                   data={trendSeries}
                   margin={{ top: 10, right: 20, left: -10, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#263244' : '#E2E8F0'} vertical={false} />
                   <XAxis
                     dataKey="displayDate"
-                    tick={{ fontSize: 11, fill: '#64748b' }}
-                    axisLine={{ stroke: '#cbd5e1' }}
+                    tick={{ fontSize: 12, fill: theme === 'dark' ? '#94A3B8' : '#64748B' }}
+                    axisLine={{ stroke: theme === 'dark' ? '#263244' : '#CBD5E1' }}
                     tickLine={false}
                     interval={trendSeries.length > 10 ? 'preserveStartEnd' : 0}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: theme === 'dark' ? '#94A3B8' : '#64748B' }}
                     axisLine={false}
                     tickLine={false}
                     allowDecimals={false}
                     domain={[0, 'auto']}
                   />
                   <Tooltip content={<CustomRiskTrendTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                  <Bar dataKey="Low" name="Low Risk" stackId="a" fill="#10b981" />
-                  <Bar dataKey="Medium" name="Medium Risk" stackId="a" fill="#f59e0b" />
-                  <Bar dataKey="High" name="High Risk" stackId="a" fill="#ea580c" />
-                  <Bar dataKey="SIF-Precursor" name="SIF Precursor" stackId="a" fill="#dc2626" />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px', color: theme === 'dark' ? '#CBD5E1' : '#475569' }} />
+                  <Bar dataKey="Low" name="Low Risk" stackId="a" fill={theme === 'dark' ? '#34d399' : '#10b981'} />
+                  <Bar dataKey="Medium" name="Medium Risk" stackId="a" fill={theme === 'dark' ? '#fbbf24' : '#f59e0b'} />
+                  <Bar dataKey="High" name="High Risk" stackId="a" fill={theme === 'dark' ? '#fb923c' : '#ea580c'} />
+                  <Bar dataKey="SIF-Precursor" name="SIF Precursor" stackId="a" fill={theme === 'dark' ? '#f43f5e' : '#dc2626'} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -897,29 +935,29 @@ export default function Dashboard() {
 
         {/* 5. SITE RISK OVERVIEW (When All Sites is Selected) */}
         {selectedSite === 'ALL' && (
-          <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+          <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5">
               <div>
-                <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
+                <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                   Site Risk Overview
                 </h3>
-                <p className="text-xs text-[#64748B] mt-0.5">
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5">
                   Comparative breakdown of active facilities, calculated health index, and precursor density.
                 </p>
               </div>
               <Link
                 to="/sites"
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline"
+                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 hover:underline"
               >
                 <span>View all sites</span>
-                <ArrowUpRight size={12} />
+                <ArrowUpRight size={13} />
               </Link>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-300 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+                  <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#0A0F18] text-[12px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                     <th className="py-2.5 px-3">Site</th>
                     <th className="py-2.5 px-3">Health Status</th>
                     <th className="py-2.5 px-3">Reports</th>
@@ -928,37 +966,37 @@ export default function Dashboard() {
                     <th className="py-2.5 px-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {siteRiskList.map((st) => (
+                <tbody className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60">
+                  {paginatedSiteRiskList.map((st) => (
                     <tr
                       key={st.id}
                       onClick={() => navigate(`/sites/${st.id}`)}
-                      className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                      className="hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors cursor-pointer group"
                     >
-                      <td className="py-3 px-3 font-semibold text-[#0F172A] flex items-center gap-2">
-                        <Building2 size={13} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
+                      <td className="py-3 px-3 font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
+                        <Building2 size={13} className="text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0" />
                         <span>{st.name}</span>
-                        <span className="text-[#94A3B8] font-normal">({st.location})</span>
+                        <span className="text-[#64748B] dark:text-[#94A3B8] font-normal">({st.location})</span>
                       </td>
                       <td className="py-3 px-3">
                         <SiteHealthBadge status={st.healthStatus} size="sm" />
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-[#334155]">
+                      <td className="py-3 px-3 font-mono font-bold text-[#0F172A] dark:text-[#F8FAFC]">
                         {st.totalReports}
                       </td>
                       <td className="py-3 px-3">
-                        <span className={`font-mono font-bold ${st.highRisk > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                        <span className={`font-mono font-bold ${st.highRisk > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-[#64748B] dark:text-[#94A3B8]'}`}>
                           {st.highRisk}
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className={`font-mono font-bold ${st.sifPrecursors > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
+                        <span className={`font-mono font-bold ${st.sifPrecursors > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-[#64748B] dark:text-[#94A3B8]'}`}>
                           {st.sifPrecursors}
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right">
-                        <span className="text-blue-600 font-semibold text-[11px] group-hover:underline inline-flex items-center gap-0.5">
-                          View <ChevronRight size={11} />
+                        <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs group-hover:underline inline-flex items-center gap-0.5">
+                          View <ChevronRight size={12} />
                         </span>
                       </td>
                     </tr>
@@ -966,19 +1004,28 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
+
+            <Pagination
+              currentPage={siteListPage}
+              totalItems={siteRiskList.length}
+              pageSize={SITE_LIST_PAGE_SIZE}
+              onPageChange={setSiteListPage}
+              itemLabel="facilities"
+              className="mt-3"
+            />
           </div>
         )}
 
         {/* 6. SIF PRECURSOR SIGNALS SECTION */}
-        <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 gap-3">
+        <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5 gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <AlertOctagon size={16} className="text-rose-600 shrink-0" />
-              <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
+              <AlertOctagon size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                 SIF Precursor Signals — {sifPrecursorReports.length} Detected
               </h3>
             </div>
-            <span className="text-xs font-semibold text-rose-700 shrink-0">
+            <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 shrink-0">
               Critical Life-Safety Alerts
             </span>
           </div>
@@ -990,36 +1037,47 @@ export default function Dashboard() {
               message="Zero fatal-potential or life-threatening barrier breakdown observations were recorded in this operational window."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {sifPrecursorReports.map((sif) => (
-                <div
-                  key={sif.id}
-                  onClick={() => setSelectedReport(sif)}
-                  className="p-3.5 rounded-lg border border-rose-200 bg-rose-50/50 hover:bg-rose-50 hover:border-rose-300 transition-colors cursor-pointer space-y-2 group shadow-sm"
-                >
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="font-mono font-bold text-rose-900 shrink-0">
-                      {formatDateTime(sif)}
-                    </span>
-                    <RiskBadge level={sif.risk_level} size="sm" />
-                  </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {paginatedSifReports.map((sif) => (
+                  <div
+                    key={sif.id}
+                    onClick={() => setSelectedReport(sif)}
+                    className="p-4 rounded-lg border border-[#D1D5DB] dark:border-[#263244] border-l-[3px] border-l-[#DC2626] dark:border-l-[#F43F5E] bg-white dark:bg-[#172033] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B] transition-colors cursor-pointer space-y-2.5 group shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-mono font-semibold text-[#64748B] dark:text-[#94A3B8] shrink-0">
+                        {formatDateTime(sif)}
+                      </span>
+                      <RiskBadge level={sif.risk_level} size="sm" />
+                    </div>
 
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-bold text-[#0F172A]">{sif.site || sif.siteName}</p>
-                    <p className="text-[#334155] font-semibold">{sif.hazard} · {sif.activity}</p>
-                    <p className="text-rose-800 font-medium text-[11px] pt-0.5">
-                      Barrier: {sif.barrier_failure || 'Defect'}
-                    </p>
-                  </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC]">{sif.site || sif.siteName}</p>
+                      <p className="text-sm text-[#334155] dark:text-[#CBD5E1] font-semibold leading-snug">{sif.hazard} · {sif.activity}</p>
+                      <p className="text-rose-700 dark:text-rose-400 font-semibold text-xs pt-0.5">
+                        Barrier: {sif.barrier_failure || 'Defect'}
+                      </p>
+                    </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-rose-700 font-semibold pt-1 border-t border-rose-200">
-                    <span className="font-mono text-[#94A3B8]">{formatReportCode(sif.id)}</span>
-                    <span className="flex items-center gap-0.5 group-hover:underline">
-                      Inspect <ChevronRight size={11} />
-                    </span>
+                    <div className="flex items-center justify-between pt-1.5 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
+                      <span className="font-mono text-xs text-[#64748B] dark:text-[#94A3B8]">{formatReportCode(sif.id)}</span>
+                      <span className="flex items-center gap-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">
+                        Inspect <ChevronRight size={12} />
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <Pagination
+                currentPage={sifPage}
+                totalItems={sifPrecursorReports.length}
+                pageSize={SIF_PAGE_SIZE}
+                onPageChange={setSifPage}
+                itemLabel="precursor signals"
+                className="mt-3"
+              />
             </div>
           )}
         </div>
@@ -1027,17 +1085,17 @@ export default function Dashboard() {
         {/* 7 & 8. TOP HAZARDS & RISK BY ACTIVITY (2-Column Grid) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Top Recurring Hazards */}
-          <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3.5">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
               <div>
-                <h4 className="text-sm font-bold text-[#0F172A] tracking-tight">
+                <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                   Top Recurring Hazards
                 </h4>
-                <p className="text-xs text-[#64748B] mt-0.5">
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5">
                   Click any hazard to investigate related safety reports.
                 </p>
               </div>
-              <span className="text-[11px] font-mono text-slate-400 font-semibold">Ranked</span>
+              <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] font-semibold">Ranked</span>
             </div>
 
             <div className="space-y-2.5">
@@ -1045,19 +1103,19 @@ export default function Dashboard() {
                 <div
                   key={h.hazard}
                   onClick={() => navigate(`/reports?hazard=${encodeURIComponent(h.hazard)}`)}
-                  className="space-y-1 group cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors"
+                  className="space-y-1 group cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-[#172033] p-1.5 rounded-lg transition-colors"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-[#334155] group-hover:text-blue-600 transition-colors">
+                    <span className="font-semibold text-sm text-[#334155] dark:text-[#CBD5E1] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {h.hazard}
                     </span>
-                    <span className="font-mono text-[#475569] font-bold">
+                    <span className="font-mono text-xs text-[#64748B] dark:text-[#94A3B8] font-bold">
                       {h.count} ({h.percentage}%)
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-[#F1F5F9] dark:bg-[#1E293B] h-2 rounded-full overflow-hidden">
                     <div
-                      className="bg-blue-600 h-full rounded-full transition-all"
+                      className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all"
                       style={{ width: `${Math.min(100, Math.max(8, h.percentage))}%` }}
                     />
                   </div>
@@ -1067,17 +1125,17 @@ export default function Dashboard() {
           </div>
 
           {/* Risk by Operational Activity */}
-          <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3.5">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
               <div>
-                <h4 className="text-sm font-bold text-[#0F172A] tracking-tight">
+                <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                   Risk by Operational Activity
                 </h4>
-                <p className="text-xs text-[#64748B] mt-0.5">
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5">
                   Task categories associated with reported risk events.
                 </p>
               </div>
-              <span className="text-[11px] font-mono text-slate-400 font-semibold">Ranked</span>
+              <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] font-semibold">Ranked</span>
             </div>
 
             <div className="space-y-2.5">
@@ -1085,19 +1143,19 @@ export default function Dashboard() {
                 <div
                   key={act.activity}
                   onClick={() => navigate(`/reports?activity=${encodeURIComponent(act.activity)}`)}
-                  className="space-y-1 group cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors"
+                  className="space-y-1 group cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-[#172033] p-1.5 rounded-lg transition-colors"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-[#334155] group-hover:text-blue-600 transition-colors">
+                    <span className="font-semibold text-sm text-[#334155] dark:text-[#CBD5E1] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {act.activity}
                     </span>
-                    <span className="font-mono text-[#475569] font-bold">
+                    <span className="font-mono text-xs text-[#64748B] dark:text-[#94A3B8] font-bold">
                       {act.count} ({act.percentage}%)
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-[#F1F5F9] dark:bg-[#1E293B] h-2 rounded-full overflow-hidden">
                     <div
-                      className="bg-slate-700 h-full rounded-full transition-all"
+                      className="bg-[#334155] dark:bg-slate-400 h-full rounded-full transition-all"
                       style={{ width: `${Math.min(100, Math.max(8, act.percentage))}%` }}
                     />
                   </div>
@@ -1107,18 +1165,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 9. RECURRING BARRIER FAILURES (Differentiator) */}
-        <div className="p-5 bg-white border border-slate-300 rounded-xl shadow-sm space-y-3.5">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-3">
+        {/* 9. RECURRING BARRIER FAILURES */}
+        <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2 gap-3">
             <div className="min-w-0">
-              <h4 className="text-sm font-bold text-[#0F172A] tracking-tight">
+              <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                 Recurring Barrier Failures
               </h4>
-              <p className="text-xs text-[#64748B] mt-0.5">
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5">
                 Identified breaches in procedural, mechanical, or physical safeguards with risk associations.
               </p>
             </div>
-            <span className="text-[11px] font-mono text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded font-bold">
+            <span className="text-xs font-mono text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded font-semibold">
               {scopedSummary.barrierFailures.length} Failure Modes
             </span>
           </div>
@@ -1136,28 +1194,28 @@ export default function Dashboard() {
                     navigate('/reports');
                   }
                 }}
-                className="p-3.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 transition-colors cursor-pointer space-y-1.5 group shadow-sm"
+                className="p-3.5 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] hover:bg-white dark:hover:bg-[#1E293B] hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer space-y-1.5 group shadow-2xs"
                 title="Investigate safety reports with barrier failures"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-[#0F172A] truncate">
+                  <span className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] truncate">
                     {bf.barrier}
                   </span>
-                  <span className="font-mono font-bold text-xs text-[#334155] bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded shrink-0">
+                  <span className="font-mono font-bold text-xs text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] px-1.5 py-0.5 rounded shrink-0">
                     {bf.count}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-[#64748B] flex items-center justify-between">
+                <div className="text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
                   <span>Risk Severity:</span>
-                  <strong className="text-[#334155] font-semibold font-mono">
+                  <strong className="text-xs text-[#334155] dark:text-[#CBD5E1] font-semibold font-mono">
                     {bf.riskAssociation}
                   </strong>
                 </div>
 
-                <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-1">
+                <div className="w-full bg-[#E2E8F0] dark:bg-[#1E293B] h-1.5 rounded-full overflow-hidden mt-1">
                   <div
-                    className="bg-rose-600 h-full rounded-full"
+                    className="bg-rose-600 dark:bg-rose-500 h-full rounded-full"
                     style={{ width: `${Math.min(100, bf.percentage)}%` }}
                   />
                 </div>
@@ -1167,61 +1225,70 @@ export default function Dashboard() {
         </div>
 
         {/* 10. RECENT SAFETY ACTIVITY FEED */}
-        <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
             <div className="flex items-center gap-2">
-              <Clock size={16} className="text-blue-600" />
-              <h3 className="text-sm font-bold text-[#0F172A] tracking-tight">
+              <Clock size={16} className="text-blue-600 dark:text-blue-400" />
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                 Recent Safety Activity
               </h3>
             </div>
             <button
               type="button"
               onClick={() => navigate(selectedSite === 'ALL' ? '/reports' : `/reports?site=${selectedSite}`)}
-              className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold hover:underline flex items-center gap-1"
             >
               <span>View all reports</span>
               <ArrowRight size={12} />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 -mx-5 -my-2">
-            {recentReports.map((r) => (
+          <div className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60 -mx-5 -my-2">
+            {paginatedRecentReports.map((r) => (
               <div
                 key={r.id}
                 onClick={() => setSelectedReport(r)}
-                className="px-5 py-3 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-between gap-4 group"
+                className="px-5 py-3 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors cursor-pointer flex items-center justify-between gap-4 group"
               >
                 {/* Date / Time */}
-                <div className="w-36 shrink-0 font-mono text-xs text-[#64748B] font-medium">
+                <div className="w-36 shrink-0 font-mono text-xs text-[#64748B] dark:text-[#94A3B8] font-medium">
                   {formatDateTime(r)}
                 </div>
 
                 {/* Site */}
-                <div className="w-32 shrink-0 font-semibold text-xs text-[#334155] flex items-center gap-1">
-                  <Building2 size={12} className="text-slate-400 shrink-0" />
+                <div className="w-40 shrink-0 font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1">
+                  <Building2 size={13} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" />
                   <span className="truncate">{r.site || r.siteName}</span>
                 </div>
 
                 {/* Risk Badge */}
-                <div className="w-28 shrink-0">
+                <div className="w-32 shrink-0">
                   <RiskBadge level={r.risk_level} size="sm" />
                 </div>
 
                 {/* Hazard & Activity */}
-                <div className="min-w-0 flex-1 truncate text-xs text-[#475569]">
-                  <strong className="text-[#0F172A]">{r.hazard}</strong>
-                  <span className="text-[#94A3B8] mx-1.5">·</span>
+                <div className="min-w-0 flex-1 truncate text-sm text-[#334155] dark:text-[#CBD5E1]">
+                  <strong className="text-[#0F172A] dark:text-[#F8FAFC]">{r.hazard}</strong>
+                  <span className="text-[#64748B] dark:text-[#94A3B8] mx-1.5">·</span>
                   <span>{r.activity}</span>
                 </div>
 
                 {/* Chevron */}
-                <div className="shrink-0 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all">
-                  <ChevronRight size={14} />
+                <div className="shrink-0 text-[#94A3B8] dark:text-[#64748B] group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all">
+                  <ChevronRight size={15} />
                 </div>
               </div>
             ))}
           </div>
+
+          <Pagination
+            currentPage={recentPage}
+            totalItems={scopedReports.length}
+            pageSize={RECENT_PAGE_SIZE}
+            onPageChange={setRecentPage}
+            itemLabel="recent safety activities"
+            className="mt-3"
+          />
         </div>
 
         {/* Slide-over Inspection Drawer */}

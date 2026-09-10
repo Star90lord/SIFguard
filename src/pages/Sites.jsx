@@ -21,6 +21,7 @@ import { SiteHealthBadge } from '../components/ui/Badge';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import AddSiteModal from '../components/sites/AddSiteModal';
+import Pagination from '../components/ui/Pagination';
 import { getSites, addSite } from '../api/sifguardApi';
 
 export default function Sites() {
@@ -103,28 +104,44 @@ export default function Sites() {
     });
   }, [sites, search, healthFilter, typeFilter, statusFilter]);
 
+  // Local Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 8;
+
+  // Whenever filters or search change, reset pagination to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, healthFilter, typeFilter, statusFilter]);
+
+  // Paginated subset of sites: DATA -> FILTER -> SORT -> PAGINATE -> DISPLAY
+  const paginatedSites = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredSites.slice(start, start + PAGE_SIZE);
+  }, [filteredSites, currentPage, PAGE_SIZE]);
+
   function handleResetFilters() {
     setSearch('');
     setHealthFilter('ALL');
     setTypeFilter('ALL');
     setStatusFilter('ALL');
+    setCurrentPage(1);
   }
 
   return (
     <AppShell title="Sites" subtitle="Operational Site Management">
-      <PageContainer className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
                 Facility Directory
               </span>
             </div>
-            <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+            <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight leading-none">
               Sites
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 font-normal">
+            <p className="text-sm text-slate-500 dark:text-[#94A3B8] mt-1.5 font-normal">
               Monitor safety intelligence across operational sites.
             </p>
           </div>
@@ -142,7 +159,7 @@ export default function Sites() {
         </div>
 
         {/* Search and Filters Bar */}
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-3">
+        <div className="p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
             {/* Search */}
             <div className="lg:col-span-5">
@@ -206,12 +223,12 @@ export default function Sites() {
                   variant="ghost"
                   size="sm"
                   onClick={handleResetFilters}
-                  className="text-xs text-slate-500 hover:text-slate-900"
+                  className="text-xs text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]"
                 >
                   Reset
                 </Button>
               ) : (
-                <span className="text-[11px] font-mono text-slate-400">
+                <span className="text-[11px] font-mono text-slate-400 dark:text-[#94A3B8]">
                   {filteredSites.length} {filteredSites.length === 1 ? 'site' : 'sites'}
                 </span>
               )}
@@ -224,9 +241,9 @@ export default function Sites() {
         {loading ? (
           <TableSkeleton rows={6} />
         ) : error ? (
-          <div className="p-8 text-center bg-white border border-slate-200 rounded-xl max-w-md mx-auto shadow-2xs space-y-3">
-            <h3 className="text-sm font-bold text-slate-900">Unable to load sites</h3>
-            <p className="text-xs text-slate-500">{error}</p>
+          <div className="p-8 text-center bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl max-w-md mx-auto shadow-xs space-y-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">Unable to load sites</h3>
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">{error}</p>
             <Button variant="primary" size="sm" icon={RefreshCw} onClick={loadSitesData}>
               Retry
             </Button>
@@ -242,11 +259,11 @@ export default function Sites() {
         ) : (
           <>
             {/* Desktop Table (Visible on md and larger) */}
-            <div className="hidden md:block bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden">
+            <div className="hidden md:block bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-slate-50/80 dark:bg-[#0A0F18] text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
                       <th className="py-3 px-3 w-10 text-center">Compare</th>
                       <th className="py-3 px-4 font-semibold">Site</th>
                       <th className="py-3 px-4 font-semibold">Location</th>
@@ -258,15 +275,15 @@ export default function Sites() {
                       <th className="py-3 px-3 w-8" aria-label="Action"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredSites.map((site) => {
+                  <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
+                    {paginatedSites.map((site) => {
                       const isSelected = selectedSiteIds.includes(site.id);
                       return (
                         <tr
                           key={site.id}
                           onClick={() => navigate(`/sites/${site.id}`)}
                           className={`transition-colors cursor-pointer group ${
-                            isSelected ? 'bg-blue-50/40' : 'hover:bg-slate-50/80'
+                            isSelected ? 'bg-blue-50/40 dark:bg-blue-950/30' : 'hover:bg-slate-50/80 dark:hover:bg-[#172033]'
                           }`}
                         >
                           {/* Selection Checkbox */}
@@ -282,26 +299,26 @@ export default function Sites() {
                               checked={isSelected}
                               onChange={() => handleToggleSite(site.id)}
                               aria-label={`Select ${site.name} for comparison`}
-                              className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                              className="w-4 h-4 rounded text-blue-600 border-slate-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                             />
                           </td>
 
                           {/* Site Name & Code */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-600 transition-colors shrink-0">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-600 dark:text-[#CBD5E1] group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:border-blue-200 dark:group-hover:border-blue-700 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0">
                                 <Building2 size={16} />
                               </div>
                               <div>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-sm">
+                                  <span className="font-bold text-slate-900 dark:text-[#F8FAFC] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm">
                                     {site.name}
                                   </span>
-                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200/80">
+                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-[#172033] text-slate-600 dark:text-[#CBD5E1] border border-slate-200/80 dark:border-[#263244]">
                                     {site.code || 'SITE'}
                                   </span>
                                 </div>
-                                <span className="text-[11px] text-slate-400">
+                                <span className="text-[11px] text-slate-400 dark:text-[#94A3B8]">
                                   {site.type || 'Operational Site'} · {site.status || 'Active'}
                                 </span>
                               </div>
@@ -309,7 +326,7 @@ export default function Sites() {
                           </td>
 
                           {/* Location */}
-                          <td className="py-3.5 px-4 text-slate-600 font-medium">
+                          <td className="py-3.5 px-4 text-slate-600 dark:text-[#CBD5E1] font-medium">
                             {site.location}
                           </td>
 
@@ -319,7 +336,7 @@ export default function Sites() {
                           </td>
 
                           {/* Reports */}
-                          <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800 text-sm">
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-[#F8FAFC] text-sm">
                             {site.totalReports}
                           </td>
 
@@ -327,7 +344,7 @@ export default function Sites() {
                           <td className="py-3.5 px-4 text-right">
                             <span
                               className={`font-mono font-bold text-sm ${
-                                site.highRiskCount > 0 ? 'text-orange-600' : 'text-slate-400'
+                                site.highRiskCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-[#94A3B8]'
                               }`}
                             >
                               {site.highRiskCount}
@@ -337,17 +354,17 @@ export default function Sites() {
                           {/* SIF Precursors */}
                           <td className="py-3.5 px-4 text-right">
                             {site.sifCount > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-mono font-bold text-xs">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 font-mono font-bold text-xs">
                                 <ShieldAlert size={12} />
                                 {site.sifCount}
                               </span>
                             ) : (
-                              <span className="font-mono text-slate-400 font-medium">0</span>
+                              <span className="font-mono text-slate-400 dark:text-[#94A3B8] font-medium">0</span>
                             )}
                           </td>
 
                           {/* Last Activity */}
-                          <td className="py-3.5 px-4 text-slate-500 font-mono text-xs">
+                          <td className="py-3.5 px-4 text-slate-500 dark:text-[#94A3B8] font-mono text-xs">
                             {site.lastActivity}
                           </td>
 
@@ -355,7 +372,7 @@ export default function Sites() {
                           <td className="py-3.5 px-3 text-right">
                             <ChevronRight
                               size={15}
-                              className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all"
+                              className="text-slate-300 dark:text-slate-600 group-hover:text-slate-700 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all"
                             />
                           </td>
                         </tr>
@@ -366,11 +383,11 @@ export default function Sites() {
               </div>
 
               {/* Table Footer Summary */}
-              <div className="px-4 py-2.5 bg-slate-50/60 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+              <div className="px-4 py-2.5 bg-slate-50/60 dark:bg-[#0A0F18] border-t border-[#D1D5DB] dark:border-[#263244] text-xs text-slate-500 dark:text-[#94A3B8] flex items-center justify-between">
                 <span>
                   Showing {filteredSites.length} of {sites.length} operational facilities
                 </span>
-                <span className="text-[11px] font-mono text-slate-400">
+                <span className="text-[11px] font-mono text-slate-400 dark:text-[#94A3B8]">
                   Oil India Limited Safety Infrastructure
                 </span>
               </div>
@@ -378,14 +395,14 @@ export default function Sites() {
 
             {/* Mobile Stacked Cards (Visible on screens < 768px) */}
             <div className="md:hidden space-y-3">
-              {filteredSites.map((site) => {
+              {paginatedSites.map((site) => {
                 const isSelected = selectedSiteIds.includes(site.id);
                 return (
                   <div
                     key={site.id}
                     onClick={() => navigate(`/sites/${site.id}`)}
-                    className={`p-4 bg-white border rounded-xl shadow-2xs transition-colors cursor-pointer space-y-3 ${
-                      isSelected ? 'border-blue-300 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'
+                    className={`p-4 bg-white dark:bg-[#111827] border rounded-xl shadow-xs transition-colors cursor-pointer space-y-3 ${
+                      isSelected ? 'border-blue-300 dark:border-blue-600 bg-blue-50/20 dark:bg-blue-950/20' : 'border-[#D1D5DB] dark:border-[#263244] hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -402,20 +419,20 @@ export default function Sites() {
                             checked={isSelected}
                             onChange={() => handleToggleSite(site.id)}
                             aria-label={`Select ${site.name} for comparison`}
-                            className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                            className="w-4 h-4 rounded text-blue-600 border-slate-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </div>
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-600 dark:text-[#CBD5E1] shrink-0">
                           <Building2 size={16} />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-slate-900 text-sm">{site.name}</span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="font-bold text-slate-900 dark:text-[#F8FAFC] text-sm">{site.name}</span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-[#172033] text-slate-600 dark:text-[#CBD5E1] border border-slate-200 dark:border-[#263244]">
                               {site.code || 'SITE'}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-[11px] text-slate-400 dark:text-[#94A3B8]">
                             {site.location} · {site.type}
                           </p>
                         </div>
@@ -423,24 +440,24 @@ export default function Sites() {
                       <SiteHealthBadge status={site.healthStatus} size="sm" />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs text-center">
-                      <div className="p-1.5 bg-slate-50 rounded">
-                        <span className="text-[10px] text-slate-400 block">Reports</span>
-                        <strong className="text-slate-900 font-mono text-sm">{site.totalReports}</strong>
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-[#263244] text-xs text-center">
+                      <div className="p-1.5 bg-slate-50 dark:bg-[#172033] rounded">
+                        <span className="text-[10px] text-slate-400 dark:text-[#94A3B8] block">Reports</span>
+                        <strong className="text-slate-900 dark:text-[#F8FAFC] font-mono text-sm">{site.totalReports}</strong>
                       </div>
-                      <div className="p-1.5 bg-amber-50/50 rounded">
-                        <span className="text-[10px] text-amber-700 block">High Risk</span>
-                        <strong className="text-amber-800 font-mono text-sm">{site.highRiskCount}</strong>
+                      <div className="p-1.5 bg-amber-50/50 dark:bg-amber-950/20 rounded">
+                        <span className="text-[10px] text-amber-700 dark:text-amber-400 block">High Risk</span>
+                        <strong className="text-amber-800 dark:text-amber-300 font-mono text-sm">{site.highRiskCount}</strong>
                       </div>
-                      <div className="p-1.5 bg-rose-50/50 rounded">
-                        <span className="text-[10px] text-rose-700 block">SIF</span>
-                        <strong className="text-rose-800 font-mono text-sm">{site.sifCount}</strong>
+                      <div className="p-1.5 bg-rose-50/50 dark:bg-rose-950/20 rounded">
+                        <span className="text-[10px] text-rose-700 dark:text-rose-400 block">SIF</span>
+                        <strong className="text-rose-800 dark:text-rose-300 font-mono text-sm">{site.sifCount}</strong>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8] pt-1">
                       <span className="font-mono">Active: {site.lastActivity}</span>
-                      <span className="text-blue-600 font-semibold flex items-center gap-0.5">
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-0.5">
                         View Profile <ChevronRight size={12} />
                       </span>
                     </div>
@@ -448,6 +465,15 @@ export default function Sites() {
                 );
               })}
             </div>
+
+            {/* Local Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredSites.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+              itemLabel="operational facilities"
+            />
           </>
         )}
 

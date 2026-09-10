@@ -8,11 +8,14 @@ export default function Input({
   error,
   helperText,
   id,
+  size = 'md',
   className = '',
   ...props
 }) {
   const LeadingIcon = PrefixIcon || Icon;
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+
+  const sizePadding = size === 'sm' ? 'py-1.5 text-xs sm:text-sm' : 'py-2 text-sm';
 
   return (
     <div className="w-full">
@@ -32,7 +35,7 @@ export default function Input({
         )}
         <input
           id={inputId}
-          className={`w-full bg-white dark:bg-[#070B12] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#94A3B8] text-sm border rounded-lg transition-colors duration-150 py-2 ${
+          className={`w-full bg-white dark:bg-[#070B12] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#94A3B8] border rounded-lg transition-colors duration-150 ${sizePadding} ${
             LeadingIcon ? 'pl-9 pr-3.5' : 'px-3.5'
           } ${
             error

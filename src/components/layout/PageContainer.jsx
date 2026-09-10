@@ -15,7 +15,7 @@ export default function PageContainer({
 
   return (
     <div
-      className={`w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 space-y-6 ${
+      className={`w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-5 space-y-4 sm:space-y-5 ${
         maxWidthMap[maxWidth] || maxWidthMap.fluid
       } ${className}`}
     >

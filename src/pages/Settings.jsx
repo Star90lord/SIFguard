@@ -102,9 +102,9 @@ export default function Settings() {
 
   return (
     <AppShell title="Settings" subtitle="System & User Preferences">
-      <PageContainer className="space-y-6">
+      <PageContainer className="space-y-4 sm:space-y-5">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
@@ -114,7 +114,7 @@ export default function Settings() {
             <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight leading-none">
               Settings
             </h1>
-            <p className="text-sm text-slate-600 dark:text-[#CBD5E1] mt-1.5 font-normal">
+            <p className="text-sm text-slate-600 dark:text-[#CBD5E1] mt-1 font-normal">
               Manage operator profile, safety notification preferences, and application parameters.
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function Settings() {
           <button
             type="button"
             onClick={() => handleTabChange('profile')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'profile'
                 ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
                 : 'border-transparent text-slate-600 dark:text-[#CBD5E1] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:border-slate-300 dark:hover:border-slate-600'
@@ -150,7 +150,7 @@ export default function Settings() {
           <button
             type="button"
             onClick={() => handleTabChange('notifications')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap relative cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap relative cursor-pointer ${
               activeTab === 'notifications'
                 ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
                 : 'border-transparent text-slate-600 dark:text-[#CBD5E1] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:border-slate-300 dark:hover:border-slate-600'
@@ -168,7 +168,7 @@ export default function Settings() {
           <button
             type="button"
             onClick={() => handleTabChange('preferences')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'preferences'
                 ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
                 : 'border-transparent text-slate-600 dark:text-[#CBD5E1] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:border-slate-300 dark:hover:border-slate-600'
@@ -183,12 +183,12 @@ export default function Settings() {
         {/* TAB 1: PROFILE */}
         {/* ------------------------------------------------------------ */}
         {activeTab === 'profile' && (
-          <form onSubmit={handleProfileSave} className="space-y-6">
+          <form onSubmit={handleProfileSave} className="space-y-4 sm:space-y-5">
             {/* Identity Card */}
-            <div className="p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="p-3.5 sm:p-4 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 {/* Professional Initials Avatar */}
-                <div className="w-14 h-14 rounded-xl bg-slate-900 dark:bg-[#070B12] text-white font-bold text-lg flex items-center justify-center tracking-wider shadow-xs shrink-0 border border-slate-700 dark:border-[#263244]">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-900 dark:bg-[#070B12] text-white font-bold text-base sm:text-lg flex items-center justify-center tracking-wider shadow-xs shrink-0 border border-slate-700 dark:border-[#263244]">
                   {currentUser.initials}
                 </div>
                 <div>
@@ -357,10 +357,11 @@ export default function Settings() {
         )}
 
         {/* ------------------------------------------------------------ */}
+        {/* ------------------------------------------------------------ */}
         {/* TAB 2: NOTIFICATIONS */}
         {/* ------------------------------------------------------------ */}
         {activeTab === 'notifications' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             {/* Notification Alert Rules Preferences */}
             <Card
               title="Safety Intelligence Alert Rules"
@@ -371,9 +372,9 @@ export default function Settings() {
                   Critical Safety Alerts
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   {/* High Risk */}
-                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-2.5 sm:p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
                       <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">High-Risk Observations</span>
                       <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Alert on High severity classifications</span>
@@ -388,7 +389,7 @@ export default function Settings() {
                   </label>
 
                   {/* SIF Precursor */}
-                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-2.5 sm:p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
                       <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">SIF Precursor Signals</span>
                       <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Immediate alerts on fatal precursor detection</span>
@@ -403,7 +404,7 @@ export default function Settings() {
                   </label>
 
                   {/* Barrier Failure */}
-                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-2.5 sm:p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
                       <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">Recurring Barrier Breakdowns</span>
                       <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Repeated physical or administrative breaches</span>
@@ -418,7 +419,7 @@ export default function Settings() {
                   </label>
 
                   {/* Batch Completed */}
-                  <label className="p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
+                  <label className="p-2.5 sm:p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-slate-50/70 dark:bg-[#070B12] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-between cursor-pointer transition-colors">
                     <div>
                       <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">Batch Screening Completed</span>
                       <span className="text-[11px] text-slate-600 dark:text-[#CBD5E1]">Notifications when multi-report screening ends</span>
@@ -436,11 +437,11 @@ export default function Settings() {
             </Card>
 
             {/* Notification History Feed */}
-            <div className="p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-[#263244]">
+            <div className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200 dark:border-[#263244]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                       Notification Feed
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 dark:bg-[#070B12] text-slate-700 dark:text-[#CBD5E1]">
@@ -484,7 +485,7 @@ export default function Settings() {
                     return (
                       <div
                         key={notif.id}
-                        className={`p-3.5 rounded-xl border transition-colors ${
+                        className={`p-3 sm:p-3.5 rounded-xl border transition-colors ${
                           notif.read
                             ? 'bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] text-slate-600 dark:text-[#94A3B8]'
                             : isCritical
@@ -563,17 +564,17 @@ export default function Settings() {
         {/* TAB 3: PREFERENCES (Operational Parameters & Theme) */}
         {/* ------------------------------------------------------------ */}
         {activeTab === 'preferences' && (
-          <form onSubmit={handlePrefSave} className="space-y-6">
+          <form onSubmit={handlePrefSave} className="space-y-4 sm:space-y-5">
             {/* Appearance & Operational Environment */}
             <Card
               title="Display Theme & Operational Environment"
               subtitle="Select visual appearance optimized for control room lighting conditions."
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
                 {/* Light Mode Option */}
                 <div
                   onClick={() => setTheme('light')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between ${
+                  className={`p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between ${
                     theme === 'light'
                       ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 ring-2 ring-blue-600/20'
                       : 'border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] hover:border-slate-400 dark:hover:border-slate-600'
@@ -607,7 +608,7 @@ export default function Settings() {
                 {/* Dark Mode Option */}
                 <div
                   onClick={() => setTheme('dark')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between ${
+                  className={`p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between ${
                     theme === 'dark'
                       ? 'border-blue-500 bg-blue-950/30 ring-2 ring-blue-500/20'
                       : 'border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] hover:border-slate-400 dark:hover:border-slate-600'

@@ -172,11 +172,11 @@ export default function ReviewQueue() {
 
   return (
     <AppShell title="HSE Review Queue" subtitle="Operational Triage & Review">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* Header Block */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-2 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1.5">
                 <ClipboardCheck size={14} className="text-blue-600 dark:text-blue-400" />
                 Operational HSE Workflow
@@ -185,12 +185,12 @@ export default function ReviewQueue() {
             <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight leading-none">
               HSE Review Queue
             </h1>
-            <p className="text-sm text-[#64748B] dark:text-[#94A3B8] mt-1.5 font-normal">
+            <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] mt-1 font-normal">
               Reports requiring attention and manager review. Prioritized by life-safety severity.
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <Button
               variant="secondary"
               size="md"
@@ -211,7 +211,7 @@ export default function ReviewQueue() {
         </div>
 
         {/* 1. REVIEW QUEUE KPI STRIP */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
           <KpiCard
             label="SIF Precursors"
             value={kpis.sifCount || 0}
@@ -240,7 +240,7 @@ export default function ReviewQueue() {
         </div>
 
         {/* 2. FILTER STRIP */}
-        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-4 shadow-xs space-y-3.5">
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3 sm:p-3.5 shadow-xs space-y-2.5">
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[260px]">
@@ -432,7 +432,7 @@ export default function ReviewQueue() {
           />
         ) : (
           <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#D1D5DB]/60 dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
+            <div className="px-4 py-2.5 sm:px-5 border-b border-[#D1D5DB]/60 dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
               <span>Showing <strong className="text-[#0F172A] dark:text-[#F8FAFC]">{reports.length}</strong> prioritized reports</span>
               <div className="flex items-center gap-3">
                 {sortField !== 'default' ? (
@@ -460,7 +460,7 @@ export default function ReviewQueue() {
                   <tr className="bg-[#F8FAFC] dark:bg-[#0A0F18] border-b border-[#D1D5DB] dark:border-[#263244] text-[12px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                     {/* Report ID */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
+                      className="py-2.5 px-3.5 sm:px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('id')}
                       title="Click to sort by Report ID"
                     >
@@ -478,7 +478,7 @@ export default function ReviewQueue() {
 
                     {/* Site */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
+                      className="py-2.5 px-3.5 sm:px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('site')}
                       title="Click to sort by Site"
                     >
@@ -496,7 +496,7 @@ export default function ReviewQueue() {
 
                     {/* Hazard */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
+                      className="py-2.5 px-3.5 sm:px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('hazard')}
                       title="Click to sort by Hazard"
                     >
@@ -514,7 +514,7 @@ export default function ReviewQueue() {
 
                     {/* Risk */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
+                      className="py-2.5 px-3.5 sm:px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('risk')}
                       title="Click to sort by Risk Level (SIF-PRECURSOR → HIGH → MEDIUM → LOW)"
                     >
@@ -532,7 +532,7 @@ export default function ReviewQueue() {
 
                     {/* Priority */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
+                      className="py-2.5 px-3.5 sm:px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('priority')}
                       title="Click to sort by Priority (IMMEDIATE → PRIORITY → STANDARD)"
                     >
@@ -550,7 +550,7 @@ export default function ReviewQueue() {
 
                     {/* Status */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
+                      className="py-2.5 px-3.5 sm:px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('status')}
                       title="Click to sort by Workflow Status"
                     >
@@ -568,7 +568,7 @@ export default function ReviewQueue() {
 
                     {/* Date */}
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
+                      className="py-2.5 px-3.5 sm:px-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none group"
                       onClick={() => handleSort('date')}
                       title="Click to sort by Date (Newest first on ↓)"
                     >
@@ -584,7 +584,7 @@ export default function ReviewQueue() {
                       </div>
                     </th>
 
-                    <th className="py-3 px-4 text-right">Action</th>
+                    <th className="py-2.5 px-3.5 sm:px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60">
@@ -602,7 +602,7 @@ export default function ReviewQueue() {
                         }`}
                       >
                         {/* Report ID */}
-                        <td className="py-3.5 px-4 font-mono font-bold whitespace-nowrap">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono font-bold whitespace-nowrap">
                           <Link
                             to={`/reports/${r.id}`}
                             className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
@@ -613,7 +613,7 @@ export default function ReviewQueue() {
                         </td>
 
                         {/* Site */}
-                        <td className="py-3.5 px-4 font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC]">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC]">
                           <div className="flex items-center gap-1.5">
                             <Building2 size={13} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" />
                             <span className="truncate max-w-[160px]" title={r.site || r.siteName}>
@@ -623,19 +623,19 @@ export default function ReviewQueue() {
                         </td>
 
                         {/* Hazard */}
-                        <td className="py-3.5 px-4 font-medium text-sm text-[#0F172A] dark:text-[#CBD5E1]">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-medium text-sm text-[#0F172A] dark:text-[#CBD5E1]">
                           <span className="truncate max-w-[170px] block" title={r.hazard}>
                             {r.hazard || 'None Specified'}
                           </span>
                         </td>
 
                         {/* Risk */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                           <RiskBadge level={r.risk_level} size="sm" />
                         </td>
 
                         {/* Priority & Overdue Indicator */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <PriorityBadge priority={r.priority} size="sm" />
                             {r.isOverdue && <OverdueBadge size="sm" />}
@@ -643,17 +643,17 @@ export default function ReviewQueue() {
                         </td>
 
                         {/* Lifecycle Status */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                           <ReportStatusBadge status={r.status} size="sm" />
                         </td>
 
                         {/* Date */}
-                        <td className="py-3.5 px-4 font-mono text-xs text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono text-xs text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
                           {formatDateTime(r)}
                         </td>
 
                         {/* Action: Review Button */}
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-right whitespace-nowrap">
                           <Button
                             variant="primary"
                             size="sm"

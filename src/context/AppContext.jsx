@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { ROLES, ROLE_DEFINITIONS, hasPermission as checkPermission } from '../config/roles';
+import { getMockSites } from '../data/mockData';
+import { getSites, updateSite as apiUpdateSite, addSite as apiAddSite } from '../api/sifguardApi';
 
 const AppContext = createContext(null);
 
@@ -224,6 +226,66 @@ export function AppProvider({ children }) {
     if (t === 'dark' || t === 'light') setThemeState(t);
   }
 
+  // ── Authoritative Shared Site State ──────────────────────────────
+  const [sites, setSites] = useState(() => {
+    try {
+      return getMockSites();
+    } catch {
+      return [];
+    }
+  });
+
+  const refreshSites = useCallback(async () => {
+    try {
+      const data = await getSites();
+      if (data && Array.isArray(data)) {
+        setSites(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to refresh sites in AppContext:', err);
+    }
+  }, []);
+
+  const updateSite = useCallback(async (siteId, updatedData) => {
+    try {
+      const result = await apiUpdateSite(siteId, updatedData);
+      const refreshed = await getSites();
+      setSites(refreshed);
+      return result;
+    } catch (err) {
+      console.error(`Failed to update site ${siteId} in AppContext:`, err);
+      throw err;
+    }
+  }, []);
+
+  const addSite = useCallback(async (newSiteData) => {
+    try {
+      const result = await apiAddSite(newSiteData);
+      const refreshed = await getSites();
+      setSites(refreshed);
+      return result;
+    } catch (err) {
+      console.error('Failed to add site in AppContext:', err);
+      throw err;
+    }
+  }, []);
+
+  // Dynamically calculated Active Scope metrics
+  const activeScope = useMemo(() => {
+    const total = sites.length;
+    const operational = sites.filter((s) => (s.status || '').toLowerCase() === 'active').length;
+    const maintenance = sites.filter((s) => (s.status || '').toLowerCase() === 'maintenance').length;
+    const offline = sites.filter((s) => (s.status || '').toLowerCase() === 'offline').length;
+    return {
+      total,
+      operational,
+      maintenance,
+      offline,
+      telemetry: 'Active',
+    };
+  }, [sites]);
+
   const value = {
     currentUser,
     updateProfile,
@@ -241,6 +303,13 @@ export function AppProvider({ children }) {
     theme,
     toggleTheme,
     setTheme,
+    // Site state & actions
+    sites,
+    setSites,
+    activeScope,
+    updateSite,
+    addSite,
+    refreshSites,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -252,6 +321,11 @@ export function useApp() {
     throw new Error('useApp must be used within an AppProvider');
   }
   return context;
+}
+
+export function useSites() {
+  const { sites, setSites, activeScope, updateSite, addSite, refreshSites } = useApp();
+  return { sites, setSites, activeScope, updateSite, addSite, refreshSites };
 }
 
 export const useAppContext = useApp;

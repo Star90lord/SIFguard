@@ -25,7 +25,7 @@ export default function Button({
     primary:
       'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-2xs border border-blue-700/20 focus-visible:outline-blue-600',
     secondary:
-      'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 hover:dark:bg-slate-700 hover:text-slate-950 hover:dark:text-white active:bg-slate-100 shadow-2xs focus-visible:outline-slate-700',
+      'bg-white dark:bg-[#111827] text-slate-800 dark:text-[#F8FAFC] border border-[#D1D5DB] dark:border-[#263244] hover:bg-slate-50 hover:dark:bg-[#172033] hover:text-slate-950 hover:dark:text-white active:bg-slate-100 shadow-2xs focus-visible:outline-slate-700',
     ghost:
       'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 hover:dark:bg-slate-800 hover:text-slate-900 hover:dark:text-white active:bg-slate-200 focus-visible:outline-slate-600',
     danger:

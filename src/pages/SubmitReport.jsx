@@ -408,9 +408,9 @@ export default function SubmitReport() {
 
   return (
     <AppShell title="Analyze Reports" subtitle="Multi-Report Batch Workspace">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* Page Header with Title & Subtitle */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
@@ -420,7 +420,7 @@ export default function SubmitReport() {
             <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight leading-none">
               Analyze Safety Reports
             </h1>
-            <p className="text-sm text-slate-500 dark:text-[#94A3B8] mt-1.5 font-normal">
+            <p className="text-sm text-slate-500 dark:text-[#94A3B8] mt-1 font-normal">
               Screen reports in batches and identify high-potential risks.
             </p>
           </div>
@@ -451,7 +451,7 @@ export default function SubmitReport() {
 
         {/* Modal Submission Toast Feedback */}
         {submissionToast && (
-          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between shadow-2xs animate-in fade-in">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between shadow-2xs animate-in fade-in">
             <div className="flex items-center gap-2.5 font-semibold">
               <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{submissionToast}</span>
@@ -467,8 +467,8 @@ export default function SubmitReport() {
         )}
 
         {/* Site Context Selector Bar */}
-        <div className="p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="p-3 sm:p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#CBD5E1] flex items-center gap-1.5">
               <Building2 size={14} className="text-blue-600 dark:text-blue-400" />
               <span>Site Context:</span>
@@ -728,10 +728,10 @@ export default function SubmitReport() {
 
         {/* ANALYSIS RESULTS SECTION */}
         {batchResults && (
-          <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
             {/* Header & Risk Summary Card */}
-            <div className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-[#263244]">
+            <div className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-100 dark:border-[#263244]">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -739,7 +739,7 @@ export default function SubmitReport() {
                       Analysis Complete
                     </span>
                   </div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC] mt-1">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-[#F8FAFC] mt-0.5">
                     {batchResults.results.length}{' '}
                     {batchResults.results.length === 1 ? 'report' : 'reports'} analyzed
                   </h2>
@@ -750,7 +750,7 @@ export default function SubmitReport() {
                 </div>
 
                 {/* Actions: Download Summary / Analyze Another / Save */}
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -792,51 +792,51 @@ export default function SubmitReport() {
               )}
 
               {/* Semantic Risk Badges Summary */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="p-2.5 sm:p-3 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                       Low Risk
                     </span>
                     <RiskBadge level="Low" size="sm" />
                   </div>
-                  <span className="text-2xl font-bold font-mono text-emerald-950 dark:text-emerald-100">
+                  <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-950 dark:text-emerald-100">
                     {riskCounts.Low}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60">
+                <div className="p-2.5 sm:p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
                       Medium Risk
                     </span>
                     <RiskBadge level="Medium" size="sm" />
                   </div>
-                  <span className="text-2xl font-bold font-mono text-amber-950 dark:text-amber-100">
+                  <span className="text-xl sm:text-2xl font-bold font-mono text-amber-950 dark:text-amber-100">
                     {riskCounts.Medium}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-lg bg-orange-50/60 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-800/60">
+                <div className="p-2.5 sm:p-3 rounded-lg bg-orange-50/60 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-800/60">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold uppercase tracking-wider text-orange-800 dark:text-orange-300">
                       High Risk
                     </span>
                     <RiskBadge level="High" size="sm" />
                   </div>
-                  <span className="text-2xl font-bold font-mono text-orange-950 dark:text-orange-100">
+                  <span className="text-xl sm:text-2xl font-bold font-mono text-orange-950 dark:text-orange-100">
                     {riskCounts.High}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-lg bg-red-50/70 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50">
+                <div className="p-2.5 sm:p-3 rounded-lg bg-red-50/70 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold uppercase tracking-wider text-red-800 dark:text-red-300">
                       SIF-Precursor
                     </span>
                     <RiskBadge level="SIF-Precursor" size="sm" />
                   </div>
-                  <span className="text-2xl font-bold font-mono text-red-950 dark:text-red-100">
+                  <span className="text-xl sm:text-2xl font-bold font-mono text-red-950 dark:text-red-100">
                     {riskCounts['SIF-Precursor']}
                   </span>
                 </div>
@@ -844,7 +844,7 @@ export default function SubmitReport() {
             </div>
 
             {/* Results Grouped by SITE */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5">
               {resultsBySite.map(([siteName, siteReports]) => {
                 const siteId = siteReports[0]?.siteId || siteName.toLowerCase().replace(/\s+/g, '-');
                 // Calculate date span for same-site or grouped header
@@ -861,24 +861,24 @@ export default function SubmitReport() {
                 return (
                   <div
                     key={siteName}
-                    className="p-5 sm:p-6 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-4"
+                    className="p-4 sm:p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3 sm:space-y-3.5"
                   >
                     {/* Site Group Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D1D5DB] dark:border-[#263244]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-[#D1D5DB] dark:border-[#263244]">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
-                          <Building2 size={18} />
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-700 dark:text-[#CBD5E1] shrink-0">
+                          <Building2 size={16} />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                               {siteName}
                             </h3>
-                            <span className="px-2 py-0.2 rounded-full bg-slate-100 text-slate-700 text-xs font-mono font-bold">
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#172033] text-slate-700 dark:text-[#CBD5E1] text-xs font-mono font-bold">
                               {siteReports.length} {siteReports.length === 1 ? 'report' : 'reports'}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 font-mono mt-0.5">
+                          <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-mono mt-0.5">
                             {dateSpan}
                           </p>
                         </div>
@@ -888,7 +888,7 @@ export default function SubmitReport() {
                       <button
                         type="button"
                         onClick={() => navigate(`/sites/${siteId}`)}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 self-start sm:self-auto"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 self-start sm:self-auto"
                       >
                         <span>View Facility Profile</span>
                         <ArrowRight size={13} />
@@ -896,7 +896,7 @@ export default function SubmitReport() {
                     </div>
 
                     {/* Operational Result Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {siteReports.map((report) => (
                         <AnalysisResultCard
                           key={report.id}

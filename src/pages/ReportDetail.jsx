@@ -288,7 +288,7 @@ export default function ReportDetail() {
 
   return (
     <AppShell title={`Report ${reportCode}`} subtitle="HSE Investigation Record">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* Navigation & Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
           <Link
@@ -339,8 +339,8 @@ export default function ReportDetail() {
         )}
 
         {/* FULL REPORT HEADER (HSE INVESTIGATION RECORD BANNER) */}
-        <div className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#263244] pb-4">
+        <div className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#263244] pb-3">
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
@@ -374,7 +374,7 @@ export default function ReportDetail() {
           </div>
 
           {/* OPERATIONAL STATUS & WORKFLOW BAR */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-50 dark:bg-[#0A0F18] border border-[#D1D5DB] dark:border-[#263244] rounded-lg">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 sm:p-3.5 bg-slate-50 dark:bg-[#0A0F18] border border-[#D1D5DB] dark:border-[#263244] rounded-lg">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-[#CBD5E1]">
                 Report Status:
@@ -429,8 +429,8 @@ export default function ReportDetail() {
         </div>
 
         {/* SECTION A — REPORT OVERVIEW */}
-        <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-3">
+        <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3 sm:space-y-3.5">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
               <FileText size={16} className="text-blue-600 dark:text-blue-400" />
               <span>Section A — Report Overview</span>
@@ -509,8 +509,8 @@ export default function ReportDetail() {
         </section>
 
         {/* SECTION B — ORIGINAL FIELD REPORT */}
-        <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-3">
+        <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
               <FileText size={16} className="text-slate-600 dark:text-[#94A3B8]" />
               <span>Section B — Original Field Report</span>
@@ -526,8 +526,8 @@ export default function ReportDetail() {
         </section>
 
         {/* SECTION C — SAFETY CLASSIFICATION */}
-        <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-3">
+        <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
               <ShieldAlert size={16} className="text-amber-600 dark:text-amber-400" />
               <span>Section C — Safety Classification</span>
@@ -572,8 +572,8 @@ export default function ReportDetail() {
         </section>
 
         {/* SECTION D — EXPLAINABLE RISK */}
-        <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-3">
+        <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
               <AlertTriangle size={16} className="text-blue-600 dark:text-blue-400" />
               <span>Section D — Explainable Risk</span>
@@ -604,8 +604,8 @@ export default function ReportDetail() {
         </section>
 
         {/* SECTION E — HSE ACTION TRACKING & INTERVENTIONS */}
-        <section className="p-6 rounded-xl border border-blue-200/80 dark:border-blue-900/50 bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#263244] pb-3">
+        <section className="p-4 sm:p-5 rounded-xl border border-blue-200/80 dark:border-blue-900/50 bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#263244] pb-2.5">
             <div className="flex items-center gap-2">
               <ShieldCheck size={18} className="text-blue-700 dark:text-blue-400" />
               <div>
@@ -651,7 +651,7 @@ export default function ReportDetail() {
 
           {/* Tracked Actions List */}
           {actions.length === 0 ? (
-            <div className="p-6 text-center border border-dashed border-slate-200 dark:border-[#263244] rounded-lg bg-slate-50/50 dark:bg-[#070B12] space-y-2">
+            <div className="p-4 sm:p-5 text-center border border-dashed border-slate-200 dark:border-[#263244] rounded-lg bg-slate-50/50 dark:bg-[#070B12] space-y-2">
               <CheckSquare size={24} className="text-slate-400 dark:text-[#94A3B8] mx-auto" />
               <p className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1]">
                 No actions have been created for this report.
@@ -671,7 +671,7 @@ export default function ReportDetail() {
                 return (
                   <div
                     key={act.id}
-                    className={`p-4 sm:p-5 rounded-xl border transition-all space-y-3.5 shadow-2xs ${
+                    className={`p-3.5 sm:p-4 rounded-xl border transition-all space-y-3 shadow-2xs ${
                       isClosed
                         ? 'bg-slate-50/80 dark:bg-[#0A0F18] border-slate-200 dark:border-[#263244] text-slate-600 dark:text-[#94A3B8]'
                         : isPendingVerification
@@ -863,7 +863,7 @@ export default function ReportDetail() {
 
         {/* STATUS HISTORY SECTION (Rendered only when history events exist) */}
         {statusHistory.length > 0 && (
-          <section className="p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3">
+          <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-[#F8FAFC] flex items-center gap-2">
                 <Clock size={15} className="text-slate-500 dark:text-[#94A3B8]" />
@@ -894,10 +894,10 @@ export default function ReportDetail() {
         )}
 
         {/* TWO-COLUMN CORRECTIVE & PREVENTIVE ACTIONS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           {/* SECTION F — CORRECTIVE ACTION (Fix Current Condition) */}
-          <section className="p-6 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/30 dark:bg-[#111827] shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-amber-200/80 dark:border-amber-900/50 pb-3">
+          <section className="p-4 sm:p-5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/30 dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+            <div className="flex items-center justify-between border-b border-amber-200/80 dark:border-amber-900/50 pb-2.5">
               <div className="flex items-center gap-2">
                 <CheckSquare size={16} className="text-amber-700 dark:text-amber-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-amber-950 dark:text-amber-300">
@@ -929,8 +929,8 @@ export default function ReportDetail() {
           </section>
 
           {/* SECTION G — PREVENTIVE ACTION (Reduce Recurrence) */}
-          <section className="p-6 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-[#111827] shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-emerald-200/80 dark:border-emerald-900/50 pb-3">
+          <section className="p-4 sm:p-5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+            <div className="flex items-center justify-between border-b border-emerald-200/80 dark:border-emerald-900/50 pb-2.5">
               <div className="flex items-center gap-2">
                 <Shield size={16} className="text-emerald-700 dark:text-emerald-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-950 dark:text-emerald-300">
@@ -963,8 +963,8 @@ export default function ReportDetail() {
         </div>
 
         {/* SECTION H — RELATED SAFETY PATTERNS */}
-        <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#263244] pb-3">
+        <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#263244] pb-2.5">
             <div className="flex items-center gap-2">
               <Layers size={16} className="text-blue-600 dark:text-blue-400" />
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">
@@ -1029,8 +1029,8 @@ export default function ReportDetail() {
         </section>
 
         {/* SECTION I — SITE HISTORY CONTEXT */}
-        <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#263244] pb-3">
+        <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3.5 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#263244] pb-2.5">
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-slate-600 dark:text-[#94A3B8]" />
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">
@@ -1086,7 +1086,7 @@ export default function ReportDetail() {
               onClick={() => setIsCompareModalOpen(false)}
             />
             <div className="min-h-full flex items-center justify-center p-4">
-              <div className="relative bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#263244] shadow-xl max-w-4xl w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+              <div className="relative bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#263244] shadow-xl max-w-4xl w-full p-4 sm:p-5 space-y-3.5 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#263244]">
                   <div className="flex items-center gap-2">
                     <Repeat size={18} className="text-blue-600 dark:text-blue-400" />
@@ -1108,38 +1108,38 @@ export default function ReportDetail() {
                   <table className="w-full text-xs text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#070B12] text-slate-500 dark:text-[#94A3B8] font-bold uppercase text-[10px]">
-                        <th className="py-2.5 px-3">Report</th>
-                        <th className="py-2.5 px-3">Site</th>
-                        <th className="py-2.5 px-3">Date</th>
-                        <th className="py-2.5 px-3">Risk</th>
-                        <th className="py-2.5 px-3">Hazard</th>
-                        <th className="py-2.5 px-3">Activity</th>
-                        <th className="py-2.5 px-3">Barrier Failure</th>
+                        <th className="py-2.5 px-3.5 sm:px-4">Report</th>
+                        <th className="py-2.5 px-3.5 sm:px-4">Site</th>
+                        <th className="py-2.5 px-3.5 sm:px-4">Date</th>
+                        <th className="py-2.5 px-3.5 sm:px-4">Risk</th>
+                        <th className="py-2.5 px-3.5 sm:px-4">Hazard</th>
+                        <th className="py-2.5 px-3.5 sm:px-4">Activity</th>
+                        <th className="py-2.5 px-3.5 sm:px-4">Barrier Failure</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
                       {/* Current Report Row */}
                       <tr className="bg-blue-50/40 dark:bg-blue-950/30 font-semibold">
-                        <td className="py-3 px-3 font-mono text-blue-900 dark:text-blue-300">{reportCode} (Current)</td>
-                        <td className="py-3 px-3 text-slate-900 dark:text-[#F8FAFC]">{siteName}</td>
-                        <td className="py-3 px-3 font-mono text-slate-700 dark:text-[#CBD5E1]">{report.date}</td>
-                        <td className="py-3 px-3"><RiskBadge level={report.risk_level} size="sm" /></td>
-                        <td className="py-3 px-3 text-slate-900 dark:text-[#F8FAFC]">{report.hazard}</td>
-                        <td className="py-3 px-3 text-slate-700 dark:text-[#CBD5E1]">{report.activity}</td>
-                        <td className="py-3 px-3 text-rose-800 dark:text-rose-400">{report.barrier_failure || 'None'}</td>
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono text-blue-900 dark:text-blue-300">{reportCode} (Current)</td>
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-900 dark:text-[#F8FAFC]">{siteName}</td>
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono text-slate-700 dark:text-[#CBD5E1]">{report.date}</td>
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4"><RiskBadge level={report.risk_level} size="sm" /></td>
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-900 dark:text-[#F8FAFC]">{report.hazard}</td>
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-700 dark:text-[#CBD5E1]">{report.activity}</td>
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-rose-800 dark:text-rose-400">{report.barrier_failure || 'None'}</td>
                       </tr>
                       {/* Related Reports */}
                       {relatedPatterns.map((rel) => (
                         <tr key={rel.id} className="hover:bg-slate-50 dark:hover:bg-[#172033]">
-                          <td className="py-3 px-3 font-mono font-bold text-slate-700 dark:text-[#CBD5E1]">
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono font-bold text-slate-700 dark:text-[#CBD5E1]">
                             {rel.code || formatReportCode(rel.id)}
                           </td>
-                          <td className="py-3 px-3 text-slate-800 dark:text-[#F8FAFC]">{rel.site || rel.siteName}</td>
-                          <td className="py-3 px-3 font-mono text-slate-500 dark:text-[#94A3B8]">{rel.date}</td>
-                          <td className="py-3 px-3"><RiskBadge level={rel.risk_level} size="sm" /></td>
-                          <td className="py-3 px-3 font-medium text-slate-900 dark:text-[#F8FAFC]">{rel.hazard}</td>
-                          <td className="py-3 px-3 text-slate-600 dark:text-[#CBD5E1]">{rel.activity}</td>
-                          <td className="py-3 px-3 text-rose-700 dark:text-rose-400">{rel.barrier_failure || 'None'}</td>
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-800 dark:text-[#F8FAFC]">{rel.site || rel.siteName}</td>
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono text-slate-500 dark:text-[#94A3B8]">{rel.date}</td>
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4"><RiskBadge level={rel.risk_level} size="sm" /></td>
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-medium text-slate-900 dark:text-[#F8FAFC]">{rel.hazard}</td>
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-600 dark:text-[#CBD5E1]">{rel.activity}</td>
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-rose-700 dark:text-rose-400">{rel.barrier_failure || 'None'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1160,7 +1160,7 @@ export default function ReportDetail() {
         {isActionModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#263244] shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95">
-              <div className="px-5 py-3.5 border-b border-slate-200 dark:border-[#263244] flex items-center justify-between bg-slate-50 dark:bg-[#0A0F18]">
+              <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-200 dark:border-[#263244] flex items-center justify-between bg-slate-50 dark:bg-[#0A0F18]">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={18} className="text-blue-600 dark:text-blue-400" />
                   <h3 className="font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">
@@ -1177,7 +1177,7 @@ export default function ReportDetail() {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveAction} className="p-5 space-y-4 text-xs">
+              <form onSubmit={handleSaveAction} className="p-4 sm:p-5 space-y-3.5 text-xs">
                 {/* Action Title */}
                 <div>
                   <label htmlFor="action-title" className="block font-bold text-slate-700 dark:text-[#CBD5E1] uppercase tracking-wider text-[10px] mb-1">

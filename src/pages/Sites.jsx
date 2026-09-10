@@ -22,7 +22,7 @@ import { TableSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import AddSiteModal from '../components/sites/AddSiteModal';
 import Pagination from '../components/ui/Pagination';
-import { getSites, addSite } from '../api/sifguardApi';
+import { useSites } from '../context/AppContext';
 
 export default function Sites() {
   const navigate = useNavigate();
@@ -31,8 +31,8 @@ export default function Sites() {
   // Status parameter from URL (e.g. from Sidebar Active Scope links: /sites?status=Active)
   const statusParam = searchParams.get('status');
 
-  const [sites, setSites] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { sites, addSite: addGlobalSite, refreshSites } = useSites();
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Multi-site comparison selection (Unlimited sites)
@@ -65,15 +65,16 @@ export default function Sites() {
   }
 
   useEffect(() => {
-    loadSitesData();
+    if (!sites || sites.length === 0) {
+      loadSitesData();
+    }
   }, []);
 
   async function loadSitesData() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getSites();
-      setSites(data || []);
+      await refreshSites();
     } catch (err) {
       setError(err.message || 'Unable to retrieve operational sites directory.');
     } finally {
@@ -82,8 +83,7 @@ export default function Sites() {
   }
 
   async function handleAddSite(newSiteData) {
-    const created = await addSite(newSiteData);
-    await loadSitesData();
+    const created = await addGlobalSite(newSiteData);
     return created;
   }
 
@@ -147,11 +147,11 @@ export default function Sites() {
 
   return (
     <AppShell title="Sites" subtitle="Operational Site Management">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
                 Facility Directory
               </span>
@@ -159,7 +159,7 @@ export default function Sites() {
             <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight leading-none">
               Sites
             </h1>
-            <p className="text-sm text-slate-500 dark:text-[#94A3B8] mt-1.5 font-normal">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] mt-1 font-normal">
               Monitor safety intelligence across operational sites.
             </p>
           </div>
@@ -177,7 +177,7 @@ export default function Sites() {
         </div>
 
         {/* Search and Filters Bar */}
-        <div className="p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+        <div className="p-3 sm:p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
             {/* Search */}
             <div className="lg:col-span-5">
@@ -293,15 +293,15 @@ export default function Sites() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-slate-50/80 dark:bg-[#0A0F18] text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
-                      <th className="py-3 px-3 w-10 text-center">Compare</th>
-                      <th className="py-3 px-4 font-semibold">Site</th>
-                      <th className="py-3 px-4 font-semibold">Location</th>
-                      <th className="py-3 px-4 font-semibold">Health</th>
-                      <th className="py-3 px-4 font-semibold text-right">Reports</th>
-                      <th className="py-3 px-4 font-semibold text-right">High Risk</th>
-                      <th className="py-3 px-4 font-semibold text-right">SIF Precursors</th>
-                      <th className="py-3 px-4 font-semibold">Last Activity</th>
-                      <th className="py-3 px-3 w-8" aria-label="Action"></th>
+                      <th className="py-2.5 px-3 w-10 text-center">Compare</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Site</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Location</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Health</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 font-semibold text-right">Reports</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 font-semibold text-right">High Risk</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 font-semibold text-right">SIF Precursors</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Last Activity</th>
+                      <th className="py-2.5 px-3 w-8" aria-label="Action"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
@@ -317,7 +317,7 @@ export default function Sites() {
                         >
                           {/* Selection Checkbox */}
                           <td
-                            className="py-3.5 px-3 text-center"
+                            className="py-2.5 sm:py-3 px-3 text-center"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToggleSite(site.id);
@@ -333,10 +333,10 @@ export default function Sites() {
                           </td>
 
                           {/* Site Name & Code */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-600 dark:text-[#CBD5E1] group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:border-blue-200 dark:group-hover:border-blue-700 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0">
-                                <Building2 size={16} />
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-600 dark:text-[#CBD5E1] group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:border-blue-200 dark:group-hover:border-blue-700 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0">
+                                <Building2 size={15} />
                               </div>
                               <div>
                                 <div className="flex items-center gap-1.5">
@@ -359,22 +359,22 @@ export default function Sites() {
                           </td>
 
                           {/* Location */}
-                          <td className="py-3.5 px-4 text-slate-600 dark:text-[#CBD5E1] font-medium">
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-600 dark:text-[#CBD5E1] font-medium">
                             {site.location}
                           </td>
 
                           {/* Health */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4">
                             <SiteHealthBadge status={site.healthStatus} size="sm" />
                           </td>
 
                           {/* Reports */}
-                          <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-[#F8FAFC] text-sm">
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-right font-mono font-bold text-slate-800 dark:text-[#F8FAFC] text-sm">
                             {site.totalReports}
                           </td>
 
                           {/* High Risk */}
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-right">
                             <span
                               className={`font-mono font-bold text-sm ${
                                 site.highRiskCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-[#94A3B8]'
@@ -385,7 +385,7 @@ export default function Sites() {
                           </td>
 
                           {/* SIF Precursors */}
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-right">
                             {site.sifCount > 0 ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 font-mono font-bold text-xs">
                                 <ShieldAlert size={12} />
@@ -397,12 +397,12 @@ export default function Sites() {
                           </td>
 
                           {/* Last Activity */}
-                          <td className="py-3.5 px-4 text-slate-500 dark:text-[#94A3B8] font-mono text-xs">
+                          <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-500 dark:text-[#94A3B8] font-mono text-xs">
                             {site.lastActivity}
                           </td>
 
                           {/* Action Chevron */}
-                          <td className="py-3.5 px-3 text-right">
+                          <td className="py-2.5 sm:py-3 px-3 text-right">
                             <ChevronRight
                               size={15}
                               className="text-slate-300 dark:text-slate-600 group-hover:text-slate-700 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all"
@@ -416,7 +416,7 @@ export default function Sites() {
               </div>
 
               {/* Table Footer Summary */}
-              <div className="px-4 py-2.5 bg-slate-50/60 dark:bg-[#0A0F18] border-t border-[#D1D5DB] dark:border-[#263244] text-xs text-slate-500 dark:text-[#94A3B8] flex items-center justify-between">
+              <div className="px-4 py-2 bg-slate-50/60 dark:bg-[#0A0F18] border-t border-[#D1D5DB] dark:border-[#263244] text-xs text-slate-500 dark:text-[#94A3B8] flex items-center justify-between">
                 <span>
                   Showing {filteredSites.length} of {sites.length} operational facilities
                 </span>

@@ -705,8 +705,9 @@ export async function getSiteComparison(siteIds = [], filters = {}) {
 export async function getHazardComparison(hazardName, filters = {}) {
   if (USE_MOCK) {
     await delay(200);
-    const targetHazard = (hazardName || 'Fall').trim();
-    const allFiltered = filterReports(mockReports, { ...filters, hazard: targetHazard });
+    const rawHazard = (hazardName || 'All Hazards').trim();
+    const isAllHazards = !hazardName || rawHazard.toUpperCase() === 'ALL' || rawHazard.toLowerCase() === 'all hazards';
+    const targetHazard = isAllHazards ? 'All Hazards' : rawHazard;
     const allSites = getMockSites();
 
     // Parse target sites (support filters.sites and filters.siteIds as array or comma-separated string)
@@ -729,20 +730,35 @@ export async function getHazardComparison(hazardName, filters = {}) {
         })
       : allSites;
 
-    // Filter reports strictly to those belonging to targetSites
     const targetSiteIdSet = new Set(targetSites.map((s) => (s.id || '').toLowerCase()));
     const targetSiteNameSet = new Set(targetSites.map((s) => (s.name || '').toLowerCase()));
 
-    const scopedFiltered = allFiltered.filter((r) => {
+    // 1. First obtain all reports scoped strictly by site and time (without hazard filter)
+    const timeScopedAllReports = filterReports(mockReports, { ...filters, hazard: undefined }).filter((r) => {
       const rSiteId = (r.siteId || '').toLowerCase();
       const rSiteName = (r.site || r.siteName || '').toLowerCase();
       return targetSiteIdSet.has(rSiteId) || targetSiteNameSet.has(rSiteName);
     });
 
+    // 2. Extract available hazards strictly from the scoped reports of selected facilities
+    const discoveredHazards = Array.from(
+      new Set(timeScopedAllReports.map((r) => r.hazard).filter((h) => h && h !== 'None'))
+    ).sort();
+    const availableHazards = ['All Hazards', ...discoveredHazards];
+
+    // 3. Filter reports by target hazard unless 'All Hazards' is selected
+    const scopedFiltered = isAllHazards
+      ? timeScopedAllReports
+      : timeScopedAllReports.filter((r) => (r.hazard || '').toLowerCase() === targetHazard.toLowerCase());
+
     const siteBreakdown = targetSites.map((site) => {
+      const siteTotalReports = timeScopedAllReports.filter(
+        (r) => r.siteId === site.id || r.site === site.name || r.siteName === site.name
+      );
       const siteHazardReports = scopedFiltered.filter(
         (r) => r.siteId === site.id || r.site === site.name || r.siteName === site.name
       );
+
       const highCount = siteHazardReports.filter((r) => r.risk_level === 'High').length;
       const sifCount = siteHazardReports.filter(
         (r) => r.risk_level === 'SIF-Precursor' || r.sif_precursor === true
@@ -753,11 +769,21 @@ export async function getHazardComparison(hazardName, filters = {}) {
       const activitySet = new Set(siteHazardReports.map((r) => r.activity).filter(Boolean));
       const barrierSet = new Set(siteHazardReports.map((r) => r.barrier_failure).filter(Boolean));
 
+      const hasMatchingReports = siteHazardReports.length > 0;
+      const zeroExplanation = !hasMatchingReports && !isAllHazards
+        ? `No ${targetHazard} reports found for this facility (${siteTotalReports.length} total safety reports recorded).`
+        : null;
+
       return {
         siteId: site.id,
         siteName: site.name,
         siteCode: site.code,
+        status: site.status,
+        healthStatus: site.healthStatus,
         reportsCount: siteHazardReports.length,
+        totalSiteReports: siteTotalReports.length,
+        hasMatchingReports,
+        zeroExplanation,
         highRiskCount: highCount,
         sifCount: sifCount,
         riskDistribution: { Low: lowCount, Medium: medCount, High: highCount, 'SIF-Precursor': sifCount },
@@ -850,6 +876,8 @@ export async function getHazardComparison(hazardName, filters = {}) {
 
     return {
       hazard: targetHazard,
+      isAllHazards,
+      availableHazards,
       totalReports: scopedFiltered.length,
       siteBreakdown,
       whatDiffers,

@@ -44,7 +44,8 @@ import Pagination from '../components/ui/Pagination';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
 import EditSiteModal from '../components/sites/EditSiteModal';
-import { getSiteReports, updateSite } from '../api/sifguardApi';
+import { getSiteReports } from '../api/sifguardApi';
+import { useSites } from '../context/AppContext';
 import {
   filterReports,
   getReportSummary,
@@ -57,6 +58,7 @@ export default function SiteDetail() {
   const { siteId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { updateSite: updateGlobalSite } = useSites();
 
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,8 +127,8 @@ export default function SiteDetail() {
   }
 
   async function handleUpdateSite(updatedData) {
-    const updated = await updateSite(site.id, updatedData);
-    setSite(updated);
+    const updated = await updateGlobalSite(site.id, updatedData);
+    setSite((prev) => ({ ...prev, ...updated }));
     setEditSuccessMessage('Site updated successfully.');
     setTimeout(() => setEditSuccessMessage(null), 4500);
   }
@@ -290,7 +292,7 @@ export default function SiteDetail() {
 
   return (
     <AppShell title={site.name} subtitle="Site Safety Intelligence">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* Back Link Breadcrumb */}
         <div className="flex items-center justify-between">
           <Link
@@ -308,7 +310,7 @@ export default function SiteDetail() {
 
         {/* Edit Success Notification */}
         {editSuccessMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center justify-between shadow-xs animate-in fade-in">
             <div className="flex items-center gap-2">
               <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{editSuccessMessage}</span>
@@ -318,15 +320,15 @@ export default function SiteDetail() {
         )}
 
         {/* Site Profile Header Card */}
-        <div className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             {/* Facility Identity */}
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-700 dark:text-[#CBD5E1] shrink-0">
-                <Building2 size={24} />
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center text-slate-700 dark:text-[#CBD5E1] shrink-0">
+                <Building2 size={22} />
               </div>
               <div>
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     {site.name}
                   </h1>
@@ -336,7 +338,7 @@ export default function SiteDetail() {
                   <SiteHealthBadge status={site.healthStatus} size="md" />
                   <OperationalStatusBadge status={site.status || 'Active'} size="sm" />
                 </div>
-                <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1.5 flex items-center gap-2">
+                <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1 flex items-center gap-2">
                   <span>{site.location || 'Assam'}</span>
                   <span>·</span>
                   <span>{site.type || 'Operational Site'}</span>
@@ -347,7 +349,7 @@ export default function SiteDetail() {
             </div>
 
             {/* Actions: Edit Site, Analyze Reports & View Reports */}
-            <div className="flex items-center gap-2.5 self-start lg:self-auto pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-[#263244]">
+            <div className="flex items-center gap-2 self-start lg:self-auto pt-2.5 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-[#263244]">
               <Button
                 variant="secondary"
                 size="md"
@@ -375,7 +377,7 @@ export default function SiteDetail() {
           </div>
 
           {/* Facility KPI Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-6 pt-5 border-t border-slate-100 dark:border-[#263244]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mt-4 pt-3.5 border-t border-slate-100 dark:border-[#263244]">
             <KpiCard
               label="Reports"
               value={site.totalReports}
@@ -458,10 +460,10 @@ export default function SiteDetail() {
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-start">
               {/* Left Column: Recent High-Risk Observations */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-4">
                 <Card
                   title="Recent High-Risk Observations"
                   subtitle="Critical precursors and high-severity events identified at this facility."
@@ -475,7 +477,7 @@ export default function SiteDetail() {
                           <div
                             key={r.id}
                             onClick={() => setSelectedReport(r)}
-                            className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex items-start justify-between gap-4 group"
+                            className="p-3 sm:p-3.5 hover:bg-slate-50/80 transition-colors cursor-pointer flex items-start justify-between gap-3 group"
                           >
                             <div className="space-y-1 min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
@@ -496,14 +498,14 @@ export default function SiteDetail() {
                             </div>
 
                             <ChevronRight
-                              size={16}
-                              className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-2"
+                              size={15}
+                              className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-1.5"
                             />
                           </div>
                         ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 py-4 text-center">
+                    <p className="text-xs text-slate-400 py-3 text-center">
                       No high-risk or SIF precursor events recorded for this facility.
                     </p>
                   )}
@@ -524,13 +526,13 @@ export default function SiteDetail() {
                       <div
                         key={r.id}
                         onClick={() => setSelectedReport(r)}
-                        className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group"
+                        className="p-3 sm:p-3.5 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 group"
                       >
-                        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
                           <div className="shrink-0 pt-0.5 sm:pt-0">
                             <RiskBadge level={r.risk_level} size="sm" />
                           </div>
-                          <div className="min-w-0 flex-1 space-y-1">
+                          <div className="min-w-0 flex-1 space-y-0.5">
                             <p className="text-xs font-semibold text-slate-800 break-words group-hover:text-slate-900 leading-snug">
                               {r.text_snippet || r.full_text}
                             </p>
@@ -553,13 +555,13 @@ export default function SiteDetail() {
               </div>
 
               {/* Right Column: Recurring Facility Hazards & Protocol Integrity */}
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <Card
                   title="Top Hazards"
                   subtitle="Recurring hazard domains identified in report analysis."
                 >
                   {site.topHazards && site.topHazards.length > 0 ? (
-                    <div className="space-y-2 text-xs">
+                    <div className="space-y-1.5 text-xs">
                       {site.topHazards.map((item, idx) => (
                         <div
                           key={idx}
@@ -578,7 +580,7 @@ export default function SiteDetail() {
                 </Card>
 
                 {/* Facility Safeguard Rule */}
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/80 text-xs text-slate-600 space-y-2">
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 text-xs text-slate-600 space-y-1.5">
                   <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-slate-800 text-[10px]">
                     <ShieldCheck size={14} className="text-blue-600" />
                     <span>Operational Safeguard Rule</span>
@@ -596,8 +598,8 @@ export default function SiteDetail() {
         {activeTab === 'reports' && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <div className="p-3 sm:p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
                 {/* Search */}
                 <div className="sm:col-span-8">
                   <Input
@@ -772,14 +774,14 @@ export default function SiteDetail() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-slate-100/90 dark:bg-[#0A0F18] text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#94A3B8]">
-                        <th className="py-3 px-4 font-semibold">Date</th>
-                        <th className="py-3 px-4 font-semibold">Report</th>
-                        <th className="py-3 px-4 font-semibold">Risk</th>
-                        <th className="py-3 px-4 font-semibold">Priority</th>
-                        <th className="py-3 px-4 font-semibold">Status</th>
-                        <th className="py-3 px-4 font-semibold">Hazard</th>
-                        <th className="py-3 px-4 font-semibold">Activity</th>
-                        <th className="py-3 px-3 w-8"></th>
+                        <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Date</th>
+                        <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Report</th>
+                        <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Risk</th>
+                        <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Priority</th>
+                        <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Status</th>
+                        <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Hazard</th>
+                        <th className="py-2.5 px-3.5 sm:px-4 font-semibold">Activity</th>
+                        <th className="py-2.5 px-3 w-8"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
@@ -792,10 +794,10 @@ export default function SiteDetail() {
                             onClick={() => setSelectedReport(r)}
                             className="hover:bg-slate-50/80 dark:hover:bg-[#172033] transition-colors cursor-pointer group"
                           >
-                            <td className="py-3 px-4 font-mono font-medium text-slate-700 dark:text-[#CBD5E1] whitespace-nowrap">
+                            <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono font-medium text-slate-700 dark:text-[#CBD5E1] whitespace-nowrap">
                               {formatDateTime(r)}
                             </td>
-                            <td className="py-3 px-4 max-w-md">
+                            <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 max-w-md">
                               <span className="font-mono text-xs font-bold text-slate-800 dark:text-[#F8FAFC] mr-2">
                                 {code}
                               </span>
@@ -803,22 +805,22 @@ export default function SiteDetail() {
                                 {r.text_snippet || r.full_text || r.report_text}
                               </span>
                             </td>
-                            <td className="py-3 px-4 whitespace-nowrap">
+                            <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                               <RiskBadge level={r.risk_level} size="sm" />
                             </td>
-                            <td className="py-3 px-4 whitespace-nowrap">
+                            <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                               <PriorityBadge priority={r.priority || 'STANDARD'} size="sm" />
                             </td>
-                            <td className="py-3 px-4 whitespace-nowrap">
+                            <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                               <ReportStatusBadge status={r.status} size="sm" />
                             </td>
-                            <td className="py-3 px-4 text-slate-800 dark:text-[#F8FAFC] font-semibold whitespace-nowrap">
+                            <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-800 dark:text-[#F8FAFC] font-semibold whitespace-nowrap">
                               {r.hazard}
                             </td>
-                            <td className="py-3 px-4 text-slate-600 dark:text-[#CBD5E1] whitespace-nowrap">
+                            <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-600 dark:text-[#CBD5E1] whitespace-nowrap">
                               {r.activity}
                             </td>
-                            <td className="py-3 px-3 text-right">
+                            <td className="py-2.5 sm:py-3 px-3 text-right">
                               <ChevronRight
                                 size={15}
                                 className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all"
@@ -858,10 +860,10 @@ export default function SiteDetail() {
 
         {/* TAB 3: HISTORY (UPGRADED SITE DETAIL HISTORY PER PART 3) */}
         {activeTab === 'history' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-5 sm:p-6 shadow-xs space-y-6">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-4 sm:p-5 shadow-xs space-y-4 sm:space-y-5">
               {/* History Header & Time Range Filter */}
-              <div className="pb-4 border-b border-[#D1D5DB] dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="pb-3 border-b border-[#D1D5DB] dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Safety History
@@ -914,8 +916,8 @@ export default function SiteDetail() {
               )}
 
               {/* History Summary KPIs (Derived from Filtered Mock Data) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div className="p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#172033]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#172033]">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block">
                     Reports
                   </span>
@@ -927,7 +929,7 @@ export default function SiteDetail() {
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20">
+                <div className="p-3 sm:p-3.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block">
                     High Risk
                   </span>
@@ -939,7 +941,7 @@ export default function SiteDetail() {
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20">
+                <div className="p-3 sm:p-3.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-rose-800 dark:text-rose-400 block">
                     SIF Precursors
                   </span>
@@ -951,7 +953,7 @@ export default function SiteDetail() {
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#172033]">
+                <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#172033]">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block">
                     Top Hazard
                   </span>
@@ -974,9 +976,9 @@ export default function SiteDetail() {
                   onAction={() => setHistoryTimeRange('ALL')}
                 />
               ) : (
-                <div className="space-y-6 pt-2">
+                <div className="space-y-4 sm:space-y-5 pt-1">
                   {historyGroups.map(({ period, events }) => (
-                    <div key={period} className="space-y-3">
+                    <div key={period} className="space-y-2.5">
                       {/* Period Header */}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#CBD5E1] bg-slate-100 dark:bg-[#172033] px-2.5 py-1 rounded border border-slate-200 dark:border-[#263244] font-mono">
@@ -994,7 +996,7 @@ export default function SiteDetail() {
                           <div
                             key={ev.id}
                             onClick={() => setSelectedReport(ev)}
-                            className="p-4 sm:p-5 hover:bg-slate-50/90 dark:hover:bg-[#172033] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-4 group"
+                            className="p-3.5 sm:p-4 hover:bg-slate-50/90 dark:hover:bg-[#172033] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group"
                           >
                             {/* LEFT: Risk Badge (Dedicated Layout Column) */}
                             <div className="w-auto sm:w-36 shrink-0 pt-0.5">
@@ -1002,7 +1004,7 @@ export default function SiteDetail() {
                             </div>
 
                             {/* MIDDLE: Date+time, Activity title, Context/activity, Location, Barrier */}
-                            <div className="min-w-0 flex-1 space-y-2">
+                            <div className="min-w-0 flex-1 space-y-1.5">
                               <div>
                                 <time className="font-mono text-xs font-semibold text-slate-500 dark:text-[#94A3B8] block mb-1">
                                   {formatDateTime(ev)}
@@ -1051,9 +1053,9 @@ export default function SiteDetail() {
 
         {/* TAB 4: TRENDS & TIME ANALYSIS (GENUINELY IMPLEMENTED PER PART 4) */}
         {activeTab === 'trends' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             {/* Header & Filter */}
-            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight flex items-center gap-2">
                   <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
@@ -1080,7 +1082,7 @@ export default function SiteDetail() {
             </div>
 
             {/* 1. Recharts Risk Reports Over Time */}
-            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
@@ -1095,7 +1097,7 @@ export default function SiteDetail() {
                 </span>
               </div>
 
-              <div className="h-64 w-full pt-2">
+              <div className="h-56 sm:h-60 w-full pt-2">
                 {trendChartSeries.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-xs text-slate-400 dark:text-[#94A3B8]">
                     No trend data recorded for this time range.
@@ -1142,9 +1144,9 @@ export default function SiteDetail() {
             </div>
 
             {/* 2. Top Hazards & Top Activities Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
               {/* Top Hazards */}
-              <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+              <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
                 <div className="border-b border-slate-100 dark:border-[#263244] pb-2">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Top Recurring Hazards
@@ -1154,7 +1156,7 @@ export default function SiteDetail() {
                   </p>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {trendSummary.topHazards.slice(0, 5).map((h) => (
                     <div key={h.hazard} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
@@ -1178,7 +1180,7 @@ export default function SiteDetail() {
               </div>
 
               {/* Top Activities */}
-              <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+              <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
                 <div className="border-b border-slate-100 dark:border-[#263244] pb-2">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                     Top Operational Activities
@@ -1188,7 +1190,7 @@ export default function SiteDetail() {
                   </p>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {trendSummary.topActivities.slice(0, 5).map((act) => (
                     <div key={act.activity} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
@@ -1213,7 +1215,7 @@ export default function SiteDetail() {
             </div>
 
             {/* 3. Barrier Failures Section */}
-            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
@@ -1228,11 +1230,11 @@ export default function SiteDetail() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                 {trendSummary.barrierFailures.map((bf) => (
                   <div
                     key={bf.barrier}
-                    className="p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50/70 dark:bg-[#172033] space-y-1"
+                    className="p-2.5 sm:p-3 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50/70 dark:bg-[#172033] space-y-1"
                   >
                     <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] block truncate">
                       {bf.barrier}
@@ -1253,7 +1255,7 @@ export default function SiteDetail() {
             </div>
 
             {/* 4. SIF Precursor Section */}
-            <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
                 <div className="flex items-center gap-2">
                   <AlertOctagon size={16} className="text-rose-600 dark:text-rose-400" />
@@ -1273,12 +1275,12 @@ export default function SiteDetail() {
                   message="Zero fatal-potential or life-threatening barrier breakdown observations were recorded in this time range."
                 />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
                   {sifPrecursorReports.map((sif) => (
                     <div
                       key={sif.id}
                       onClick={() => setSelectedReport(sif)}
-                      className="p-3.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/70 dark:hover:bg-rose-950/30 transition-colors cursor-pointer space-y-2 group"
+                      className="p-3 sm:p-3.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/70 dark:hover:bg-rose-950/30 transition-colors cursor-pointer space-y-1.5 sm:space-y-2 group"
                     >
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-mono font-bold text-rose-950 dark:text-rose-300">

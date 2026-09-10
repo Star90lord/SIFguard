@@ -112,9 +112,8 @@ function CustomRiskTrendTooltip({ active, payload, label }) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { theme } = useAppContext();
+  const { theme, sites, refreshSites } = useAppContext();
 
-  const [sites, setSites] = useState([]);
   const [allReports, setAllReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -143,9 +142,11 @@ export default function Dashboard() {
       immediate: 0,
       priority: 0,
       standard: 0,
+      ongoing: 0,
     },
   });
 
+  // Load dashboard data on mount
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -177,16 +178,15 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [siteData, reportsData, actionsData] = await Promise.all([
-        getSites(),
+      const [reportsData, actionsData] = await Promise.all([
         getReports(),
         getActionSummary(selectedSite),
       ]);
-      setSites(siteData || []);
       setAllReports(reportsData || []);
       if (actionsData) {
         setActionSummary(actionsData);
       }
+      refreshSites();
     } catch (err) {
       setError(err.message || 'Unable to retrieve safety metrics.');
     } finally {
@@ -338,9 +338,9 @@ export default function Dashboard() {
 
   return (
     <AppShell title="Safety Intelligence" subtitle="Executive Dashboard">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* 1. DASHBOARD HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2.5 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[13px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] tracking-[0.08em]">
@@ -350,7 +350,7 @@ export default function Dashboard() {
             <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight leading-none">
               Safety Intelligence Dashboard
             </h1>
-            <p className="text-[15px] text-[#334155] dark:text-[#CBD5E1] mt-1.5 font-normal">
+            <p className="text-[14px] sm:text-[15px] text-[#334155] dark:text-[#CBD5E1] mt-1 font-normal">
               Monitor emerging safety risks and SIF precursor signals across operational sites.
             </p>
           </div>
@@ -358,7 +358,7 @@ export default function Dashboard() {
           {/* Controls: Site Selector & Time Selector */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Site Scope Selector */}
-            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-sm font-semibold text-[#334155] dark:text-[#CBD5E1] shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 transition-colors">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:py-2 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-sm font-semibold text-[#334155] dark:text-[#CBD5E1] shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 transition-colors">
               <Building2 size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <span className="text-[#64748B] dark:text-[#94A3B8] font-bold">Site:</span>
               <select
@@ -377,7 +377,7 @@ export default function Dashboard() {
             </div>
 
             {/* Time Selector */}
-            <div className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-sm font-semibold text-[#334155] dark:text-[#CBD5E1] shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 transition-colors">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:py-2 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-lg text-sm font-semibold text-[#334155] dark:text-[#CBD5E1] shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 transition-colors">
               <Calendar size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
               <span className="text-[#64748B] dark:text-[#94A3B8] font-bold">Time:</span>
               <select
@@ -409,7 +409,7 @@ export default function Dashboard() {
 
         {/* Conditional Custom Date Range Bar */}
         {timeRange === 'CUSTOM' && (
-          <div className="p-3 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-xl flex items-center gap-3 text-xs shadow-2xs">
+          <div className="p-2.5 sm:p-3 bg-white dark:bg-[#172033] border border-[#D1D5DB] dark:border-[#263244] rounded-xl flex items-center gap-3 text-xs shadow-2xs">
             <span className="font-bold text-[#334155] dark:text-[#CBD5E1]">Custom Period:</span>
             <div className="flex items-center gap-2">
               <span className="text-[#64748B] dark:text-[#94A3B8]">From</span>
@@ -433,7 +433,7 @@ export default function Dashboard() {
         )}
 
         {/* CONTEXT BAR */}
-        <div className="p-3.5 rounded-xl bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-xs">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-xs">
           <div className="flex flex-wrap items-center gap-3 font-medium">
             <div className="flex items-center gap-1.5">
               <span className="text-[#64748B] dark:text-[#94A3B8] uppercase text-[12px] font-bold tracking-wider">
@@ -461,7 +461,7 @@ export default function Dashboard() {
         </div>
 
         {/* EXECUTIVE SAFETY BRIEF */}
-        <div className="rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] p-4.5 sm:p-5 shadow-xs space-y-3.5">
+        <div className="rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] p-3.5 sm:p-4 shadow-xs space-y-2.5 sm:space-y-3">
           {/* Header & Metrics Snapshot */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D1D5DB]/60 dark:border-[#263244]">
             <div className="flex items-center gap-2.5">
@@ -580,7 +580,7 @@ export default function Dashboard() {
         </div>
 
         {/* 2.5 COMPACT ACTION STATUS SUMMARY */}
-        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-4 shadow-xs space-y-3">
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3 sm:p-3.5 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
             <div className="flex items-center gap-2 min-w-0">
               <ClipboardCheck size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
@@ -600,7 +600,7 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
             {/* Open */}
             <div
               onClick={() => navigate('/review?status=OPEN')}
@@ -612,14 +612,14 @@ export default function Dashboard() {
                   navigate('/review?status=OPEN');
                 }
               }}
-              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-amber-50/70 dark:hover:bg-amber-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-amber-300 dark:hover:border-amber-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
+              className="p-2.5 sm:p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-amber-50/70 dark:hover:bg-amber-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-amber-300 dark:hover:border-amber-700 rounded-lg transition-all cursor-pointer group space-y-0.5 shadow-2xs"
               title="Filter Review Queue: Open actions"
             >
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-amber-800 dark:group-hover:text-amber-300">
                 <span>Open</span>
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
               </div>
-              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-amber-900 dark:group-hover:text-amber-200">
+              <div className="text-[24px] sm:text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-amber-900 dark:group-hover:text-amber-200">
                 {actionSummary.open}
               </div>
               <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-amber-700 dark:group-hover:text-amber-300 font-medium">
@@ -638,14 +638,14 @@ export default function Dashboard() {
                   navigate('/review?status=IN_PROGRESS');
                 }
               }}
-              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-blue-50/70 dark:hover:bg-blue-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-blue-300 dark:hover:border-blue-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
+              className="p-2.5 sm:p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-blue-50/70 dark:hover:bg-blue-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-blue-300 dark:hover:border-blue-700 rounded-lg transition-all cursor-pointer group space-y-0.5 shadow-2xs"
               title="Filter Review Queue: In Progress actions"
             >
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-800 dark:group-hover:text-blue-300">
                 <span>In Progress</span>
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
               </div>
-              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-blue-900 dark:group-hover:text-blue-200">
+              <div className="text-[24px] sm:text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-blue-900 dark:group-hover:text-blue-200">
                 {actionSummary.inProgress}
               </div>
               <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-700 dark:group-hover:text-blue-300 font-medium">
@@ -664,14 +664,14 @@ export default function Dashboard() {
                   navigate('/review?status=PENDING_VERIFICATION');
                 }
               }}
-              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-sky-50/70 dark:hover:bg-sky-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-sky-300 dark:hover:border-sky-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
+              className="p-2.5 sm:p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-sky-50/70 dark:hover:bg-sky-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-sky-300 dark:hover:border-sky-700 rounded-lg transition-all cursor-pointer group space-y-0.5 shadow-2xs"
               title="Filter Review Queue: Pending Verification"
             >
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-sky-800 dark:group-hover:text-sky-300">
                 <span>Pending Verification</span>
                 <span className="w-2 h-2 rounded-full bg-sky-500" />
               </div>
-              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-sky-900 dark:group-hover:text-sky-200">
+              <div className="text-[24px] sm:text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-sky-900 dark:group-hover:text-sky-200">
                 {actionSummary.pendingVerification}
               </div>
               <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-sky-700 dark:group-hover:text-sky-300 font-medium">
@@ -690,14 +690,14 @@ export default function Dashboard() {
                   navigate('/review?status=CLOSED');
                 }
               }}
-              className="p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-emerald-300 dark:hover:border-emerald-700 rounded-lg transition-all cursor-pointer group space-y-1 shadow-2xs"
+              className="p-2.5 sm:p-3 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 border border-[#D1D5DB] dark:border-[#263244] hover:border-emerald-300 dark:hover:border-emerald-700 rounded-lg transition-all cursor-pointer group space-y-0.5 shadow-2xs"
               title="Filter Review Queue: Closed actions"
             >
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-emerald-800 dark:group-hover:text-emerald-300">
                 <span>Closed</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
               </div>
-              <div className="text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-emerald-900 dark:group-hover:text-emerald-200">
+              <div className="text-[24px] sm:text-[26px] font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-emerald-900 dark:group-hover:text-emerald-200">
                 {actionSummary.closed}
               </div>
               <div className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-emerald-700 dark:group-hover:text-emerald-300 font-medium">
@@ -707,7 +707,7 @@ export default function Dashboard() {
           </div>
 
           {/* Priority Breakdown Strip */}
-          <div className="pt-2.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="pt-2 border-t border-[#D1D5DB]/60 dark:border-[#263244] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
             <div className="flex items-center gap-1.5 text-[#334155] dark:text-[#CBD5E1] font-semibold">
               <AlertOctagon size={13} className="text-[#64748B] dark:text-[#94A3B8] shrink-0" />
               <span>Priority Breakdown:</span>
@@ -753,8 +753,8 @@ export default function Dashboard() {
           </div>
         </div>
         {/* 3. REQUIRES ATTENTION / PRIORITY SECTION */}
-        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-5 shadow-xs space-y-3.5">
-          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5 gap-3">
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-2.5 sm:space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2 gap-3">
             <div className="flex items-start gap-2 min-w-0">
               <ShieldAlert size={18} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <div className="min-w-0">
@@ -777,12 +777,12 @@ export default function Dashboard() {
               No high-priority safety signals requiring immediate attention in this period.
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
               {attentionReports.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => setSelectedReport(item)}
-                  className={`p-4 rounded-lg border transition-colors cursor-pointer group shadow-2xs space-y-2.5 ${
+                  className={`p-3 sm:p-3.5 rounded-lg border transition-colors cursor-pointer group shadow-2xs space-y-2 ${
                     item.risk_level === 'SIF-Precursor'
                       ? 'border-[#D1D5DB] dark:border-[#263244] border-l-[3px] border-l-[#DC2626] dark:border-l-[#F43F5E] bg-white dark:bg-[#172033] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]'
                       : item.risk_level === 'High'
@@ -808,12 +808,12 @@ export default function Dashboard() {
                   </div>
 
                   {item.barrier_failure && item.barrier_failure !== 'None' && (
-                    <p className="text-xs font-semibold pt-1.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] truncate text-rose-700 dark:text-rose-400">
+                    <p className="text-xs font-semibold pt-1 border-t border-[#D1D5DB]/60 dark:border-[#263244] truncate text-rose-700 dark:text-rose-400">
                       Barrier: {item.barrier_failure}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between pt-1.5">
+                  <div className="flex items-center justify-between pt-1">
                     <span className="font-mono text-xs text-[#64748B] dark:text-[#94A3B8]">{formatReportCode(item.id)}</span>
                     <span className="flex items-center gap-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">
                       Inspect <ChevronRight size={12} />
@@ -826,7 +826,7 @@ export default function Dashboard() {
         </div>
 
         {/* 4. RISK TREND SECTION */}
-        <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
+        <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5">
             <div>
               <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight flex items-center gap-2">
@@ -885,7 +885,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-64 w-full pt-1">
+          <div className="h-56 sm:h-60 w-full pt-1">
             {trendSeries.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#D1D5DB] dark:border-[#263244] rounded-lg bg-[#F8FAFC] dark:bg-[#172033]">
                 <div className="w-10 h-10 rounded-full bg-[#F1F5F9] dark:bg-[#1E293B] flex items-center justify-center text-[#64748B] dark:text-[#94A3B8] mb-2">
@@ -935,8 +935,8 @@ export default function Dashboard() {
 
         {/* 5. SITE RISK OVERVIEW (When All Sites is Selected) */}
         {selectedSite === 'ALL' && (
-          <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5">
+          <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5">
+            <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
               <div>
                 <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                   Site Risk Overview
@@ -973,28 +973,28 @@ export default function Dashboard() {
                       onClick={() => navigate(`/sites/${st.id}`)}
                       className="hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors cursor-pointer group"
                     >
-                      <td className="py-3 px-3 font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
+                      <td className="py-2.5 px-3 font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
                         <Building2 size={13} className="text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0" />
                         <span>{st.name}</span>
                         <span className="text-[#64748B] dark:text-[#94A3B8] font-normal">({st.location})</span>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-2.5 px-3">
                         <SiteHealthBadge status={st.healthStatus} size="sm" />
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+                      <td className="py-2.5 px-3 font-mono font-bold text-[#0F172A] dark:text-[#F8FAFC]">
                         {st.totalReports}
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-2.5 px-3">
                         <span className={`font-mono font-bold ${st.highRisk > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-[#64748B] dark:text-[#94A3B8]'}`}>
                           {st.highRisk}
                         </span>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-2.5 px-3">
                         <span className={`font-mono font-bold ${st.sifPrecursors > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-[#64748B] dark:text-[#94A3B8]'}`}>
                           {st.sifPrecursors}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-2.5 px-3 text-right">
                         <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs group-hover:underline inline-flex items-center gap-0.5">
                           View <ChevronRight size={12} />
                         </span>
@@ -1011,14 +1011,14 @@ export default function Dashboard() {
               pageSize={SITE_LIST_PAGE_SIZE}
               onPageChange={setSiteListPage}
               itemLabel="facilities"
-              className="mt-3"
+              className="mt-2.5"
             />
           </div>
         )}
 
         {/* 6. SIF PRECURSOR SIGNALS SECTION */}
-        <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2.5 gap-3">
+        <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2 gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <AlertOctagon size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
               <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
@@ -1037,13 +1037,13 @@ export default function Dashboard() {
               message="Zero fatal-potential or life-threatening barrier breakdown observations were recorded in this operational window."
             />
           ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                 {paginatedSifReports.map((sif) => (
                   <div
                     key={sif.id}
                     onClick={() => setSelectedReport(sif)}
-                    className="p-4 rounded-lg border border-[#D1D5DB] dark:border-[#263244] border-l-[3px] border-l-[#DC2626] dark:border-l-[#F43F5E] bg-white dark:bg-[#172033] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B] transition-colors cursor-pointer space-y-2.5 group shadow-2xs"
+                    className="p-3 sm:p-3.5 rounded-lg border border-[#D1D5DB] dark:border-[#263244] border-l-[3px] border-l-[#DC2626] dark:border-l-[#F43F5E] bg-white dark:bg-[#172033] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B] transition-colors cursor-pointer space-y-2 group shadow-2xs"
                   >
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <span className="font-mono font-semibold text-[#64748B] dark:text-[#94A3B8] shrink-0">
@@ -1052,7 +1052,7 @@ export default function Dashboard() {
                       <RiskBadge level={sif.risk_level} size="sm" />
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <p className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC]">{sif.site || sif.siteName}</p>
                       <p className="text-sm text-[#334155] dark:text-[#CBD5E1] font-semibold leading-snug">{sif.hazard} · {sif.activity}</p>
                       <p className="text-rose-700 dark:text-rose-400 font-semibold text-xs pt-0.5">
@@ -1060,7 +1060,7 @@ export default function Dashboard() {
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1.5 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
+                    <div className="flex items-center justify-between pt-1 border-t border-[#D1D5DB]/60 dark:border-[#263244]">
                       <span className="font-mono text-xs text-[#64748B] dark:text-[#94A3B8]">{formatReportCode(sif.id)}</span>
                       <span className="flex items-center gap-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">
                         Inspect <ChevronRight size={12} />
@@ -1076,16 +1076,16 @@ export default function Dashboard() {
                 pageSize={SIF_PAGE_SIZE}
                 onPageChange={setSifPage}
                 itemLabel="precursor signals"
-                className="mt-3"
+                className="mt-2.5"
               />
             </div>
           )}
         </div>
 
         {/* 7 & 8. TOP HAZARDS & RISK BY ACTIVITY (2-Column Grid) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
           {/* Top Recurring Hazards */}
-          <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+          <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
             <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
               <div>
                 <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
@@ -1098,7 +1098,7 @@ export default function Dashboard() {
               <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] font-semibold">Ranked</span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {scopedSummary.topHazards.slice(0, 5).map((h) => (
                 <div
                   key={h.hazard}
@@ -1125,7 +1125,7 @@ export default function Dashboard() {
           </div>
 
           {/* Risk by Operational Activity */}
-          <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+          <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
             <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
               <div>
                 <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
@@ -1138,7 +1138,7 @@ export default function Dashboard() {
               <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] font-semibold">Ranked</span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {scopedSummary.topActivities.slice(0, 5).map((act) => (
                 <div
                   key={act.activity}
@@ -1166,7 +1166,7 @@ export default function Dashboard() {
         </div>
 
         {/* 9. RECURRING BARRIER FAILURES */}
-        <div className="p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3.5">
+        <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5 sm:space-y-3">
           <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2 gap-3">
             <div className="min-w-0">
               <h4 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
@@ -1181,7 +1181,7 @@ export default function Dashboard() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {scopedSummary.barrierFailures.map((bf) => (
               <div
                 key={bf.barrier}
@@ -1194,7 +1194,7 @@ export default function Dashboard() {
                     navigate('/reports');
                   }
                 }}
-                className="p-3.5 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] hover:bg-white dark:hover:bg-[#1E293B] hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer space-y-1.5 group shadow-2xs"
+                className="p-2.5 sm:p-3 rounded-lg border border-[#D1D5DB] dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#172033] hover:bg-white dark:hover:bg-[#1E293B] hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer space-y-1 group shadow-2xs"
                 title="Investigate safety reports with barrier failures"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -1225,7 +1225,7 @@ export default function Dashboard() {
         </div>
 
         {/* 10. RECENT SAFETY ACTIVITY FEED */}
-        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-5 shadow-xs space-y-3">
+        <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-2.5 sm:space-y-3">
           <div className="flex items-center justify-between border-b border-[#D1D5DB]/60 dark:border-[#263244] pb-2">
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-blue-600 dark:text-blue-400" />
@@ -1243,12 +1243,12 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60 -mx-5 -my-2">
+          <div className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60 -mx-3.5 sm:-mx-4 -my-2">
             {paginatedRecentReports.map((r) => (
               <div
                 key={r.id}
                 onClick={() => setSelectedReport(r)}
-                className="px-5 py-3 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors cursor-pointer flex items-center justify-between gap-4 group"
+                className="px-4 sm:px-5 py-2.5 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors cursor-pointer flex items-center justify-between gap-4 group"
               >
                 {/* Date / Time */}
                 <div className="w-36 shrink-0 font-mono text-xs text-[#64748B] dark:text-[#94A3B8] font-medium">

@@ -21,22 +21,31 @@ import Button from '../components/ui/Button';
 import Select from '../components/ui/Select';
 import EmptyState from '../components/ui/EmptyState';
 import Pagination from '../components/ui/Pagination';
-import { getHazardComparison, getReports, getSites } from '../api/sifguardApi';
+import { useSites } from '../context/AppContext';
+import { getHazardComparison } from '../api/sifguardApi';
 
 export default function HazardComparison() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { sites: allAvailableSites } = useSites();
 
   // Read URL query parameters
   const qHazard = searchParams.get('hazard');
   const qSites = searchParams.get('sites');
   const qRange = searchParams.get('range');
 
-  const [allHazards, setAllHazards] = useState([]);
-  const [allAvailableSites, setAllAvailableSites] = useState([]);
-  const [selectedHazard, setSelectedHazard] = useState(qHazard || 'Dropped Object');
+  const [allHazards, setAllHazards] = useState(['All Hazards']);
+  const [selectedHazard, setSelectedHazard] = useState(qHazard || 'All Hazards');
   const [timeRange, setTimeRange] = useState(qRange || 'ALL');
-  const [selectedSiteIds, setSelectedSiteIds] = useState([]);
+  const [selectedSiteIds, setSelectedSiteIds] = useState(() => {
+    if (qSites) {
+      return qSites
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+    }
+    return (allAvailableSites || []).map((s) => s.id);
+  });
   const [isSiteSelectorOpen, setIsSiteSelectorOpen] = useState(false);
   const [siteNotice, setSiteNotice] = useState(null);
 
@@ -57,36 +66,21 @@ export default function HazardComparison() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Initial load of hazards and available facilities
+  // Sync selectedSiteIds when allAvailableSites load if none selected yet
   useEffect(() => {
-    async function initData() {
-      try {
-        const [reports, sites] = await Promise.all([getReports(), getSites()]);
-        const uniqueHazards = Array.from(new Set(reports.map((r) => r.hazard).filter(Boolean))).sort();
-        setAllHazards(uniqueHazards.length > 0 ? uniqueHazards : ['Dropped Object', 'Fall', 'Confined Space', 'Electrical', 'Vehicle Interaction', 'Chemical Exposure']);
-        setAllAvailableSites(sites || []);
-
-        // Initialize selected site IDs from URL or default to all facilities
-        if (qSites) {
-          const parsed = qSites
-            .split(',')
-            .map((s) => s.trim().toLowerCase())
-            .filter(Boolean);
-          const matched = sites.filter((site) => parsed.includes(site.id) || parsed.includes(site.name.toLowerCase().replace(/\s+/g, '-')));
-          if (matched.length > 0) {
-            setSelectedSiteIds(matched.map((m) => m.id));
-          } else {
-            setSelectedSiteIds(sites.map((s) => s.id));
-          }
-        } else {
-          setSelectedSiteIds(sites.map((s) => s.id));
-        }
-      } catch (err) {
-        setError('Failed to initialize hazard comparison parameters.');
+    if (selectedSiteIds.length === 0 && allAvailableSites.length > 0) {
+      if (qSites) {
+        const parsed = qSites
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+        const matched = allAvailableSites.filter((site) => parsed.includes(site.id) || parsed.includes(site.name.toLowerCase().replace(/\s+/g, '-')));
+        setSelectedSiteIds(matched.length > 0 ? matched.map((m) => m.id) : allAvailableSites.map((s) => s.id));
+      } else {
+        setSelectedSiteIds(allAvailableSites.map((s) => s.id));
       }
     }
-    initData();
-  }, []);
+  }, [allAvailableSites.length]);
 
   // Sync external URL parameter changes if triggered by navigation
   useEffect(() => {
@@ -102,7 +96,7 @@ export default function HazardComparison() {
   useEffect(() => {
     if (selectedSiteIds.length === 0 && allAvailableSites.length > 0) return;
     loadComparisonData();
-  }, [selectedHazard, selectedSiteIds, timeRange]);
+  }, [selectedHazard, selectedSiteIds, timeRange, allAvailableSites]);
 
   async function loadComparisonData() {
     setLoading(true);
@@ -113,6 +107,18 @@ export default function HazardComparison() {
         sites: selectedSiteIds,
       });
       setComparisonData(data);
+      if (data.availableHazards && Array.isArray(data.availableHazards)) {
+        setAllHazards(data.availableHazards);
+        // If current selectedHazard is not 'All Hazards' and not in availableHazards, reset to 'All Hazards'
+        if (
+          selectedHazard !== 'All Hazards' &&
+          selectedHazard !== 'ALL' &&
+          !data.availableHazards.includes(selectedHazard)
+        ) {
+          setSelectedHazard('All Hazards');
+          syncUrl('All Hazards', selectedSiteIds, timeRange);
+        }
+      }
     } catch (err) {
       setError(err.message || 'Unable to retrieve cross-site hazard intelligence.');
     } finally {
@@ -244,7 +250,7 @@ export default function HazardComparison() {
 
   return (
     <AppShell title={`${selectedHazard} Analysis`} subtitle="Cross-Site Hazard Intelligence">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* Breadcrumb Navigation & Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#D1D5DB] dark:border-[#263244]">
           <Link
@@ -401,31 +407,31 @@ export default function HazardComparison() {
         )}
 
         {/* Page Header Banner */}
-        <div className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#263244] pb-4">
+        <div className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3 sm:space-y-3.5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 dark:border-[#263244] pb-3">
             <div>
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
                   Oil India Limited · Cross-Facility Hazard Analytics
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-[#F8FAFC] tracking-tight uppercase">
+              <h1 className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-[#F8FAFC] tracking-tight uppercase">
                 {selectedHazard} — CROSS-SITE ANALYSIS
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] mt-1">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] mt-0.5">
                 Evaluate risk distribution, recurring barrier failures, and control variance for {selectedHazard} across operational facilities.
               </p>
             </div>
 
             {/* Summary KPI Badges */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="p-3 bg-slate-50 dark:bg-[#172033] rounded-lg border border-slate-200/80 dark:border-[#263244] text-center min-w-[90px]">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-[#172033] rounded-lg border border-slate-200/80 dark:border-[#263244] text-center min-w-[85px]">
                 <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-[#94A3B8] block">Total Reports</span>
-                <span className="text-lg font-bold font-mono text-slate-900 dark:text-[#F8FAFC]">{totalReports}</span>
+                <span className="text-base sm:text-lg font-bold font-mono text-slate-900 dark:text-[#F8FAFC]">{totalReports}</span>
               </div>
-              <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/50 text-center min-w-[90px]">
+              <div className="p-2.5 sm:p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/50 text-center min-w-[85px]">
                 <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400 block">Active Sites</span>
-                <span className="text-lg font-bold font-mono text-amber-800 dark:text-amber-300">{activeSites.length}</span>
+                <span className="text-base sm:text-lg font-bold font-mono text-amber-800 dark:text-amber-300">{activeSites.length}</span>
               </div>
             </div>
           </div>
@@ -515,7 +521,7 @@ export default function HazardComparison() {
           <>
             {/* 1. CROSS-SITE HAZARD COMPARISON TABLE (STICKY FACILITY COLUMN) */}
             <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs overflow-hidden">
-              <div className="p-4 border-b border-slate-100 dark:border-[#263244] bg-slate-50/70 dark:bg-[#0A0F18] flex items-center justify-between">
+              <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-100 dark:border-[#263244] bg-slate-50/70 dark:bg-[#0A0F18] flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#CBD5E1]">
                   {selectedHazard} Occurrence by Selected Facility
                 </span>
@@ -528,21 +534,21 @@ export default function HazardComparison() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-slate-50 dark:bg-[#0A0F18] text-[11px] font-bold text-slate-600 dark:text-[#94A3B8] uppercase tracking-wider">
-                      <th className="py-3 px-4 w-48 min-w-[190px] sticky left-0 z-20 bg-slate-50 dark:bg-[#0A0F18] border-r border-slate-200/80 dark:border-[#263244] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                      <th className="py-2.5 px-3.5 sm:px-4 w-48 min-w-[190px] sticky left-0 z-20 bg-slate-50 dark:bg-[#0A0F18] border-r border-slate-200/80 dark:border-[#263244] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                         Operational Facility
                       </th>
-                      <th className="py-3 px-4 text-right min-w-[90px]">Reports</th>
-                      <th className="py-3 px-4 text-right min-w-[90px]">High Risk</th>
-                      <th className="py-3 px-4 text-right min-w-[110px]">SIF Precursors</th>
-                      <th className="py-3 px-4 min-w-[160px]">Risk Distribution</th>
-                      <th className="py-3 px-4 min-w-[200px]">Associated Activities</th>
-                      <th className="py-3 px-4 min-w-[220px]">Associated Barrier Failures</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 text-right min-w-[90px]">Reports</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 text-right min-w-[90px]">High Risk</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 text-right min-w-[110px]">SIF Precursors</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 min-w-[160px]">Risk Distribution</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 min-w-[200px]">Associated Activities</th>
+                      <th className="py-2.5 px-3.5 sm:px-4 min-w-[220px]">Associated Barrier Failures</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
                     {paginatedSiteBreakdown.map((site) => (
                       <tr key={site.siteId} className="hover:bg-slate-50 dark:hover:bg-[#172033] transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-[#F8FAFC] w-48 min-w-[190px] sticky left-0 z-10 bg-white dark:bg-[#111827] border-r border-slate-200/80 dark:border-[#263244] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-bold text-slate-900 dark:text-[#F8FAFC] w-48 min-w-[190px] sticky left-0 z-10 bg-white dark:bg-[#111827] border-r border-slate-200/80 dark:border-[#263244] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                           <Link
                             to={`/sites/${site.siteId}`}
                             className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline flex items-center gap-1.5"
@@ -550,22 +556,47 @@ export default function HazardComparison() {
                             <span>{site.siteName}</span>
                             <ChevronRight size={12} className="opacity-40" />
                           </Link>
-                          <span className="text-xs font-mono text-slate-500 dark:text-[#94A3B8] block font-normal">
-                            {site.siteCode || 'SITE'}
-                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-xs font-mono text-slate-500 dark:text-[#94A3B8] font-normal">
+                              {site.siteCode || 'SITE'}
+                            </span>
+                            {site.status && (
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
+                                site.status === 'Active'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                                  : site.status === 'Maintenance'
+                                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                                  : 'bg-slate-100 dark:bg-[#172033] text-slate-600 dark:text-slate-400'
+                              }`}>
+                                {site.status}
+                              </span>
+                            )}
+                          </div>
+                          {site.zeroExplanation && (
+                            <span className="text-[11px] text-amber-700 dark:text-amber-400 font-normal block italic mt-1 leading-snug">
+                              {site.zeroExplanation}
+                            </span>
+                          )}
                         </td>
 
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-[#F8FAFC] text-sm">
-                          {site.reportsCount}
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-right font-mono font-bold text-slate-900 dark:text-[#F8FAFC] text-sm">
+                          <div>
+                            <span>{site.reportsCount}</span>
+                            {site.reportsCount === 0 && !comparisonData?.isAllHazards && (
+                              <span className="block text-[10px] font-normal text-slate-400 dark:text-[#94A3B8]">
+                                matching
+                              </span>
+                            )}
+                          </div>
                         </td>
 
-                        <td className="py-3 px-4 text-right font-mono font-bold">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-right font-mono font-bold">
                           <span className={site.highRiskCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-[#94A3B8]'}>
                             {site.highRiskCount}
                           </span>
                         </td>
 
-                        <td className="py-3 px-4 text-right font-mono font-bold">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-right font-mono font-bold">
                           {site.sifCount > 0 ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 text-xs">
                               <ShieldAlert size={12} />
@@ -576,10 +607,12 @@ export default function HazardComparison() {
                           )}
                         </td>
 
-                        {/* Risk Distribution badges */}
-                        <td className="py-3 px-4">
+                        {/* Risk Distribution badges or zero explanation */}
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4">
                           {site.reportsCount === 0 ? (
-                            <span className="text-slate-500 dark:text-[#94A3B8] italic text-xs">—</span>
+                            <span className="text-slate-500 dark:text-[#94A3B8] italic text-xs leading-snug block">
+                              {site.zeroExplanation || 'No matching reports for selected hazard'}
+                            </span>
                           ) : (
                             <div className="flex items-center gap-1.5 font-mono text-xs">
                               {site.riskDistribution.Low > 0 && (
@@ -607,7 +640,7 @@ export default function HazardComparison() {
                         </td>
 
                         {/* Associated Activities */}
-                        <td className="py-3 px-4 text-slate-700 dark:text-[#CBD5E1] text-xs">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-slate-700 dark:text-[#CBD5E1] text-xs">
                           {site.activities.length === 0 ? (
                             <span className="text-slate-500 dark:text-[#94A3B8] italic">—</span>
                           ) : (
@@ -616,7 +649,7 @@ export default function HazardComparison() {
                         </td>
 
                         {/* Associated Barrier Failures */}
-                        <td className="py-3 px-4 text-rose-900 dark:text-rose-300 text-xs font-medium">
+                        <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-rose-900 dark:text-rose-300 text-xs font-medium">
                           {site.barrierFailures.length === 0 ? (
                             <span className="text-slate-500 dark:text-[#94A3B8] italic">—</span>
                           ) : (
@@ -631,7 +664,7 @@ export default function HazardComparison() {
 
               {/* Local Pagination */}
               {siteBreakdown.length > HAZARD_PAGE_SIZE && (
-                <div className="p-4 border-t border-[#D1D5DB] dark:border-[#263244] bg-slate-50/50 dark:bg-[#0A0F18]">
+                <div className="px-4 py-2.5 sm:px-5 border-t border-[#D1D5DB] dark:border-[#263244] bg-slate-50/50 dark:bg-[#0A0F18]">
                   <Pagination
                     currentPage={hazardTablePage}
                     totalItems={siteBreakdown.length}
@@ -644,10 +677,10 @@ export default function HazardComparison() {
             </div>
 
             {/* TWO-COLUMN INTELLIGENCE PANELS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               {/* SECTION: WHAT DIFFERS? (Step 21) */}
-              <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3">
-                <div className="border-b border-slate-100 dark:border-[#263244] pb-2.5 flex items-center justify-between">
+              <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-2.5 sm:space-y-3">
+                <div className="border-b border-slate-100 dark:border-[#263244] pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <TrendingUp size={16} className="text-blue-600 dark:text-blue-400" />
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">
@@ -662,20 +695,20 @@ export default function HazardComparison() {
                     No significant site variance identified for this hazard.
                   </p>
                 ) : (
-                  <div className="space-y-2.5">
-                    {whatDiffers.map((w, idx) => (
-                      <div key={idx} className="p-3 bg-slate-50 dark:bg-[#172033] rounded-lg border border-slate-200/80 dark:border-[#263244] text-xs space-y-0.5">
-                        <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">{w.site}:</span>
-                        <p className="text-slate-700 dark:text-[#CBD5E1] leading-relaxed text-[11px]">{w.observation}</p>
-                      </div>
-                    ))}
-                  </div>
+                    <div className="space-y-2">
+                      {whatDiffers.map((w, idx) => (
+                        <div key={idx} className="p-2.5 sm:p-3 bg-[#F8FAFC] dark:bg-[#151E2E] rounded-lg border border-[#CBD5E1] dark:border-[#263244] text-xs space-y-0.5">
+                          <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">{w.site}:</span>
+                          <p className="text-slate-700 dark:text-[#CBD5E1] leading-relaxed text-[11px]">{w.observation}</p>
+                        </div>
+                      ))}
+                    </div>
                 )}
               </section>
 
               {/* SECTION: RECURRING BARRIER FAILURE (Step 22) */}
-              <section className="p-6 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/25 dark:bg-rose-950/20 shadow-xs space-y-3">
-                <div className="border-b border-rose-200/80 dark:border-rose-900/50 pb-2.5 flex items-center justify-between">
+              <section className="p-4 sm:p-5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/25 dark:bg-rose-950/20 shadow-xs space-y-2.5 sm:space-y-3">
+                <div className="border-b border-rose-200/80 dark:border-rose-900/50 pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ShieldAlert size={16} className="text-rose-600 dark:text-rose-400" />
                     <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950 dark:text-rose-300">
@@ -686,8 +719,8 @@ export default function HazardComparison() {
                 </div>
 
                 {recurringBarrier ? (
-                  <div className="space-y-3">
-                    <div className="p-3.5 bg-white dark:bg-[#111827] border border-rose-200 dark:border-rose-900/50 rounded-lg shadow-xs space-y-1.5">
+                  <div className="space-y-2.5">
+                    <div className="p-3 sm:p-3.5 bg-white dark:bg-[#111827] border border-rose-200 dark:border-rose-900/50 rounded-lg shadow-xs space-y-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block">
                         Most Frequent Safeguard Breakdown
                       </span>
@@ -701,7 +734,7 @@ export default function HazardComparison() {
                       <span className="text-[11px] font-bold text-slate-700 dark:text-[#CBD5E1] block mb-1">Affected Selected Facilities:</span>
                       <div className="flex flex-wrap gap-1.5">
                         {recurringBarrier.affectedSites.map((siteName, i) => (
-                          <span key={i} className="px-2.5 py-1 rounded-md bg-white dark:bg-[#111827] border border-rose-200 dark:border-rose-900/50 text-xs font-semibold text-rose-900 dark:text-rose-300">
+                          <span key={i} className="px-2 py-0.5 rounded-md bg-white dark:bg-[#111827] border border-rose-200 dark:border-rose-900/50 text-xs font-semibold text-rose-900 dark:text-rose-300">
                             {siteName}
                           </span>
                         ))}
@@ -717,8 +750,8 @@ export default function HazardComparison() {
             </div>
 
             {/* SECTION: PREVENTIVE FOCUS (Step 23) */}
-            <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-4">
-              <div className="border-b border-slate-100 dark:border-[#263244] pb-2.5 flex items-center justify-between">
+            <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3">
+              <div className="border-b border-slate-100 dark:border-[#263244] pb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={16} className="text-blue-700 dark:text-blue-400" />
                   <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">
@@ -728,9 +761,9 @@ export default function HazardComparison() {
                 <span className="text-[10px] font-mono text-slate-400 dark:text-[#94A3B8] font-semibold">DECISION SUPPORT</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                 {preventiveFocus.map((pf, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-50 dark:bg-[#172033] rounded-lg border border-slate-200 dark:border-[#263244] text-xs space-y-1 shadow-xs">
+                  <div key={idx} className="p-3 sm:p-3.5 bg-[#F8FAFC] dark:bg-[#151E2E] rounded-lg border border-[#CBD5E1] dark:border-[#263244] text-xs space-y-1 shadow-xs">
                     <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">{pf.step}</span>
                     <p className="text-slate-600 dark:text-[#CBD5E1] text-[11px] leading-relaxed">{pf.detail}</p>
                   </div>
@@ -739,10 +772,10 @@ export default function HazardComparison() {
             </section>
 
             {/* TWO-COLUMN: CROSS-SITE LEARNING & FUTURE RISK MONITORING */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               {/* SECTION: CROSS-SITE LEARNING (Step 24) */}
-              <section className="p-6 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/25 dark:bg-emerald-950/20 shadow-xs space-y-3">
-                <div className="border-b border-emerald-200/80 dark:border-emerald-900/50 pb-2.5 flex items-center justify-between">
+              <section className="p-4 sm:p-5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/25 dark:bg-emerald-950/20 shadow-xs space-y-2.5 sm:space-y-3">
+                <div className="border-b border-emerald-200/80 dark:border-emerald-900/50 pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Compass size={16} className="text-emerald-700 dark:text-emerald-400" />
                     <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-950 dark:text-emerald-300">
@@ -753,7 +786,7 @@ export default function HazardComparison() {
                 </div>
 
                 {crossSiteLearning ? (
-                  <div className="p-4 bg-white dark:bg-[#111827] border border-emerald-200 dark:border-emerald-900/50 rounded-lg text-xs space-y-1.5 shadow-xs">
+                  <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-emerald-200 dark:border-emerald-900/50 rounded-lg text-xs space-y-1 shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
                       Comparative Review Insight
                     </span>
@@ -772,8 +805,8 @@ export default function HazardComparison() {
               </section>
 
               {/* SECTION: FUTURE RISK MONITORING (Step 25) */}
-              <section className="p-6 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-3">
-                <div className="border-b border-slate-100 dark:border-[#263244] pb-2.5 flex items-center justify-between">
+              <section className="p-4 sm:p-5 rounded-xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] shadow-xs space-y-2.5 sm:space-y-3">
+                <div className="border-b border-slate-100 dark:border-[#263244] pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-blue-600 dark:text-blue-400" />
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">
@@ -784,7 +817,7 @@ export default function HazardComparison() {
                 </div>
 
                 {futureMonitoring && (
-                  <div className="space-y-2.5 text-xs">
+                  <div className="space-y-2 text-xs">
                     <p className="font-semibold text-slate-800 dark:text-[#F8FAFC] text-[11px]">
                       {futureMonitoring.notice}
                     </p>
@@ -796,7 +829,7 @@ export default function HazardComparison() {
                         </li>
                       ))}
                     </ul>
-                    <p className="text-[10px] text-slate-400 dark:text-[#94A3B8] italic pt-1">
+                    <p className="text-[10px] text-slate-400 dark:text-[#94A3B8] italic pt-0.5">
                       Derived from historical observation trends across active Oil India Limited operational sites.
                     </p>
                   </div>

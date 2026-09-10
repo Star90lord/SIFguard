@@ -378,7 +378,7 @@ export default function Reports() {
 
   return (
     <AppShell title="Safety Reports" subtitle="Report Intelligence Workspace">
-      <PageContainer maxWidth="fluid" className="space-y-6">
+      <PageContainer maxWidth="fluid" className="space-y-4 sm:space-y-5">
         {/* Header Block */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#D1D5DB]/80 dark:border-[#263244]">
           <div>
@@ -427,7 +427,7 @@ export default function Reports() {
 
         {/* Non-blocking feedback notification banner */}
         {exportFeedback && (
-          <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/50 rounded-lg text-xs text-blue-900 dark:text-blue-200 font-medium animate-fadeIn shadow-2xs">
+          <div className="flex items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/50 rounded-lg text-xs text-blue-900 dark:text-blue-200 font-medium animate-fadeIn shadow-2xs">
             <div className="flex items-center gap-2">
               <CheckCircle2 size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <span>{exportFeedback}</span>
@@ -470,9 +470,9 @@ export default function Reports() {
           />
         ) : (
           /* Main Operational Interface */
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-4.5">
             {/* 1. REPORT KPI STRIP */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5">
               <KpiCard
                 label="Total Reports"
                 value={overallSummary.totalReports}
@@ -500,7 +500,7 @@ export default function Reports() {
             </div>
 
             {/* QUICK PRESETS & SAVED VIEWS BAR */}
-            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3.5 shadow-xs space-y-2.5">
+            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3 shadow-xs space-y-2">
               {/* Top Row: Quick Presets */}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -603,7 +603,7 @@ export default function Reports() {
               </div>
 
               {/* Bottom Row: Saved Views List */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#D1D5DB]/60 dark:border-[#263244] text-xs">
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] text-xs">
                 <span className="text-xs font-semibold text-[#334155] dark:text-[#CBD5E1] mr-1 flex items-center gap-1">
                   <Bookmark size={11} className="text-[#64748B] dark:text-[#94A3B8]" />
                   <span>Saved Views:</span>
@@ -650,7 +650,7 @@ export default function Reports() {
             </div>
 
             {/* 2. REPORT FILTER & SEARCH PANEL */}
-            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-4 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3">
               {/* Top Row: Search & Sort Controls */}
               <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                 {/* Search Bar */}
@@ -1087,7 +1087,7 @@ export default function Reports() {
                         <tr className="border-b border-[#D1D5DB] dark:border-[#263244] bg-[#F8FAFC] dark:bg-[#0A0F18] select-none text-[12px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                           {/* Date / Time */}
                           <th
-                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('date')}
                             title="Click to sort by Date"
                           >
@@ -1099,7 +1099,7 @@ export default function Reports() {
 
                           {/* Report */}
                           <th
-                            className="py-3 px-4 w-28 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-28 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('id')}
                             title="Click to sort by Report ID"
                           >
@@ -1111,7 +1111,7 @@ export default function Reports() {
 
                           {/* Site */}
                           <th
-                            className="py-3 px-4 w-40 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-40 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('site')}
                             title="Click to sort by Site"
                           >
@@ -1123,7 +1123,7 @@ export default function Reports() {
 
                           {/* Risk */}
                           <th
-                            className="py-3 px-4 w-32 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-32 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('risk')}
                             title="Click to sort by Risk Level"
                           >
@@ -1135,7 +1135,7 @@ export default function Reports() {
 
                           {/* Priority */}
                           <th
-                            className="py-3 px-4 w-28 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-28 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('priority')}
                             title="Click to sort by Priority"
                           >
@@ -1147,7 +1147,7 @@ export default function Reports() {
 
                           {/* Status */}
                           <th
-                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('status')}
                             title="Click to sort by Workflow Status"
                           >
@@ -1159,7 +1159,7 @@ export default function Reports() {
 
                           {/* Hazard */}
                           <th
-                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('hazard')}
                             title="Click to sort by Hazard"
                           >
@@ -1171,7 +1171,7 @@ export default function Reports() {
 
                           {/* Activity */}
                           <th
-                            className="py-3 px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            className="py-2.5 px-3.5 sm:px-4 w-36 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => handleHeaderSort('activity')}
                             title="Click to sort by Activity"
                           >
@@ -1181,8 +1181,8 @@ export default function Reports() {
                             </div>
                           </th>
 
-                          <th className="py-3 px-4 min-w-[160px]">Location</th>
-                          <th className="py-3 px-3 w-10 text-right"></th>
+                          <th className="py-2.5 px-3.5 sm:px-4 min-w-[160px]">Location</th>
+                          <th className="py-2.5 px-3 w-10 text-right"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#D1D5DB]/60 dark:divide-[#263244]/60">
@@ -1197,19 +1197,19 @@ export default function Reports() {
                               className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer group"
                             >
                               {/* Date / Time */}
-                              <td className="py-3 px-4 font-mono font-medium text-xs text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-mono font-medium text-xs text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
                                 {formatDateTime(r)}
                               </td>
 
                               {/* Report Code */}
-                              <td className="py-3 px-4 whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                                 <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] bg-[#F1F5F9] dark:bg-[#1E293B] px-2 py-0.5 rounded border border-[#D1D5DB] dark:border-[#263244] group-hover:border-blue-400 dark:group-hover:border-blue-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                   {code}
                                 </span>
                               </td>
 
                               {/* Site */}
-                              <td className="py-3 px-4 whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                                 <span className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
                                   <Building2 size={13} className="text-[#64748B] dark:text-[#94A3B8]" />
                                   <span>{siteName}</span>
@@ -1217,37 +1217,37 @@ export default function Reports() {
                               </td>
 
                               {/* Risk */}
-                              <td className="py-3 px-4 whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                                 <RiskBadge level={r.risk_level} size="sm" />
                               </td>
 
                               {/* Priority */}
-                              <td className="py-3 px-4 whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                                 <PriorityBadge priority={r.priority || 'STANDARD'} size="sm" />
                               </td>
 
                               {/* Operational Status */}
-                              <td className="py-3 px-4 whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 whitespace-nowrap">
                                 <ReportStatusBadge status={r.status} size="sm" />
                               </td>
 
                               {/* Hazard */}
-                              <td className="py-3 px-4 font-medium text-sm text-[#0F172A] dark:text-[#CBD5E1] whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 font-medium text-sm text-[#0F172A] dark:text-[#CBD5E1] whitespace-nowrap">
                                 {r.hazard || '—'}
                               </td>
 
                               {/* Activity */}
-                              <td className="py-3 px-4 text-sm text-[#334155] dark:text-[#94A3B8] whitespace-nowrap">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-sm text-[#334155] dark:text-[#94A3B8] whitespace-nowrap">
                                 {r.activity || '—'}
                               </td>
 
                               {/* Location */}
-                              <td className="py-3 px-4 text-xs text-[#64748B] dark:text-[#94A3B8] truncate max-w-xs">
+                              <td className="py-2.5 sm:py-3 px-3.5 sm:px-4 text-xs text-[#64748B] dark:text-[#94A3B8] truncate max-w-xs">
                                 {r.location || siteName}
                               </td>
 
                               {/* Action Chevron */}
-                              <td className="py-3 px-3 text-right">
+                              <td className="py-2.5 sm:py-3 px-3 text-right">
                                 <ChevronRight
                                   size={16}
                                   className="text-[#94A3B8] dark:text-[#64748B] group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all"

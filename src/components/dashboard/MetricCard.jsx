@@ -55,7 +55,7 @@ export default function MetricCard({
             }
           : undefined
       }
-      className={`bg-white dark:bg-[#111827] border rounded-xl p-4 sm:p-5 transition-all duration-150 relative overflow-hidden flex flex-col justify-between ${
+      className={`bg-white dark:bg-[#111827] border rounded-xl p-3.5 sm:p-4 transition-all duration-150 relative overflow-hidden flex flex-col justify-between ${
         highlight
           ? 'border-red-300 dark:border-rose-800 shadow-sm'
           : 'border-[#D1D5DB] dark:border-[#263244] shadow-xs hover:border-slate-400 dark:hover:border-slate-600'
@@ -64,8 +64,8 @@ export default function MetricCard({
       } ${className}`}
     >
       {/* Top indicator strip */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
           {label}
         </span>
         {color !== 'default' && (
@@ -74,15 +74,15 @@ export default function MetricCard({
       </div>
 
       {/* Primary Value */}
-      <div className="flex items-baseline gap-2 mb-2">
-        <span className="text-[32px] font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-blue-900 dark:group-hover:text-blue-300 transition-colors leading-none">
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <span className="text-[28px] sm:text-[30px] font-bold font-mono tracking-tight text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-blue-900 dark:group-hover:text-blue-300 transition-colors leading-none">
           {value}
         </span>
       </div>
 
       {/* Context info badge/indicator */}
       {indicator && (
-        <div className="pt-2 border-t border-[#D1D5DB]/60 dark:border-[#263244] flex items-center justify-between text-xs">
+        <div className="pt-1.5 border-t border-[#D1D5DB]/60 dark:border-[#263244] flex items-center justify-between text-xs">
           <span className="text-[#64748B] dark:text-[#94A3B8]">{indicator.label}</span>
           {indicator.badge && (
             <span

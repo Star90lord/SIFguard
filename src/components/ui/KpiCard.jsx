@@ -39,14 +39,14 @@ export default function KpiCard({
   return (
     <div
       onClick={onClick}
-      className={`p-4 sm:p-5 rounded-xl border transition-all duration-150 shadow-xs ${
+      className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-150 shadow-xs ${
         accentStyles[variant] || accentStyles.default
       } ${highlight ? 'ring-1 ring-red-300/80 shadow-xs' : ''} ${
         onClick ? 'cursor-pointer hover:shadow-sm' : ''
       } ${className}`}
     >
       {/* Label & Indicator Pip */}
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-1.5">
         <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] truncate">
           {label}
         </span>
@@ -84,7 +84,7 @@ export default function KpiCard({
 
       {/* Supporting Context Description */}
       {context && (
-        <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1.5 leading-normal truncate">
+        <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1 leading-normal truncate">
           {context}
         </p>
       )}

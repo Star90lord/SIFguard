@@ -25,7 +25,7 @@ export default function Topbar({ title = 'Dashboard', subtitle, onOpenMobileNav 
   }, [popoverOpen]);
 
   return (
-    <header className="h-16 bg-white dark:bg-[#111827] border-b border-[#D1D5DB] dark:border-[#263244] px-4 sm:px-6 lg:px-8 xl:px-10 flex items-center justify-between sticky top-0 z-20">
+    <header className="h-14 bg-white dark:bg-[#111827] border-b border-[#D1D5DB] dark:border-[#263244] px-4 sm:px-6 lg:px-8 xl:px-10 flex items-center justify-between sticky top-0 z-20">
       {/* Context / Breadcrumb + Mobile Menu Toggle */}
       <div className="flex items-center gap-2 min-w-0">
         <button

@@ -6,7 +6,7 @@ export default function AppShell({ children, title, subtitle }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#E9ECEF] dark:bg-[#070B12] text-[#0F172A] dark:text-[#F8FAFC] flex overflow-x-hidden transition-colors duration-150">
+    <div className="min-h-screen bg-white dark:bg-[#070B12] text-[#0F172A] dark:text-[#F8FAFC] flex overflow-x-hidden transition-colors duration-150">
       {/* Sidebar with responsive mobile drawer support */}
       <Sidebar
         mobileOpen={mobileNavOpen}

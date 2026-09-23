@@ -1,0 +1,42 @@
+[
+  {
+    "id": "rig-site-a",
+    "name": "Rig Site A",
+    "code": "RIG-001",
+    "location": "Duliajan, Assam",
+    "type": "Rig Site",
+    "status": "Active"
+  },
+  {
+    "id": "rig-site-b",
+    "name": "Rig Site B",
+    "code": "RIG-002",
+    "location": "Moran, Assam",
+    "type": "Rig Site",
+    "status": "Active"
+  },
+  {
+    "id": "processing-unit",
+    "name": "Processing Unit",
+    "code": "PU-003",
+    "location": "Digboi, Assam",
+    "type": "Processing Plant",
+    "status": "Active"
+  },
+  {
+    "id": "workshop",
+    "name": "Workshop",
+    "code": "WS-005",
+    "location": "Moran, Assam",
+    "type": "Maintenance Workshop",
+    "status": "Active"
+  },
+  {
+    "id": "warehouse",
+    "name": "Warehouse",
+    "code": "WH-004",
+    "location": "Duliajan, Assam",
+    "type": "Warehouse",
+    "status": "Active"
+  }
+]

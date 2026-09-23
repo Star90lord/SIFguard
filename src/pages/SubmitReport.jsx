@@ -19,6 +19,7 @@ import {
   Sparkles,
   Shield,
   ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';
@@ -33,10 +34,9 @@ import AnalysisResultCard from '../components/analysis/AnalysisResultCard';
 import ReportDetailDrawer from '../components/reports/ReportDetailDrawer';
 import ReportTextarea from '../components/analysis/ReportTextarea';
 import SubmitReportModal from '../components/analysis/SubmitReportModal';
-import { analyzeFiles, analyzeText, getSites } from '../api/sifguardApi';
+import { analyzeFiles, analyzeText, getSites, saveReports, addSite, getPendingSites, confirmPendingSite } from '../api/sifguardApi';
 import { useApp } from '../context/AppContext';
 import { canSubmitReports } from '../config/roles';
-import { mockSampleBatch } from '../data/mockData';
 import { downloadBatchSummary } from '../utils/reportGenerator';
 
 export default function SubmitReport() {
@@ -49,9 +49,11 @@ export default function SubmitReport() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submissionToast, setSubmissionToast] = useState(null);
 
-  // Sample Batch Preview Modal & Toast state
-  const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
-  const [isLoadingSample, setIsLoadingSample] = useState(false);
+  // Staged / Added Sites state & feedback
+  const [addedSites, setAddedSites] = useState(new Set());
+  const [siteActionFeedback, setSiteActionFeedback] = useState(null);
+
+  // Toast state
   const [sampleToast, setSampleToast] = useState(null);
 
   // Ref for smooth scrolling to queue
@@ -259,14 +261,6 @@ export default function SubmitReport() {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // Computed duplicate check: whether files currently contains the mockSampleBatch
-  const isSampleBatchLoaded = useMemo(() => {
-    if (files.length === 0) return false;
-    return mockSampleBatch.every((sample) =>
-      files.some((f) => (f.name || f.filename) === sample.filename)
-    );
-  }, [files]);
-
   function handleClearAll() {
     setFiles([]);
     setBatchResults(null);
@@ -274,40 +268,12 @@ export default function SubmitReport() {
     setSampleToast(null);
   }
 
-  // Open Sample Batch Preview Modal
-  function handleOpenSampleModal() {
-    setIsSampleModalOpen(true);
-  }
-
-  // Confirm loading or reloading 5-report sample batch
-  async function handleConfirmLoadSample(reload = false) {
-    setIsLoadingSample(true);
-    if (reload) {
-      setFiles([]);
-    }
-    // Subtle brief delay for smooth interaction
-    await new Promise((resolve) => setTimeout(resolve, 250));
-
-    setValidationError(null);
-    setBatchResults(null);
-    const sampleItems = mockSampleBatch.map((s) => ({
-      ...s,
-      name: s.filename,
-      status: 'Ready',
-    }));
-    setFiles(sampleItems);
-    setIsLoadingSample(false);
-    setIsSampleModalOpen(false);
-
-    setSampleToast('5 sample reports loaded successfully.');
-    setTimeout(() => setSampleToast(null), 4000);
-
-    // Smooth scroll to the Uploaded Reports Queue
+  // Inform user that demo records have been removed in Real Data mode
+  function handleLoadSampleBatch() {
+    setSampleToast('Demonstration data is disabled in Real Data mode. Please upload real safety documents (PDF/DOCX/TXT) or paste incident narratives.');
     setTimeout(() => {
-      if (queueRef.current) {
-        queueRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+      setSampleToast(null);
+    }, 5000);
   }
 
   // Execute Batch Analysis
@@ -335,17 +301,25 @@ export default function SubmitReport() {
       // Synchronize assigned sites from queue into the results
       const enrichedResults = outcome.results.map((res, idx) => {
         const correspondingFile = files[idx];
-        if (correspondingFile) {
-          return {
-            ...res,
-            siteId: correspondingFile.siteId || res.siteId,
-            siteName: correspondingFile.siteName || res.site,
-            site: correspondingFile.siteName || res.site,
-            time: correspondingFile.time || res.time || '14:32',
-          };
-        }
-        return res;
+        const explicitSiteId = correspondingFile?.siteId && correspondingFile.siteId !== 'ALL' ? correspondingFile.siteId : null;
+        const explicitSiteName = correspondingFile?.siteName && correspondingFile.siteName !== 'ALL' ? correspondingFile.siteName : null;
+
+        const finalSiteId = explicitSiteId || res.siteId || 'operational-site';
+        const finalSiteName = explicitSiteName || res.site || res.siteName || 'Operational Site';
+
+        return {
+          ...res,
+          siteId: finalSiteId,
+          siteName: finalSiteName,
+          site: finalSiteName,
+          time: res.time || correspondingFile?.time || '14:32',
+        };
       });
+
+      // Automatically persist batch results into safety database only if Admin
+      if (isAdmin) {
+        await saveReports(enrichedResults);
+      }
 
       setBatchResults({
         ...outcome,
@@ -362,35 +336,74 @@ export default function SubmitReport() {
     }
   }
 
+  async function handleAddDetectedSite(name, sampleReport) {
+    try {
+      const sId = sampleReport?.siteId || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      await addSite({
+        id: sId,
+        name,
+        location: sampleReport?.location || 'Operational Zone',
+        type: 'Operational Facility',
+        status: 'Active',
+      });
+      setAddedSites((prev) => new Set([...prev, sId]));
+      setSiteActionFeedback(`Facility "${name}" has been successfully added to your operational directory!`);
+      const refreshed = await getSites();
+      setSites(refreshed);
+      setTimeout(() => setSiteActionFeedback(null), 5000);
+    } catch (err) {
+      setSiteActionFeedback(`Failed to register facility: ${err.message}`);
+      setTimeout(() => setSiteActionFeedback(null), 5000);
+    }
+  }
+
   // Analyze single or multi-paste
   async function handleAnalyzePaste() {
     setIsAnalyzing(true);
     setValidationError(null);
     try {
-      const res = await analyzeText(pasteText);
-      const targetSiteId = siteContext !== 'ALL' ? siteContext : 'rig-site-b';
-      const targetSiteObj = sites.find((s) => s.id === targetSiteId);
-      const targetSiteName = targetSiteObj?.name || 'Rig Site B';
+      const targetSiteId = siteContext !== 'ALL' ? siteContext : null;
+      const targetSiteObj = targetSiteId ? sites.find((s) => s.id === targetSiteId) : null;
+      const targetSiteName = targetSiteObj?.name || null;
 
-      const record = {
-        id: `paste-${Date.now()}`,
-        filename: 'manual-incident-log.txt',
-        date: '09 Sep 2026',
-        time: '14:32',
+      const res = await analyzeText(pasteText, {
         siteId: targetSiteId,
         siteName: targetSiteName,
-        site: targetSiteName,
-        location: `${targetSiteName} - North Processing Area`,
+        location: targetSiteName ? `${targetSiteName} - North Processing Area` : 'Operational Zone',
+        filename: 'manual-incident-log.txt',
+      });
+
+      const assignedSiteName = targetSiteName || res.site || res.siteName || (res.detectedSites?.[0]?.name) || 'Rig Site B';
+      const assignedSiteId = targetSiteId || res.siteId || (res.detectedSites?.[0]?.id) || 'rig-site-b';
+
+      const record = res.report || {
+        id: `paste-${Date.now()}`,
+        code: `RPT-2026-${String(Date.now()).slice(-4)}`,
+        filename: 'manual-incident-log.txt',
+        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        time: '14:32',
+        siteId: assignedSiteId,
+        siteName: assignedSiteName,
+        site: assignedSiteName,
+        location: `${assignedSiteName} - Operational Area`,
         report_text: pasteText,
         full_text: pasteText,
+        extractedText: pasteText,
         risk_level: res.risk_level,
         hazard: res.hazard,
         activity: res.activity,
         barrier_failure: res.barrier_failure,
         sif_precursor: res.risk_level === 'SIF-Precursor' || res.risk_level === 'High',
         explanation: res.explanation,
+        isSafetyReport: res.isSafetyReport,
+        documentType: res.documentType,
+        status: 'NEW',
         timestamp: new Date().toISOString(),
       };
+
+      if (isAdmin) {
+        await saveReports([record]);
+      }
 
       setBatchResults({
         batchId: `batch-${Date.now()}`,
@@ -407,7 +420,11 @@ export default function SubmitReport() {
     }
   }
 
-  function handleSaveToReports() {
+  async function handleSaveToReports() {
+    if (!isAdmin) return;
+    if (batchResults?.results?.length) {
+      await saveReports(batchResults.results);
+    }
     setSaveSuccess(true);
     setTimeout(() => {
       navigate('/reports?view=by-site');
@@ -469,15 +486,6 @@ export default function SubmitReport() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={Layers}
-              onClick={handleOpenSampleModal}
-              disabled={isAnalyzing}
-            >
-              Load Sample Batch
-            </Button>
             {isAdmin ? (
               <Button
                 variant="primary"
@@ -615,110 +623,139 @@ export default function SubmitReport() {
         {!batchResults && (
           <div className="space-y-5">
             {files.length === 0 ? (
-              isAdmin ? (
-                /* Admin-Only Ingestion Hero Workspace */
-                <div className="rounded-2xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] p-8 sm:p-10 shadow-xs text-center max-w-3xl mx-auto space-y-6">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800 flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400 shadow-xs">
-                    <UploadCloud size={32} />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-bold uppercase tracking-wider">
-                      <Shield size={12} />
-                      <span>Admin Submission Workspace</span>
+              <div className="space-y-5 max-w-4xl mx-auto">
+                {/* Non-Admin Informative Clearance Notice */}
+                {!isAdmin && (
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-xs text-blue-950 dark:text-blue-200 flex items-start gap-3 shadow-2xs">
+                    <ShieldCheck size={18} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-blue-950 dark:text-blue-100">
+                        Precursor Screening Clearance Active ({currentUser?.role === 'SITE_SAFETY_OFFICER' ? 'Site Safety Officer' : 'HSE Manager'})
+                      </p>
+                      <p className="text-blue-800/90 dark:text-blue-300/90 leading-relaxed">
+                        You can upload documents, paste observation notes, or load demonstration batches to run AI SIF precursor screening. Permanent ingestion to corporate databases is restricted to HSE Administrators.
+                      </p>
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-                      Submit Safety Reports for AI Precursor Screening
-                    </h2>
-                    <p className="text-sm text-slate-500 dark:text-[#94A3B8] max-w-xl mx-auto leading-relaxed">
-                      Upload batches of PDF, DOCX, or TXT reports, or paste raw observation records (up to 10,000 words per report) to analyze potential Serious Injury &amp; Fatality precursors.
-                    </p>
+                  </div>
+                )}
+
+                {/* Hero / Quick Action Card */}
+                <div className="rounded-2xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] p-6 sm:p-8 shadow-xs space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-[#263244]">
+                    <div>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-bold uppercase tracking-wider mb-2">
+                        <FileSearch size={12} />
+                        <span>AI SIF Screening Workspace</span>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+                        Screen Safety Reports for High-Energy Precursors
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] mt-1 max-w-xl">
+                        Upload multi-format incident files, paste raw observations, or load sample demonstration records to identify potential SIF precursors and barrier failures.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        icon={Zap}
+                        onClick={handleLoadSampleBatch}
+                        className="font-semibold shadow-xs text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900 hover:bg-blue-50/80 dark:hover:bg-blue-950/40"
+                      >
+                        Load 5 Sample Reports
+                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="primary"
+                          size="md"
+                          icon={Plus}
+                          onClick={() => setIsSubmitModalOpen(true)}
+                        >
+                          Submit Modal
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      icon={Plus}
-                      onClick={() => setIsSubmitModalOpen(true)}
-                      className="px-6 py-2.5 text-sm font-semibold shadow-xs"
-                    >
-                      Submit Safety Reports
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      icon={Layers}
-                      onClick={handleOpenSampleModal}
-                      disabled={isAnalyzing}
-                      className="px-5 py-2.5 text-sm"
-                    >
-                      Load Sample Batch
-                    </Button>
-                  </div>
+                  {/* Mode Tabs: Upload vs Paste */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#263244] pb-2">
+                      <button
+                        type="button"
+                        onClick={() => setInputMode('upload')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                          inputMode === 'upload'
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                            : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
+                        }`}
+                      >
+                        <UploadCloud size={14} />
+                        <span>Upload Documents</span>
+                      </button>
 
-                  <div className="pt-6 border-t border-slate-100 dark:border-[#263244] grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-500 dark:text-[#94A3B8] text-left">
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px]">
-                        ✓
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-800 dark:text-[#CBD5E1] block">PDF · DOCX · TXT</span>
-                        Batch file uploads with automated text extraction
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setInputMode('paste')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                          inputMode === 'paste'
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                            : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
+                        }`}
+                      >
+                        <FileText size={14} />
+                        <span>Paste Observation Narrative</span>
+                      </button>
                     </div>
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px]">
-                        ✓
+
+                    {/* Mode Content */}
+                    {inputMode === 'upload' ? (
+                      <div className="space-y-3">
+                        <UploadDropzone onFilesSelect={handleFilesSelect} />
+                        <div className="flex items-center justify-between text-xs text-slate-400 dark:text-[#64748B] px-1">
+                          <span>Supported formats: PDF, DOCX, TXT</span>
+                          <button
+                            type="button"
+                            onClick={handleLoadSampleBatch}
+                            className="text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1"
+                          >
+                            <Zap size={12} />
+                            <span>Or load 5 demonstration reports instantly</span>
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-semibold text-slate-800 dark:text-[#CBD5E1] block">Paste Raw Text</span>
-                        Live word counter up to 10,000 words per report
+                    ) : (
+                      <div className="space-y-3">
+                        <ReportTextarea
+                          value={pasteText}
+                          onChange={setPasteText}
+                          placeholder="Paste safety incident report, observation card, or near-miss observation (up to 10,000 words)..."
+                        />
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPasteText('')}
+                            disabled={!pasteText.trim() || isAnalyzing}
+                          >
+                            Clear Text
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="md"
+                            icon={FileSearch}
+                            loading={isAnalyzing}
+                            disabled={!pasteText.trim() || isAnalyzing}
+                            onClick={handleAnalyzePaste}
+                          >
+                            Analyze Observation
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px]">
-                        ✓
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-800 dark:text-[#CBD5E1] block">SIF Screening</span>
-                        Automated precursor detection &amp; site risk assignment
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
-              ) : (
-                /* Non-Admin Informative Clearance Notice */
-                <div className="rounded-2xl border border-[#D1D5DB] dark:border-[#263244] bg-white dark:bg-[#111827] p-8 sm:p-10 shadow-xs text-center max-w-2xl mx-auto space-y-5">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400 shadow-xs">
-                    <Lock size={28} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold uppercase tracking-wider">
-                      <span>Restricted Function</span>
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
-                      Report Submission Restricted to HSE Administrators
-                    </h2>
-                    <p className="text-sm text-slate-500 dark:text-[#94A3B8] max-w-lg mx-auto leading-relaxed">
-                      You are currently logged in with the role <strong className="text-slate-800 dark:text-[#CBD5E1] font-semibold">{currentUser?.role || 'HSE Manager'}</strong>. Submitting and ingesting new safety observation logs requires Administrator privileges.
-                    </p>
-                  </div>
-
-                  <div className="pt-2 flex justify-center">
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      icon={Layers}
-                      onClick={handleOpenSampleModal}
-                      disabled={isAnalyzing}
-                    >
-                      Load Sample Batch
-                    </Button>
-                  </div>
-                </div>
-              )
+              </div>
             ) : (
               /* Queued Files View */
               <div ref={queueRef} className="space-y-4">
@@ -840,14 +877,27 @@ export default function SubmitReport() {
                   >
                     Analyze Another Batch
                   </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleSaveToReports}
-                    icon={BookmarkCheck}
-                  >
-                    Save to Reports
-                  </Button>
+                  {isAdmin ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleSaveToReports}
+                      icon={BookmarkCheck}
+                    >
+                      Save to Reports
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={true}
+                      icon={Lock}
+                      title="Saving to permanent database requires HSE Administrator privileges"
+                      className="opacity-70 cursor-not-allowed text-xs"
+                    >
+                      Save to Reports (Admin Only)
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -911,10 +961,22 @@ export default function SubmitReport() {
               </div>
             </div>
 
+            {/* Site Action Feedback Notification */}
+            {siteActionFeedback && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 flex items-center gap-2 text-xs font-semibold text-emerald-900 dark:text-emerald-200 animate-in fade-in">
+                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{siteActionFeedback}</span>
+              </div>
+            )}
+
             {/* Results Grouped by SITE */}
             <div className="space-y-4 sm:space-y-5">
               {resultsBySite.map(([siteName, siteReports]) => {
                 const siteId = siteReports[0]?.siteId || siteName.toLowerCase().replace(/\s+/g, '-');
+                const isRegistered = sites.some(
+                  (s) => s.id === siteId || s.name?.toLowerCase() === siteName?.toLowerCase()
+                ) || addedSites.has(siteId);
+
                 // Calculate date span for same-site or grouped header
                 const sortedDates = [...siteReports].sort(
                   (a, b) => new Date(b.date) - new Date(a.date)
@@ -931,6 +993,43 @@ export default function SubmitReport() {
                     key={siteName}
                     className="p-4 sm:p-5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-3 sm:space-y-3.5"
                   >
+                    {/* New Facility Temporary Staged Banner */}
+                    {!isRegistered ? (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60">
+                        <div className="flex items-start gap-2.5">
+                          <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0">
+                            <Building2 size={18} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200">
+                                New Facility Detected
+                              </span>
+                              <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
+                                {siteName}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                              This facility was detected from the uploaded safety log. It is currently staged as a temporary site.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          icon={Plus}
+                          onClick={() => handleAddDetectedSite(siteName, siteReports[0])}
+                          className="shrink-0 self-start sm:self-auto"
+                        >
+                          Add to Directory
+                        </Button>
+                      </div>
+                    ) : addedSites.has(siteId) ? (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                        <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Facility "{siteName}" confirmed and registered into operational directory.</span>
+                      </div>
+                    ) : null}
                     {/* Site Group Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-[#D1D5DB] dark:border-[#263244]">
                       <div className="flex items-center gap-3">
@@ -998,171 +1097,7 @@ export default function SubmitReport() {
           onSuccess={handleModalSuccess}
         />
 
-        {/* Sample Batch Preview & Confirmation Modal */}
-        <Modal
-          isOpen={isSampleModalOpen}
-          onClose={() => {
-            if (!isLoadingSample) setIsSampleModalOpen(false);
-          }}
-          title={isSampleBatchLoaded ? 'Sample batch already loaded.' : 'Load Sample Safety Reports'}
-          description={
-            isSampleBatchLoaded
-              ? 'A 5-report demonstration batch is currently present in your analysis queue.'
-              : 'Load a realistic multi-site sample batch to explore the SIFguard analysis workflow.'
-          }
-          icon={Layers}
-          iconBg="bg-blue-50 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/60"
-          iconColor="text-blue-600 dark:text-blue-400"
-          maxWidth="max-w-xl"
-          footer={
-            isSampleBatchLoaded ? (
-              <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-[#E2E8F0] dark:border-[#263244]">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setIsSampleModalOpen(false)}
-                  disabled={isLoadingSample}
-                >
-                  Keep Current Batch
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={isLoadingSample}
-                  icon={RotateCcw}
-                  onClick={() => handleConfirmLoadSample(true)}
-                >
-                  {isLoadingSample ? 'Loading sample reports...' : 'Reload Sample Batch'}
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-[#E2E8F0] dark:border-[#263244]">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setIsSampleModalOpen(false)}
-                  disabled={isLoadingSample}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={isLoadingSample}
-                  icon={Layers}
-                  onClick={() => handleConfirmLoadSample(false)}
-                >
-                  {isLoadingSample ? 'Loading sample reports...' : 'Load 5 Sample Reports'}
-                </Button>
-              </div>
-            )
-          }
-        >
-          {isSampleBatchLoaded ? (
-            <div className="space-y-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 space-y-1">
-                <p className="font-semibold text-amber-900 dark:text-amber-200">
-                  Sample batch already loaded.
-                </p>
-                <p className="text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                  5 demonstration reports across 3 operating sites are already staged in your Uploaded Reports Queue. You can keep your active queue or reload a fresh sample batch.
-                </p>
-              </div>
 
-              {/* Current Loaded Summary */}
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#94A3B8] block">Reports</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">5 Reports</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#94A3B8] block">Sites</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">3 Sites</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#94A3B8] block">Status</span>
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Ready</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4 text-xs">
-              {/* Concise 4-item Summary */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] text-center">
-                  <span className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] block leading-tight">5</span>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">Reports</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] text-center">
-                  <span className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] block leading-tight">3</span>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">Sites</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244] text-center">
-                  <span className="text-xs font-bold text-slate-800 dark:text-[#CBD5E1] block leading-tight truncate">PDF/DOCX/TXT</span>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">Formats</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/50 text-center">
-                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400 block leading-tight">Ready</span>
-                  <span className="text-[11px] font-medium text-blue-700 dark:text-blue-300">For Analysis</span>
-                </div>
-              </div>
-
-              {/* Compact Site Distribution Preview */}
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block mb-2">
-                  Site Distribution
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244]">
-                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">Rig Site A</span>
-                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">3 reports</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244]">
-                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">Rig Site B</span>
-                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">1 report</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1420] border border-[#CBD5E1] dark:border-[#263244]">
-                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">Warehouse</span>
-                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">1 report</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Compact Sample Report Manifest List */}
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block mb-2">
-                  Sample Batch Manifest
-                </span>
-                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-                  {mockSampleBatch.map((sample) => {
-                    const ext = sample.filename.split('.').pop().toUpperCase();
-                    return (
-                      <div
-                        key={sample.id}
-                        className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#0D1420] border border-slate-200/80 dark:border-[#263244] text-xs"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText size={14} className="text-blue-500 shrink-0" />
-                          <span className="font-mono font-medium text-slate-800 dark:text-[#CBD5E1] truncate">
-                            {sample.filename.toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-[#CBD5E1]">
-                            {sample.siteName}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                            {ext}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </Modal>
       </PageContainer>
     </AppShell>
   );

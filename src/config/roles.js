@@ -155,9 +155,11 @@ export function normalizeRole(role) {
 /**
  * Checks if a user has a specific granular permission
  */
-export function hasPermission(user, permission) {
-  if (!user || !user.role) return false;
-  const normalized = normalizeRole(user.role);
+export function hasPermission(userOrRole, permission) {
+  if (!userOrRole) return false;
+  const role = typeof userOrRole === 'string' ? userOrRole : userOrRole.role;
+  if (!role) return false;
+  const normalized = normalizeRole(role);
   const def = ROLE_DEFINITIONS[normalized];
   if (!def || !Array.isArray(def.permissions)) return false;
   return def.permissions.includes(permission);
@@ -166,9 +168,11 @@ export function hasPermission(user, permission) {
 /**
  * Checks if a user matches a specific role
  */
-export function hasRole(user, role) {
-  if (!user || !user.role) return false;
-  return normalizeRole(user.role) === normalizeRole(role);
+export function hasRole(userOrRole, role) {
+  if (!userOrRole) return false;
+  const userRole = typeof userOrRole === 'string' ? userOrRole : userOrRole.role;
+  if (!userRole) return false;
+  return normalizeRole(userRole) === normalizeRole(role);
 }
 
 /**
@@ -311,6 +315,6 @@ export function getFilteredNavSections(user) {
  */
 export function getRoleNavigation(role) {
   const norm = normalizeRole(role);
-  const fakeUser = { role: norm };
-  return getFilteredNavSections(fakeUser);
+  const userObj = { role: norm };
+  return getFilteredNavSections(userObj);
 }

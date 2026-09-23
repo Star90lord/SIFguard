@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Building2, ChevronDown, ChevronUp, ArrowRight, ShieldAlert, Calendar } from 'lucide-react';
 import { SiteHealthBadge, RiskBadge } from '../ui/Badge';
 import SafetyTimeline from './SafetyTimeline';
-import { calculateSiteHealth } from '../../data/mockData';
+import { calculateSiteHealth } from '../../utils/filterReports';
 
 export default function SiteGroupCard({
   siteName = 'Rig Site A',

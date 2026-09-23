@@ -283,8 +283,8 @@ export default function ReportDetail() {
   const siteEvents = report.siteReports || [];
 
   // Narrative handling: complete narrative vs source excerpt
-  const rawNarrative = report.full_text || report.report_text || report.text_snippet || '';
-  const isExcerptOnly = !report.full_text && !report.report_text && Boolean(report.text_snippet);
+  const rawNarrative = report.full_text || report.report_text || report.extractedText || report.text_snippet || '';
+  const isExcerptOnly = !report.full_text && !report.report_text && !report.extractedText && Boolean(report.text_snippet);
 
   return (
     <AppShell title={`Report ${reportCode}`} subtitle="HSE Investigation Record">
@@ -335,6 +335,21 @@ export default function ReportDetail() {
           <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center gap-2 animate-in fade-in shadow-xs">
             <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{downloadFeedback}</span>
+          </div>
+        )}
+
+        {/* NON-SAFETY DOCUMENT NOTICE */}
+        {(report.isSafetyReport === false || report.hazard === 'None Detected') && (
+          <div className="p-4 rounded-xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/80 flex items-start gap-3 shadow-xs">
+            <ShieldCheck size={20} className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900 dark:text-blue-200">
+                Non-Hazardous Document Analyzed ({report.documentType || 'General Document'})
+              </h4>
+              <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                {report.explanation || 'This document contains zero industrial safety hazards, precursor conditions, or critical energy sources. Full extracted content is displayed below in Section B.'}
+              </p>
+            </div>
           </div>
         )}
 

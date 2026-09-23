@@ -5,69 +5,16 @@ import {
   hasPermission as checkPermission,
   normalizeRole,
 } from '../config/roles';
-import { getMockSites } from '../data/mockData';
 import { getSites, updateSite as apiUpdateSite, addSite as apiAddSite } from '../api/sifguardApi';
 import {
   getCurrentSession,
   login as apiLogin,
   logout as apiLogout,
-  DEMO_USERS,
 } from '../api/authApi';
 
 const AppContext = createContext(null);
 
-const DEFAULT_USERS = {
-  [ROLES.ADMINISTRATOR]: DEMO_USERS[0],
-  [ROLES.HSE_MANAGER]: DEMO_USERS[1],
-  [ROLES.SITE_SAFETY_OFFICER]: DEMO_USERS[2],
-};
-
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: 'notif-1',
-    type: 'SIF_PRECURSOR',
-    title: 'SIF Precursor Detected',
-    location: 'Rig Site B',
-    message: 'Potential fall exposure identified on monkey board during drill collar transfer. Barrier failure: Fall protection not verified.',
-    timestamp: '09 Sep 2026 · 14:20',
-    read: false,
-    severity: 'critical',
-    link: '/reports?site=rig-site-b&hazard=Fall&risk=SIF-Precursor',
-  },
-  {
-    id: 'notif-2',
-    type: 'HIGH_RISK',
-    title: 'High Risk Report Logged',
-    location: 'Rig Site B',
-    message: 'Scaffold structural non-conformance logged. Decking boards unsecured on elevated staging.',
-    timestamp: '09 Sep 2026 · 11:45',
-    read: false,
-    severity: 'high',
-    link: '/reports?site=rig-site-b&risk=High',
-  },
-  {
-    id: 'notif-3',
-    type: 'BATCH_COMPLETED',
-    title: 'Batch Screening Completed',
-    location: 'Multi-Site Workspace',
-    message: '5 safety reports screened across Rig Site A, Rig Site B, and Workshop. 2 high-severity signals identified.',
-    timestamp: '09 Sep 2026 · 10:30',
-    read: false,
-    severity: 'info',
-    link: '/submit',
-  },
-  {
-    id: 'notif-4',
-    type: 'BARRIER_FAILURE',
-    title: 'Recurring Barrier Breakdown',
-    location: 'Processing Unit',
-    message: 'LOTO energy isolation verification missed during centrifugal pump maintenance.',
-    timestamp: '08 Sep 2026 · 16:15',
-    read: true,
-    severity: 'warning',
-    link: '/reports?site=processing-unit',
-  },
-];
+const INITIAL_NOTIFICATIONS = [];
 
 const INITIAL_PREFERENCES = {
   highRiskAlerts: true,
@@ -79,21 +26,10 @@ const INITIAL_PREFERENCES = {
 };
 
 export function AppProvider({ children }) {
-  // Current user state initialized from session or fallback
+  // Current user state initialized strictly from real authenticated session
   const [currentUser, setCurrentUser] = useState(() => {
     const session = getCurrentSession();
-    if (session?.user) {
-      return session.user;
-    }
-    try {
-      const savedRole = sessionStorage.getItem('sifguard_demo_role');
-      if (savedRole && DEFAULT_USERS[savedRole]) {
-        return DEFAULT_USERS[savedRole];
-      }
-    } catch (e) {
-      // sessionStorage unavailable
-    }
-    return null;
+    return session?.user || null;
   });
 
   const isAuthenticated = Boolean(currentUser);
@@ -104,9 +40,6 @@ export function AppProvider({ children }) {
     const session = await apiLogin({ email, password, keepSignedIn });
     if (session?.user) {
       setCurrentUser(session.user);
-      try {
-        sessionStorage.setItem('sifguard_demo_role', session.user.role);
-      } catch (e) {}
     }
     return session;
   }, []);
@@ -115,9 +48,6 @@ export function AppProvider({ children }) {
   const logout = useCallback(async () => {
     await apiLogout();
     setCurrentUser(null);
-    try {
-      sessionStorage.removeItem('sifguard_demo_role');
-    } catch (e) {}
   }, []);
 
   // Notifications state
@@ -145,20 +75,9 @@ export function AppProvider({ children }) {
     });
   }
 
-  // Switch role between canonical DEMO_USERS for development
+  // Update role on current authenticated profile
   function switchRole(targetRole) {
-    try {
-      sessionStorage.setItem('sifguard_demo_role', targetRole);
-    } catch (e) {}
-    const found = DEMO_USERS.find((u) => u.role === targetRole) || DEFAULT_USERS[targetRole];
-    if (found) {
-      setCurrentUser(found);
-    } else {
-      setCurrentUser((prev) => ({
-        ...(prev || DEFAULT_USERS[ROLES.ADMINISTRATOR]),
-        role: targetRole,
-      }));
-    }
+    setCurrentUser((prev) => (prev ? { ...prev, role: targetRole } : null));
   }
 
   // Notification actions
@@ -216,13 +135,7 @@ export function AppProvider({ children }) {
   }
 
   // ── Authoritative Shared Site State ──────────────────────────────
-  const [sites, setSites] = useState(() => {
-    try {
-      return getMockSites();
-    } catch {
-      return [];
-    }
-  });
+  const [sites, setSites] = useState([]);
 
   const refreshSites = useCallback(async () => {
     try {
@@ -233,8 +146,13 @@ export function AppProvider({ children }) {
       return data;
     } catch (err) {
       console.error('Failed to refresh sites in AppContext:', err);
+      return [];
     }
   }, []);
+
+  useEffect(() => {
+    refreshSites();
+  }, [refreshSites]);
 
   const updateSite = useCallback(async (siteId, updatedData) => {
     try {
@@ -260,120 +178,118 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  // ── Authorization: Site-Scoped Access ────────────────────────────
-
-  /**
-   * Determines if the current user has unrestricted site access.
-   * Admin always has unrestricted access. Others check siteIds.
-   */
-  const hasUnrestrictedSiteAccess = useMemo(() => {
-    if (!currentUser) return false;
-    const role = normalizeRole(currentUser.role);
-    if (role === ROLES.ADMINISTRATOR) return true;
-    const ids = currentUser.siteIds || [];
-    return ids.includes('ALL');
-  }, [currentUser]);
-
-  /**
-   * The list of site IDs the current user is authorized to access.
-   * Returns null for unrestricted access (Admin).
-   */
+  // ── Site Authorization & Scope Helpers ────────────────────────────
   const authorizedSiteIds = useMemo(() => {
     if (!currentUser) return [];
-    if (hasUnrestrictedSiteAccess) return null; // null = unrestricted
-    return currentUser.siteIds || [];
-  }, [currentUser, hasUnrestrictedSiteAccess]);
+    if (currentUser.siteAccess === 'ALL' || (currentUser.siteIds && currentUser.siteIds.includes('ALL'))) {
+      return sites.map((s) => s.id);
+    }
+    return currentUser.siteIds || (currentUser.siteAccess ? [currentUser.siteAccess] : []);
+  }, [currentUser, sites]);
 
-  /**
-   * Checks if the current user can access a specific site by ID.
-   */
   const isAuthorizedForSite = useCallback(
     (siteId) => {
+      if (!siteId) return false;
       if (!currentUser) return false;
-      if (hasUnrestrictedSiteAccess) return true;
-      const ids = currentUser.siteIds || [];
-      return ids.includes(siteId);
+      if (currentUser.siteAccess === 'ALL' || (currentUser.siteIds && currentUser.siteIds.includes('ALL'))) {
+        return true;
+      }
+      return (currentUser.siteIds || []).includes(siteId) || currentUser.siteAccess === siteId;
     },
-    [currentUser, hasUnrestrictedSiteAccess]
-  );
-
-  /**
-   * The filtered list of sites the current user is authorized to see.
-   */
-  const authorizedSites = useMemo(() => {
-    if (!currentUser) return [];
-    if (hasUnrestrictedSiteAccess) return sites;
-    const ids = currentUser.siteIds || [];
-    return sites.filter((s) => ids.includes(s.id));
-  }, [currentUser, sites, hasUnrestrictedSiteAccess]);
-
-  // Dynamically calculated Active Scope metrics (role-aware)
-  const activeScope = useMemo(() => {
-    const scopedSites = hasUnrestrictedSiteAccess ? sites : authorizedSites;
-    const total = scopedSites.length;
-    const operational = scopedSites.filter((s) => (s.status || '').toLowerCase() === 'active').length;
-    const maintenance = scopedSites.filter((s) => (s.status || '').toLowerCase() === 'maintenance').length;
-    const offline = scopedSites.filter((s) => (s.status || '').toLowerCase() === 'offline').length;
-    return {
-      total,
-      operational,
-      maintenance,
-      offline,
-      telemetry: 'Active',
-    };
-  }, [sites, authorizedSites, hasUnrestrictedSiteAccess]);
-
-  // ── Centralized Permission Check ─────────────────────────────────
-
-  /**
-   * Check if the current user has a specific permission.
-   * @param {string} permission - Permission identifier from PERMISSIONS
-   * @returns {boolean}
-   */
-  const can = useCallback(
-    (permission) => (currentUser ? checkPermission(currentUser, permission) : false),
     [currentUser]
   );
 
-  const value = {
-    currentUser,
-    isAuthenticated,
-    currentRole,
-    login,
-    logout,
-    updateProfile,
-    switchRole,
-    roleDefinition: currentUser?.role
-      ? ROLE_DEFINITIONS[normalizeRole(currentUser.role)] || ROLE_DEFINITIONS[ROLES.ADMINISTRATOR]
-      : ROLE_DEFINITIONS[ROLES.ADMINISTRATOR],
-    // Authorization
-    hasPermission: can,
-    can,
-    authorizedSiteIds,
-    isAuthorizedForSite,
-    authorizedSites,
-    hasUnrestrictedSiteAccess,
-    // Notifications
-    notifications,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    clearNotification,
-    clearAllNotifications,
-    notificationPreferences,
-    togglePreference,
-    // Theme
-    theme,
-    toggleTheme,
-    setTheme,
-    // Site state & actions
-    sites,
-    setSites,
-    activeScope,
-    updateSite,
-    addSite,
-    refreshSites,
-  };
+  const authorizedSites = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.siteAccess === 'ALL' || (currentUser.siteIds && currentUser.siteIds.includes('ALL'))) {
+      return sites;
+    }
+    const set = new Set(authorizedSiteIds);
+    return sites.filter((s) => set.has(s.id));
+  }, [currentUser, sites, authorizedSiteIds]);
+
+  const hasUnrestrictedSiteAccess = useMemo(() => {
+    if (!currentUser) return false;
+    return currentUser.siteAccess === 'ALL' || (currentUser.siteIds && currentUser.siteIds.includes('ALL'));
+  }, [currentUser]);
+
+  // Active Scope Counts for global indicator
+  const activeScope = useMemo(() => {
+    const total = sites.length;
+    const active = sites.filter((s) => (s.status || '').toLowerCase() === 'active').length;
+    const maintenance = sites.filter((s) => (s.status || '').toLowerCase() === 'maintenance').length;
+    const offline = sites.filter((s) => (s.status || '').toLowerCase() === 'offline').length;
+    return { total, active, maintenance, offline };
+  }, [sites]);
+
+  // RBAC Permission Checker
+  const can = useCallback(
+    (permissionKey) => {
+      return checkPermission(currentRole, permissionKey);
+    },
+    [currentRole]
+  );
+
+  const value = useMemo(
+    () => ({
+      currentUser,
+      isAuthenticated,
+      currentRole,
+      login,
+      logout,
+      roleDefinition: currentRole ? ROLE_DEFINITIONS[currentRole] || null : null,
+      hasPermission: can,
+      can,
+      switchRole,
+      updateProfile,
+      // Theme
+      theme,
+      toggleTheme,
+      setTheme,
+      // Notifications
+      notifications,
+      unreadCount,
+      notificationPreferences,
+      markAsRead,
+      markAllAsRead,
+      clearNotification,
+      clearAllNotifications,
+      togglePreference,
+      // Shared Site State
+      sites,
+      setSites,
+      refreshSites,
+      updateSite,
+      addSite,
+      activeScope,
+      // Site Authorization Scope
+      authorizedSiteIds,
+      isAuthorizedForSite,
+      authorizedSites,
+      hasUnrestrictedSiteAccess,
+    }),
+    [
+      currentUser,
+      isAuthenticated,
+      currentRole,
+      login,
+      logout,
+      can,
+      theme,
+      notifications,
+      unreadCount,
+      notificationPreferences,
+      sites,
+      refreshSites,
+      updateSite,
+      addSite,
+      activeScope,
+      authorizedSiteIds,
+      isAuthorizedForSite,
+      authorizedSites,
+      hasUnrestrictedSiteAccess,
+    ]
+  );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

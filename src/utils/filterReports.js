@@ -1046,3 +1046,36 @@ export function getExecutiveSafetyBrief(scopedReports = [], selectedSite = 'ALL'
   };
 }
 
+export function calculateSiteHealth(reports = []) {
+  const sifCount = reports.filter((r) => r.risk_level === 'SIF-Precursor').length;
+  const highCount = reports.filter((r) => r.risk_level === 'High').length;
+  const medCount = reports.filter((r) => r.risk_level === 'Medium').length;
+
+  if (sifCount >= 1 || highCount >= 3) {
+    return {
+      status: 'Critical',
+      description: 'Immediate operational intervention required',
+      severityIndex: 4,
+    };
+  }
+  if (highCount >= 1) {
+    return {
+      status: 'Elevated',
+      description: 'Elevated safety risk; heightened supervision',
+      severityIndex: 3,
+    };
+  }
+  if (medCount >= 3) {
+    return {
+      status: 'Watch',
+      description: 'Recurring moderate risks under active watch',
+      severityIndex: 2,
+    };
+  }
+  return {
+    status: 'Stable',
+    description: 'Operating within normal safety tolerances',
+    severityIndex: 1,
+  };
+}
+

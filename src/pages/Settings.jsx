@@ -594,7 +594,7 @@ export default function Settings() {
                         )}
                       </div>
                       <p className="text-slate-600 dark:text-[#CBD5E1] text-xs mt-1">
-                        High-contrast workspace (#E9ECEF) with white cards and crisp slate typography.
+                        High-contrast workspace (#FFFFFF) with white cards and crisp slate typography.
                       </p>
                     </div>
                   </div>

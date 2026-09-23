@@ -24,6 +24,7 @@ import AddSiteModal from '../components/sites/AddSiteModal';
 import Pagination from '../components/ui/Pagination';
 import { useSites, useApp } from '../context/AppContext';
 import { canManageSites } from '../config/roles';
+import { getPendingSites, confirmPendingSite } from '../api/sifguardApi';
 
 export default function Sites() {
   const navigate = useNavigate();
@@ -67,11 +68,24 @@ export default function Sites() {
     }
   }
 
+  // Pending / Detected temporary sites
+  const [pendingSites, setPendingSites] = useState([]);
+
   useEffect(() => {
-    if (!sites || sites.length === 0) {
-      loadSitesData();
-    }
+    loadSitesData();
+    loadPendingSites();
   }, []);
+
+  async function loadPendingSites() {
+    try {
+      const data = await getPendingSites();
+      if (Array.isArray(data)) {
+        setPendingSites(data);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   async function loadSitesData() {
     setLoading(true);
@@ -87,7 +101,18 @@ export default function Sites() {
 
   async function handleAddSite(newSiteData) {
     const created = await addGlobalSite(newSiteData);
+    await loadPendingSites();
     return created;
+  }
+
+  async function handleConfirmSite(siteId) {
+    try {
+      await confirmPendingSite(siteId);
+      await refreshSites();
+      await loadPendingSites();
+    } catch (err) {
+      console.error('Failed to confirm pending site:', err);
+    }
   }
 
   // Derive unique filter options
@@ -180,6 +205,56 @@ export default function Sites() {
             )}
           </div>
         </div>
+
+        {/* Pending / Detected Facilities Banner */}
+        {pendingSites.length > 0 && (
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 space-y-3 shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0">
+                <Building2 size={18} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
+                    {pendingSites.length} Unconfirmed {pendingSites.length === 1 ? 'Facility' : 'Facilities'} Detected
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200">
+                    Awaiting Verification
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  Extracted from ingested incident documents. Add them to the directory to make them permanent.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+              {pendingSites.map((pending) => (
+                <div
+                  key={pending.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-[#111827] border border-amber-200 dark:border-amber-800/80 shadow-2xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] block truncate">
+                      {pending.name}
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate font-mono">
+                      {pending.location || 'Operational Zone'}
+                    </span>
+                  </div>
+                  <Button
+                    size="xs"
+                    variant="primary"
+                    icon={Plus}
+                    onClick={() => handleConfirmSite(pending.id)}
+                  >
+                    Add to Directory
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Search and Filters Bar */}
         <div className="p-3 sm:p-3.5 bg-white dark:bg-[#111827] border border-[#D1D5DB] dark:border-[#263244] rounded-xl shadow-xs space-y-2.5">

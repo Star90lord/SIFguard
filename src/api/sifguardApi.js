@@ -1,18 +1,7 @@
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = (typeof process !== 'undefined' && process.env?.VITE_NLP_URL) || (typeof import.meta !== 'undefined' && import.meta.env?.VITE_NLP_URL) || 'http://127.0.0.1:8000';
+const NODE_API_URL = (typeof process !== 'undefined' && process.env?.VITE_BACKEND_URL) || (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL) || 'http://localhost:5000';
 
-// Toggle this to switch between mock and real API
-const USE_MOCK = true;
 
-// ─── Mock data imports ─────────────────────────────────────────────
-import {
-  mockReports,
-  mockTrends,
-  mockAnalysisResult,
-  mockSampleBatch,
-  getMockSites,
-  addMockSite,
-  updateMockSite,
-} from '../data/mockData.js';
 import {
   filterReports,
   compareReports,
@@ -25,238 +14,237 @@ import {
 import { canSubmitReports } from '../config/roles.js';
 import { countWords, MAX_REPORT_WORDS } from '../utils/wordCount.js';
 
-// ─── Mock helpers ───────────────────────────────────────────────────
-function delay(ms = 400) {
+// ─── Network helpers ────────────────────────────────────────────────
+function delay(ms = 150) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ─── Real API helpers ───────────────────────────────────────────────
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.detail || `Request failed: ${res.status}`);
-  }
-  return res.json();
+// ─── Stubs for backward compatibility (Real Data Architecture) ───────
+// In-memory / localStorage caches removed. All real operations query MongoDB/PostgreSQL.
+const ANALYZED_STORAGE_KEY = 'sifguard_analyzed_reports';
+
+export function getStoredAnalyzedReports() {
+  return [];
 }
 
-// ─── Single Report Analysis ─────────────────────────────────────────
+export function saveStoredAnalyzedReport(report) {
+  return report;
+}
 
-export async function analyzeText(text) {
-  if (USE_MOCK) {
-    await delay(1000);
-    // If text contains recognizable keywords, customize the result
-    const lower = text.toLowerCase();
-    if (lower.includes('confined') || lower.includes('tank')) {
-      return {
-        ...mockAnalysisResult,
-        risk_level: 'SIF-Precursor',
-        hazard: 'Confined Space',
-        activity: 'Tank Cleaning',
-        location: 'Rig Site A',
-        barrier_failure: 'Atmospheric Monitoring',
-        explanation: 'Confined space entry without verified atmospheric monitoring represents an immediate critical SIF precursor.',
-      };
-    }
-    if (lower.includes('crane') || lower.includes('lift') || lower.includes('drop')) {
-      return {
-        ...mockAnalysisResult,
-        risk_level: 'High',
-        hazard: 'Dropped Object',
-        activity: 'Lifting Operations',
-        location: 'Rig Site A',
-        barrier_failure: 'Rigging Inspection',
-        explanation: 'Overhead lift with rigging defects poses immediate catastrophic dropped object danger.',
-      };
-    }
-    return { ...mockAnalysisResult };
+export function saveStoredAnalyzedReports(reports = []) {
+  return reports;
+}
+
+export function clientAnalyzeSafetyContent(text = '', filename = '') {
+  return {
+    isSafetyReport: true,
+    documentType: 'Incident Report',
+    risk_level: 'Medium',
+    hazard: 'Operational Observation',
+    activity: 'Field Operations',
+    barrier_failure: 'None Identified',
+    sif_precursor: false,
+    explanation: 'Safety document submitted for analysis.',
+  };
+}
+
+// ─── Document & Text Analysis (Real Backend & Database) ─────────────
+export async function analyzeText(text, metadata = {}) {
+  if (!text || !text.trim()) {
+    throw new Error('Report text is required for analysis.');
   }
-  return request('/analyze/text', {
+
+  const res = await fetch(`${NODE_API_URL}/api/documents/analyze-text`, {
     method: 'POST',
-    body: JSON.stringify({ text }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text,
+      siteId: metadata.siteId,
+      siteName: metadata.siteName,
+      location: metadata.location,
+      filename: metadata.filename || 'manual-incident-log.txt',
+    }),
   });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || `Backend text analysis failed with status ${res.status}`);
+  }
+
+  const data = await res.json();
+  return {
+    ...data.analysis,
+    report: data.report,
+    id: data.report?.id,
+    code: data.report?.code,
+  };
 }
 
-export async function analyzeFile(file) {
-  if (USE_MOCK) {
-    await delay(1200);
-    return { ...mockAnalysisResult };
+export async function analyzeFile(file, metadata = {}) {
+  if (!file) {
+    throw new Error('File payload is required for analysis.');
   }
+
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch(`${BASE_URL}/analyze/file`, {
+  if (metadata.siteId) formData.append('siteId', metadata.siteId);
+  if (metadata.siteName) formData.append('siteName', metadata.siteName);
+
+  const res = await fetch(`${NODE_API_URL}/api/documents/analyze-file`, {
     method: 'POST',
     body: formData,
   });
+
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.detail || `Upload failed: ${res.status}`);
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || `Backend file analysis failed with status ${res.status}`);
   }
-  return res.json();
+
+  const data = await res.json();
+  return {
+    ...data.analysis,
+    report: data.report,
+    id: data.report?.id,
+    code: data.report?.code,
+  };
 }
 
 // ─── Batch Analysis Workflow ────────────────────────────────────────
-
-/**
- * Analyzes multiple files sequentially or concurrently, emitting progress callbacks.
- * @param {Array<File|Object>} files - list of File objects or mock file items
- * @param {Object} options - { groupBySite: true, autoMerge: true, depth: 'standard' | 'detailed' }
- * @param {Function} onProgress - callback ({ current, total, currentFile, status, completedFiles })
- */
 export async function analyzeFiles(files, options = {}, onProgress = null) {
-  if (USE_MOCK) {
-    const total = files.length;
-    const results = [];
-    const completedFiles = [];
-    const failedFiles = [];
+  const total = files.length;
+  const results = [];
+  const completedFiles = [];
+  const failedFiles = [];
 
-    // Deterministic matching to mock batch or generated reports
-    for (let i = 0; i < total; i++) {
-      const file = files[i];
-      const filename = file.name || file.filename || `report-0${i + 1}.pdf`;
-
-      if (onProgress) {
-        onProgress({
-          current: i + 1,
-          total,
-          currentFile: filename,
-          status: 'analyzing',
-          completedFiles: [...completedFiles],
-          failedFiles: [...failedFiles],
-          percentage: Math.round((i / total) * 100),
-        });
-      }
-
-      await delay(450);
-
-      // Check if this file simulates a failure (e.g. named fail or empty)
-      if (filename.toLowerCase().includes('corrupt') || filename.toLowerCase().includes('error')) {
-        failedFiles.push({
-          id: `err-${Date.now()}-${i}`,
-          filename,
-          size: file.size ? `${(file.size / 1024).toFixed(0)} KB` : '12 KB',
-          error: 'Unreadable document encoding or damaged PDF stream',
-        });
-        continue;
-      }
-
-      // Match sample batch if available, otherwise synthesize realistic safety record
-      const sampleMatch = mockSampleBatch.find(
-        (s) => s.filename.toLowerCase() === filename.toLowerCase()
-      );
-
-      let record;
-      if (sampleMatch) {
-        record = {
-          ...sampleMatch,
-          id: `batch-${Date.now()}-${i}`,
-          batchId: `batch-${Date.now()}`,
-          timestamp: new Date(`${sampleMatch.date}T10:00:00Z`).toISOString(),
-        };
-      } else {
-        // Deterministically assign site based on filename or cyclic index
-        const sites = ['Rig Site A', 'Rig Site B', 'Processing Unit', 'Warehouse', 'Workshop'];
-        const assignedSite =
-          filename.toLowerCase().includes('rig-a') || filename.toLowerCase().includes('rig_a')
-            ? 'Rig Site A'
-            : filename.toLowerCase().includes('rig-b') || filename.toLowerCase().includes('rig_b')
-            ? 'Rig Site B'
-            : filename.toLowerCase().includes('warehouse')
-            ? 'Warehouse'
-            : filename.toLowerCase().includes('processing')
-            ? 'Processing Unit'
-            : sites[i % sites.length];
-
-        const severities = ['High', 'SIF-Precursor', 'Medium', 'Low'];
-        const hazards = ['Fall', 'Confined Space', 'Dropped Object', 'Electrical', 'Vehicle Interaction'];
-        const dates = ['2026-09-09', '2026-09-08', '2026-09-07', '2026-09-06'];
-
-        const risk_level = severities[i % severities.length];
-        const hazard = hazards[i % hazards.length];
-        const date = dates[i % dates.length];
-
-        record = {
-          id: `batch-${Date.now()}-${i}`,
-          batchId: `batch-${Date.now()}`,
-          filename,
-          size: file.size ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB',
-          date,
-          site: assignedSite,
-          location: `${assignedSite} - Operational Area`,
-          report_text: `Automated safety observation from document ${filename}. Incident occurred during routine field activity at ${assignedSite}. Identified primary hazard: ${hazard}.`,
-          risk_level,
-          hazard,
-          activity: 'Field Operations',
-          barrier_failure: 'Operational Compliance',
-          sif_precursor: risk_level === 'SIF-Precursor' || risk_level === 'High',
-          explanation: `System classified report as ${risk_level} due to identified ${hazard} risks and potential barrier breakdown at ${assignedSite}.`,
-          timestamp: new Date(`${date}T12:00:00Z`).toISOString(),
-        };
-      }
-
-      results.push(record);
-      completedFiles.push(filename);
-    }
+  for (let i = 0; i < total; i++) {
+    const fileItem = files[i];
+    const actualFile = fileItem.rawFile || (fileItem instanceof File ? fileItem : null);
+    const filename = fileItem.name || fileItem.filename || (actualFile ? actualFile.name : `document-${i + 1}.pdf`);
 
     if (onProgress) {
       onProgress({
-        current: total,
+        current: i + 1,
         total,
-        currentFile: null,
-        status: 'completed',
+        currentFile: filename,
+        status: 'analyzing',
         completedFiles: [...completedFiles],
         failedFiles: [...failedFiles],
-        percentage: 100,
+        percentage: Math.round(((i + 1) / total) * 100),
       });
     }
 
-    return {
-      batchId: `batch-${Date.now()}`,
-      totalAnalyzed: results.length,
-      totalFailed: failedFiles.length,
-      results,
-      failedFiles,
-      durationSeconds: Math.round(total * 0.45 + 1),
-    };
+    try {
+      if (!actualFile) {
+        throw new Error(`File "${filename}" has no readable file payload.`);
+      }
+
+      const formData = new FormData();
+      formData.append('file', actualFile);
+      if (fileItem.siteId) formData.append('siteId', fileItem.siteId);
+      if (fileItem.siteName || fileItem.site) formData.append('siteName', fileItem.siteName || fileItem.site);
+
+      const res = await fetch(`${NODE_API_URL}/api/documents/analyze-file`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || `Server responded with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      const report = data.report || (data.reports && data.reports[0]);
+      if (report) {
+        const formatted = {
+          ...report,
+          size: fileItem.size || (actualFile?.size ? `${(actualFile.size / 1024).toFixed(1)} KB` : '12 KB'),
+        };
+        results.push(formatted);
+        completedFiles.push(filename);
+      } else {
+        throw new Error('No analyzed document record returned by backend');
+      }
+    } catch (err) {
+      console.error(`Error analyzing file "${filename}":`, err.message);
+      failedFiles.push({ filename, error: err.message });
+    }
   }
 
-  // Real API implementation
-  const formData = new FormData();
-  files.forEach((file) => formData.append('files', file));
-  formData.append('options', JSON.stringify(options));
+  if (onProgress) {
+    onProgress({
+      current: total,
+      total,
+      currentFile: null,
+      status: 'completed',
+      completedFiles: [...completedFiles],
+      failedFiles: [...failedFiles],
+      percentage: 100,
+    });
+  }
 
-  const res = await fetch(`${BASE_URL}/analyze/batch`, {
+  return {
+    batchId: `batch-${Date.now()}`,
+    totalAnalyzed: results.length,
+    totalFailed: failedFiles.length,
+    results,
+    failedFiles,
+    durationSeconds: 1,
+  };
+}
+
+// ─── Persistence Helpers ─────────────────────────────────────────────
+export async function saveReport(report) {
+  if (!report) return null;
+  const res = await fetch(`${NODE_API_URL}/api/documents/save`, {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reports: [report] }),
   });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.detail || `Batch upload failed: ${res.status}`);
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to persist report to database');
   }
-  return res.json();
+  const data = await res.json();
+  return (data.reports && data.reports[0]) || report;
 }
 
-// ─── Query Endpoints ────────────────────────────────────────────────
+export async function saveReports(reports = []) {
+  if (!Array.isArray(reports) || reports.length === 0) return [];
+  const res = await fetch(`${NODE_API_URL}/api/documents/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reports }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to persist reports to database');
+  }
+  const data = await res.json();
+  return data.reports || reports;
+}
 
+// ─── Query Endpoints (Direct MongoDB Queries) ─────────────────────────
 export async function getReports(filters = {}) {
-  if (USE_MOCK) {
-    await delay(200);
-    const decorated = attachReportStatuses(mockReports);
-    let results = filterReports(decorated, filters);
-    if (filters.status && filters.status !== 'ALL') {
-      const targetStatus = filters.status.toUpperCase().replace(/_/g, ' ');
-      results = results.filter((r) => (r.status || '').toUpperCase() === targetStatus);
-    }
-    return results;
+  const res = await fetch(`${NODE_API_URL}/api/documents`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Database service unavailable: ${res.status}`);
   }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/reports${query ? `?${query}` : ''}`);
+
+  const data = await res.json();
+  const backendReports = data.documents || data.reports || [];
+
+  const decorated = attachReportStatuses(backendReports);
+  let results = filterReports(decorated, filters);
+  if (filters.status && filters.status !== 'ALL') {
+    const targetStatus = filters.status.toUpperCase().replace(/_/g, ' ');
+    results = results.filter((r) => (r.status || '').toUpperCase() === targetStatus);
+  }
+  return results;
 }
 
-function getRelatedReportsInternal(report) {
+function getRelatedReportsInternal(report, allReports = []) {
   if (!report) return [];
   const matches = [];
   const targetId = String(report.id);
@@ -265,7 +253,7 @@ function getRelatedReportsInternal(report) {
   const targetBarrier = (report.barrier_failure || '').toLowerCase();
   const targetSite = (report.site || report.siteName || '').toLowerCase();
 
-  mockReports.forEach((r) => {
+  allReports.forEach((r) => {
     if (String(r.id) === targetId) return;
 
     const rHazard = (r.hazard || '').toLowerCase();
@@ -302,114 +290,230 @@ function getRelatedReportsInternal(report) {
     }
   });
 
-  // Sort by relevance (hazard/barrier matches first)
   return matches.slice(0, 6);
 }
 
 export async function getReport(reportId) {
-  if (USE_MOCK) {
-    await delay(150);
-    const targetStr = String(reportId).trim().toLowerCase();
-    const targetNum = targetStr.replace(/\D/g, '');
-
-    const report = mockReports.find((r) => {
-      if (String(r.id).toLowerCase() === targetStr) return true;
-      if (formatReportCode(r.id).toLowerCase() === targetStr) return true;
-      if (r.code && r.code.toLowerCase() === targetStr) return true;
-      const rNum = String(r.id).replace(/\D/g, '');
-      if (targetNum && rNum && targetNum === rNum) return true;
-      return false;
-    });
-
-    if (!report) throw new Error(`Report ${reportId} not found`);
-
-    // Derived related safety patterns across data
-    const relatedReports = getRelatedReportsInternal(report);
-
-    // Recent events at the same site
-    const siteReports = mockReports
-      .filter((r) => (r.site === report.site || r.siteId === report.siteId) && String(r.id) !== String(report.id))
-      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-      .slice(0, 6);
-
-    // Lifecycle status and change history
-    const statusData = await getReportStatus(report.id);
-    const actions = await getActions(report.id);
-
-    return {
-      ...report,
-      status: statusData.status,
-      statusHistory: statusData.history || [],
-      actions,
-      relatedReports,
-      siteReports,
-    };
+  const res = await fetch(`${NODE_API_URL}/api/documents/${reportId}`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || `Report ${reportId} not found in database.`);
   }
-  return request(`/reports/${reportId}`);
+
+  const data = await res.json();
+  const report = data.document || data.report;
+  if (!report) {
+    throw new Error(`Report ${reportId} not found in database.`);
+  }
+
+  const allReports = await getReports().catch(() => []);
+  const relatedReports = getRelatedReportsInternal(report, allReports);
+  const siteReports = allReports
+    .filter((r) => (r.site === report.site || r.siteId === report.siteId) && String(r.id) !== String(report.id))
+    .slice(0, 6);
+
+  const statusData = await getReportStatus(report.id).catch(() => ({}));
+  const actions = await getActions(report.id).catch(() => []);
+
+  return {
+    ...report,
+    status: report.status || statusData.status || 'NEW',
+    statusHistory: report.statusHistory || statusData.history || [],
+    actions: report.actions || actions || [],
+    relatedReports: report.relatedReports || relatedReports || [],
+    siteReports: report.siteReports || siteReports || [],
+  };
 }
 
 export async function getRelatedReports(reportId, report = null) {
-  if (USE_MOCK) {
-    await delay(100);
-    const baseReport = report || mockReports.find((r) => String(r.id) === String(reportId));
-    return getRelatedReportsInternal(baseReport);
+  const allReports = await getReports().catch(() => []);
+  const target = report || allReports.find((r) => String(r.id) === String(reportId));
+  return getRelatedReportsInternal(target, allReports);
+}
+
+// ─── Site Management API (Real MongoDB Only) ─────────────────────────
+const PENDING_SITES_STORAGE_KEY = 'sifguard_pending_sites';
+
+export function getStoredPendingSites() {
+  return [];
+}
+
+export function saveStoredPendingSite() {
+  // Pending sites are persisted in MongoDB
+}
+
+export function calculateSiteHealth(reports = []) {
+  const sifCount = reports.filter((r) => r.risk_level === 'SIF-Precursor').length;
+  const highCount = reports.filter((r) => r.risk_level === 'High').length;
+  const medCount = reports.filter((r) => r.risk_level === 'Medium').length;
+
+  if (sifCount >= 1 || highCount >= 3) {
+    return {
+      status: 'Critical',
+      description: 'Immediate operational intervention required',
+      severityIndex: 4,
+    };
   }
-  return request(`/reports/${reportId}/related`);
+  if (highCount >= 1) {
+    return {
+      status: 'Elevated',
+      description: 'Elevated safety risk; heightened supervision',
+      severityIndex: 3,
+    };
+  }
+  if (medCount >= 3) {
+    return {
+      status: 'Watch',
+      description: 'Recurring moderate risks under active watch',
+      severityIndex: 2,
+    };
+  }
+  return {
+    status: 'Stable',
+    description: 'Operating within normal safety tolerances',
+    severityIndex: 1,
+  };
 }
 
 export async function getSites() {
-  if (USE_MOCK) {
-    await delay(200);
-    return getMockSites();
+  const res = await fetch(`${NODE_API_URL}/api/sites`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || `Failed to fetch sites from database: ${res.status}`);
   }
-  return request('/sites');
-}
 
-export async function getSiteReports(siteId, filters = {}) {
-  if (USE_MOCK) {
-    await delay(200);
-    const sites = getMockSites();
-    const site = sites.find(
-      (s) => s.id === siteId || s.name.toLowerCase().replace(/\s+/g, '-') === siteId
+  const data = await res.json();
+  const allSites = data.sites || [];
+
+  const allReports = await getReports().catch(() => []);
+
+  return allSites.map((def) => {
+    const siteReports = allReports.filter(
+      (r) =>
+        r.siteId === def.id ||
+        (r.site && r.site.toLowerCase() === def.name.toLowerCase()) ||
+        (r.siteName && r.siteName.toLowerCase() === def.name.toLowerCase())
     );
-    if (!site) throw new Error(`Site ${siteId} not found`);
 
-    const decoratedReports = attachReportStatuses(site.reports || []);
-    const filteredReports = filterReports(decoratedReports, {
-      ...filters,
-      siteId: site.id,
+    const riskCounts = {
+      Low: siteReports.filter((r) => r.risk_level === 'Low').length,
+      Medium: siteReports.filter((r) => r.risk_level === 'Medium').length,
+      High: siteReports.filter((r) => r.risk_level === 'High').length,
+      'SIF-Precursor': siteReports.filter((r) => r.risk_level === 'SIF-Precursor').length,
+    };
+
+    const hazardMap = {};
+    siteReports.forEach((r) => {
+      if (r.hazard && r.hazard !== 'None' && r.hazard !== 'None Detected') {
+        hazardMap[r.hazard] = (hazardMap[r.hazard] || 0) + 1;
+      }
     });
 
+    const topHazards = Object.entries(hazardMap)
+      .map(([hazard, count]) => ({ hazard, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const health = calculateSiteHealth(siteReports);
+    const latest = siteReports[0] || null;
+
     return {
-      ...site,
-      reports: filteredReports,
-      filteredSummary: getReportSummary(filteredReports),
+      id: def.id,
+      name: def.name,
+      code: def.code || `${def.name.slice(0, 3).toUpperCase()}-001`,
+      location: def.location || 'Operational Zone',
+      type: def.type || 'Operational Facility',
+      status: def.status || 'Active',
+      totalReports: siteReports.length,
+      highRiskCount: riskCounts.High,
+      sifCount: riskCounts['SIF-Precursor'],
+      lastActivity: latest ? latest.date : 'No Activity',
+      healthStatus: health.status,
+      healthDescription: health.description,
+      riskCounts,
+      topHazards,
+      reports: siteReports,
     };
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/sites/${siteId}${query ? `?${query}` : ''}`);
+  });
 }
 
 export async function addSite(siteData) {
-  if (USE_MOCK) {
-    await delay(250);
-    return addMockSite(siteData);
-  }
-  return request('/sites', {
+  const res = await fetch(`${NODE_API_URL}/api/sites`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(siteData),
   });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to register site in database');
+  }
+
+  const data = await res.json();
+  return data.site;
+}
+
+export async function getPendingSites() {
+  const res = await fetch(`${NODE_API_URL}/api/sites/pending`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch pending sites from database');
+  }
+
+  const data = await res.json();
+  return data.pendingSites || [];
+}
+
+export async function confirmPendingSite(siteId) {
+  const res = await fetch(`${NODE_API_URL}/api/sites/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteId }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to confirm pending site in database');
+  }
+
+  const data = await res.json();
+  return data.confirmedSite;
+}
+
+export async function clearAllMockData() {
+  localStorage.removeItem(ANALYZED_STORAGE_KEY);
+  localStorage.removeItem(PENDING_SITES_STORAGE_KEY);
+  if (NODE_API_URL) {
+    try {
+      await fetch(`${NODE_API_URL}/api/documents/clear`, { method: 'POST' });
+    } catch {
+      // ignore
+    }
+  }
+  return { success: true };
+}
+
+export async function getSiteReports(siteId, filters = {}) {
+  const sites = await getSites();
+  const site = sites.find(
+    (s) => s.id === siteId || s.name.toLowerCase().replace(/\s+/g, '-') === siteId
+  );
+  if (!site) throw new Error(`Site ${siteId} not found`);
+
+  const decoratedReports = attachReportStatuses(site.reports || []);
+  const filteredReports = filterReports(decoratedReports, {
+    ...filters,
+    siteId: site.id,
+  });
+
+  return {
+    ...site,
+    reports: filteredReports,
+    filteredSummary: getReportSummary(filteredReports),
+  };
 }
 
 export async function updateSite(siteId, siteData) {
-  if (USE_MOCK) {
-    await delay(250);
-    return updateMockSite(siteId, siteData);
-  }
-  return request(`/sites/${siteId}`, {
-    method: 'PUT',
-    body: JSON.stringify(siteData),
-  });
+  return addSite({ ...siteData, id: siteId });
 }
 
 export async function getSite(siteId) {
@@ -417,53 +521,53 @@ export async function getSite(siteId) {
 }
 
 export async function getSiteComparison(siteIds = [], filters = {}) {
-  if (USE_MOCK) {
-    await delay(200);
-    const allSites = getMockSites();
-    const normalizedSiteIds = (Array.isArray(siteIds) ? siteIds : String(siteIds).split(','))
-      .map((id) => String(id).trim().toLowerCase())
-      .filter(Boolean);
+  await delay(100);
+  const allSites = await getSites();
+  const allActualReports = await getReports();
+  const normalizedSiteIds = (Array.isArray(siteIds) ? siteIds : String(siteIds).split(','))
+    .map((id) => String(id).trim().toLowerCase())
+    .filter(Boolean);
 
-    const selectedSites = normalizedSiteIds
-      .map((id) =>
-        allSites.find(
-          (s) =>
-            (s.id && s.id.toLowerCase() === id) ||
-            (s.name && s.name.toLowerCase() === id) ||
-            (s.name && s.name.toLowerCase().replace(/\s+/g, '-') === id) ||
-            (s.code && s.code.toLowerCase() === id)
-        )
+  const selectedSites = normalizedSiteIds
+    .map((id) =>
+      allSites.find(
+        (s) =>
+          (s.id && s.id.toLowerCase() === id) ||
+          (s.name && s.name.toLowerCase() === id) ||
+          (s.name && s.name.toLowerCase().replace(/\s+/g, '-') === id) ||
+          (s.code && s.code.toLowerCase() === id)
       )
-      .filter(Boolean);
+    )
+    .filter(Boolean);
 
-    if (selectedSites.length === 0) {
-      return {
-        sites: [],
-        summary: {
-          facilityCount: 0,
-          totalReports: 0,
-          highRiskReports: 0,
-          sifPrecursors: 0,
-          mostCommonHazard: null,
-          mostCommonActivity: null,
-        },
-        keyDifferences: [],
-        commonPatterns: [],
-        recommendations: [],
-        keyFindings: [],
-      };
-    }
+  if (selectedSites.length === 0) {
+    return {
+      sites: [],
+      summary: {
+        facilityCount: 0,
+        totalReports: 0,
+        highRiskReports: 0,
+        sifPrecursors: 0,
+        mostCommonHazard: null,
+        mostCommonActivity: null,
+      },
+      keyDifferences: [],
+      commonPatterns: [],
+      recommendations: [],
+      keyFindings: [],
+    };
+  }
 
-    const comparisonSites = selectedSites.map((site) => {
-      const siteReports = (site.reports && site.reports.length > 0)
-        ? site.reports
-        : mockReports.filter(
-            (r) =>
-              r.siteId === site.id ||
-              (r.site && r.site.toLowerCase() === site.name.toLowerCase()) ||
-              (r.siteName && r.siteName.toLowerCase() === site.name.toLowerCase())
-          );
-      const filtered = filterReports(siteReports, filters);
+  const comparisonSites = selectedSites.map((site) => {
+    const siteReports = (site.reports && site.reports.length > 0)
+      ? site.reports
+      : allActualReports.filter(
+          (r) =>
+            r.siteId === site.id ||
+            (r.site && r.site.toLowerCase() === site.name.toLowerCase()) ||
+            (r.siteName && r.siteName.toLowerCase() === site.name.toLowerCase())
+        );
+    const filtered = filterReports(siteReports, filters);
       const summary = getReportSummary(filtered);
       const highCount = filtered.filter((r) => r.risk_level === 'High').length;
       const sifCount = filtered.filter((r) => r.risk_level === 'SIF-Precursor' || r.sif_precursor === true).length;
@@ -697,48 +801,45 @@ export async function getSiteComparison(siteIds = [], filters = {}) {
       commonPatterns,
       recommendations,
     };
-  }
-  const query = new URLSearchParams({ sites: siteIds.join(','), ...filters }).toString();
-  return request(`/sites/compare?${query}`);
 }
 
 export async function getHazardComparison(hazardName, filters = {}) {
-  if (USE_MOCK) {
-    await delay(200);
-    const rawHazard = (hazardName || 'All Hazards').trim();
-    const isAllHazards = !hazardName || rawHazard.toUpperCase() === 'ALL' || rawHazard.toLowerCase() === 'all hazards';
-    const targetHazard = isAllHazards ? 'All Hazards' : rawHazard;
-    const allSites = getMockSites();
+  await delay(100);
+  const rawHazard = (hazardName || 'All Hazards').trim();
+  const isAllHazards = !hazardName || rawHazard.toUpperCase() === 'ALL' || rawHazard.toLowerCase() === 'all hazards';
+  const targetHazard = isAllHazards ? 'All Hazards' : rawHazard;
+  const allSites = await getSites();
+  const allReports = await getReports();
 
-    // Parse target sites (support filters.sites and filters.siteIds as array or comma-separated string)
-    let selectedSiteIds = null;
-    const sitesInput = filters.sites || filters.siteIds;
-    if (sitesInput) {
-      if (Array.isArray(sitesInput)) {
-        selectedSiteIds = sitesInput.map((s) => String(s).trim().toLowerCase()).filter(Boolean);
-      } else if (typeof sitesInput === 'string' && sitesInput !== 'ALL') {
-        selectedSiteIds = sitesInput.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-      }
+  // Parse target sites (support filters.sites and filters.siteIds as array or comma-separated string)
+  let selectedSiteIds = null;
+  const sitesInput = filters.sites || filters.siteIds;
+  if (sitesInput) {
+    if (Array.isArray(sitesInput)) {
+      selectedSiteIds = sitesInput.map((s) => String(s).trim().toLowerCase()).filter(Boolean);
+    } else if (typeof sitesInput === 'string' && sitesInput !== 'ALL') {
+      selectedSiteIds = sitesInput.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
     }
+  }
 
-    const targetSites = (selectedSiteIds && selectedSiteIds.length > 0)
-      ? allSites.filter((site) => {
-          const sId = (site.id || '').toLowerCase();
-          const sNameSlug = (site.name || '').toLowerCase().replace(/\s+/g, '-');
-          const sName = (site.name || '').toLowerCase();
-          return selectedSiteIds.includes(sId) || selectedSiteIds.includes(sNameSlug) || selectedSiteIds.includes(sName);
-        })
-      : allSites;
+  const targetSites = (selectedSiteIds && selectedSiteIds.length > 0)
+    ? allSites.filter((site) => {
+        const sId = (site.id || '').toLowerCase();
+        const sNameSlug = (site.name || '').toLowerCase().replace(/\s+/g, '-');
+        const sName = (site.name || '').toLowerCase();
+        return selectedSiteIds.includes(sId) || selectedSiteIds.includes(sNameSlug) || selectedSiteIds.includes(sName);
+      })
+    : allSites;
 
-    const targetSiteIdSet = new Set(targetSites.map((s) => (s.id || '').toLowerCase()));
-    const targetSiteNameSet = new Set(targetSites.map((s) => (s.name || '').toLowerCase()));
+  const targetSiteIdSet = new Set(targetSites.map((s) => (s.id || '').toLowerCase()));
+  const targetSiteNameSet = new Set(targetSites.map((s) => (s.name || '').toLowerCase()));
 
-    // 1. First obtain all reports scoped strictly by site and time (without hazard filter)
-    const timeScopedAllReports = filterReports(mockReports, { ...filters, hazard: undefined }).filter((r) => {
-      const rSiteId = (r.siteId || '').toLowerCase();
-      const rSiteName = (r.site || r.siteName || '').toLowerCase();
-      return targetSiteIdSet.has(rSiteId) || targetSiteNameSet.has(rSiteName);
-    });
+  // 1. First obtain all reports scoped strictly by site and time (without hazard filter)
+  const timeScopedAllReports = filterReports(allReports, { ...filters, hazard: undefined }).filter((r) => {
+    const rSiteId = (r.siteId || '').toLowerCase();
+    const rSiteName = (r.site || r.siteName || '').toLowerCase();
+    return targetSiteIdSet.has(rSiteId) || targetSiteNameSet.has(rSiteName);
+  });
 
     // 2. Extract available hazards strictly from the scoped reports of selected facilities
     const discoveredHazards = Array.from(
@@ -887,120 +988,83 @@ export async function getHazardComparison(hazardName, filters = {}) {
       futureMonitoring,
       reports: scopedFiltered,
     };
-  }
-  const query = new URLSearchParams({ hazard: hazardName, ...filters }).toString();
-  return request(`/compare/hazard?${query}`);
 }
 
 export async function getSiteHistory(siteId, filters = {}) {
-  if (USE_MOCK) {
-    await delay(150);
-    const site = await getSiteReports(siteId, filters);
-    const sorted = site.reports || [];
+  await delay(50);
+  const site = await getSiteReports(siteId, filters);
+  const sorted = site?.reports || [];
 
-    const groups = {};
-    sorted.forEach((report) => {
-      const d = new Date(report.date || report.timestamp);
-      const monthYear = isNaN(d.getTime())
-        ? 'Recent Activity'
-        : new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d);
-      if (!groups[monthYear]) {
-        groups[monthYear] = [];
-      }
-      groups[monthYear].push(report);
-    });
+  const groups = {};
+  sorted.forEach((report) => {
+    const d = new Date(report.date || report.timestamp);
+    const monthYear = isNaN(d.getTime())
+      ? 'Recent Activity'
+      : new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d);
+    if (!groups[monthYear]) {
+      groups[monthYear] = [];
+    }
+    groups[monthYear].push(report);
+  });
 
-    return Object.entries(groups).map(([period, events]) => ({
-      period,
-      events,
-    }));
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/sites/${siteId}/history${query ? `?${query}` : ''}`);
+  return Object.entries(groups).map(([period, events]) => ({
+    period,
+    events,
+  }));
 }
 
 export async function getRiskTrend(filters = {}) {
-  if (USE_MOCK) {
-    await delay(150);
-    const filtered = filterReports(mockReports, filters);
-    return getRiskTrendSeries(filtered);
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/trends/risk${query ? `?${query}` : ''}`);
+  const filtered = await getReports(filters);
+  return getRiskTrendSeries(filtered);
 }
 
 export async function getHazardSummary(filters = {}) {
-  if (USE_MOCK) {
-    await delay(150);
-    const filtered = filterReports(mockReports, filters);
-    const summary = getReportSummary(filtered);
-    return summary.topHazards;
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/trends/hazards${query ? `?${query}` : ''}`);
+  const filtered = await getReports(filters);
+  const summary = getReportSummary(filtered);
+  return summary.topHazards;
 }
 
 export async function getActivitySummary(filters = {}) {
-  if (USE_MOCK) {
-    await delay(150);
-    const filtered = filterReports(mockReports, filters);
-    const summary = getReportSummary(filtered);
-    return summary.topActivities;
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/trends/activities${query ? `?${query}` : ''}`);
+  const filtered = await getReports(filters);
+  const summary = getReportSummary(filtered);
+  return summary.topActivities;
 }
 
 export async function getBarrierFailureSummary(filters = {}) {
-  if (USE_MOCK) {
-    await delay(150);
-    const filtered = filterReports(mockReports, filters);
-    const summary = getReportSummary(filtered);
-    return summary.barrierFailures;
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/trends/barriers${query ? `?${query}` : ''}`);
+  const filtered = await getReports(filters);
+  const summary = getReportSummary(filtered);
+  return summary.barrierFailures;
 }
 
 export async function getSifPrecursors(filters = {}) {
-  if (USE_MOCK) {
-    await delay(150);
-    const filtered = filterReports(mockReports, {
-      ...filters,
-      riskLevel: 'SIF-Precursor',
-    });
-    return filtered;
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/reports/sif-precursors${query ? `?${query}` : ''}`);
+  const filtered = await getReports({
+    ...filters,
+    riskLevel: 'SIF-Precursor',
+  });
+  return filtered;
 }
 
 export async function getDashboardSummary(filters = {}) {
-  if (USE_MOCK) {
-    await delay(200);
-    const filtered = filterReports(mockReports, filters);
-    const summary = getReportSummary(filtered);
-    const attentionReports = getAttentionReports(filtered, 5);
-    const riskTrend = getRiskTrendSeries(filtered);
-    const sites = getMockSites();
-    const siteOverview = getSiteRiskOverview(filtered, sites);
-    const sifPrecursors = filtered.filter(
-      (r) => r.risk_level === 'SIF-Precursor' || r.sif_precursor === true
-    );
-    const recentReports = [...filtered].slice(0, 5);
+  const filtered = await getReports(filters);
+  const summary = getReportSummary(filtered);
+  const attentionReports = getAttentionReports(filtered, 5);
+  const riskTrend = getRiskTrendSeries(filtered);
+  const sites = await getSites();
+  const siteOverview = getSiteRiskOverview(filtered, sites);
+  const sifPrecursors = filtered.filter(
+    (r) => r.risk_level === 'SIF-Precursor' || r.sif_precursor === true
+  );
+  const recentReports = [...filtered].slice(0, 5);
 
-    return {
-      summary,
-      attentionReports,
-      riskTrend,
-      siteOverview,
-      sifPrecursors,
-      recentReports,
-      totalReportsCount: filtered.length,
-    };
-  }
-  const query = new URLSearchParams(filters).toString();
-  return request(`/dashboard/summary${query ? `?${query}` : ''}`);
+  return {
+    summary,
+    attentionReports,
+    riskTrend,
+    siteOverview,
+    sifPrecursors,
+    recentReports,
+    totalReportsCount: filtered.length,
+  };
 }
 
 // Alias analyzeReports to analyzeFiles for seamless backend contract compatibility
@@ -1086,12 +1150,36 @@ export async function submitSafetyReportText(text, siteId = 'ALL', options = {})
   };
 }
 
-export async function getTrends() {
-  if (USE_MOCK) {
-    await delay(200);
-    return { ...mockTrends };
-  }
-  return request('/trends');
+export async function getTrends(filters = {}) {
+  const reports = await getReports(filters);
+  const summary = getReportSummary(reports);
+  const riskTrends = getRiskTrendSeries(reports);
+
+  const byRiskLevel = {
+    Low: 0,
+    Medium: 0,
+    High: 0,
+    'SIF-Precursor': 0,
+  };
+
+  const byLocationMap = {};
+  reports.forEach((r) => {
+    const loc = r.site || r.siteName || r.location || 'Operational Site';
+    byLocationMap[loc] = (byLocationMap[loc] || 0) + 1;
+    if (r.risk_level && byRiskLevel[r.risk_level] !== undefined) {
+      byRiskLevel[r.risk_level]++;
+    }
+  });
+
+  return {
+    totalReports: reports.length,
+    by_risk_level: byRiskLevel,
+    risk_trends: riskTrends,
+    top_hazards: summary.topHazards || [],
+    top_activities: summary.topActivities || [],
+    barrier_failures: summary.barrierFailures || [],
+    by_location: Object.entries(byLocationMap).map(([location, count]) => ({ location, count })),
+  };
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -1104,165 +1192,7 @@ const STORAGE_KEYS = {
   SAVED_VIEWS: 'sifguard_saved_views',
 };
 
-// Default initial action seeds with explicit priorities (IMMEDIATE, PRIORITY, STANDARD)
-const DEFAULT_ACTIONS = [
-  {
-    id: 'act-101',
-    reportId: 1,
-    title: 'Stop activity until fall protection is verified',
-    description: 'Halt all derrick operations on Rig Site A until secondary inertia reel and safety net are certified.',
-    priority: 'IMMEDIATE',
-    status: 'OPEN',
-    assignee: 'HSE Supervisor',
-    assignedTo: 'HSE Supervisor',
-    dueDate: '2026-09-10',
-    createdAt: '2026-09-09T09:30:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-102',
-    reportId: 1,
-    title: 'Verify overhead casing clamp dampers',
-    description: 'Inspect vibration dampener hardware and install tethered safety cable on 4-inch casing clamp.',
-    priority: 'PRIORITY',
-    status: 'IN PROGRESS',
-    assignee: 'Rig Maintenance Lead',
-    assignedTo: 'Rig Maintenance Lead',
-    dueDate: '2026-09-11',
-    createdAt: '2026-09-09T09:45:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-103',
-    reportId: 3,
-    title: 'Re-calibrate atmospheric multi-gas monitors',
-    description: 'Recalibrate toxic vapor detectors for Mud Tank 3 and replace expired calibration certificate.',
-    priority: 'IMMEDIATE',
-    status: 'PENDING VERIFICATION',
-    assignee: 'Site Safety Officer',
-    assignedTo: 'Site Safety Officer',
-    dueDate: '2026-09-09',
-    createdAt: '2026-09-08T11:30:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-104',
-    reportId: 2,
-    title: 'Install certified 3000 PSI bypass flange',
-    description: 'Replace temporary hose clamp with hydro-tested forged steel flange on pump discharge.',
-    priority: 'STANDARD',
-    status: 'CLOSED',
-    assignee: 'Piping Specialist',
-    assignedTo: 'Piping Specialist',
-    dueDate: '2026-09-09',
-    createdAt: '2026-09-09T14:45:00Z',
-    completedAt: '2026-09-09T17:00:00Z',
-  },
-  {
-    id: 'act-105',
-    reportId: 4,
-    title: 'LOTO boundary audit on 480V distribution bus',
-    description: 'Audit lockout procedure on secondary standby circuit before maintenance resumes.',
-    priority: 'PRIORITY',
-    status: 'OPEN',
-    assignee: 'Lead Electrician',
-    assignedTo: 'Lead Electrician',
-    dueDate: '2026-09-12',
-    createdAt: '2026-09-07T17:00:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-106',
-    reportId: 10,
-    title: 'Unlock and lockwire MGS flare line block valve',
-    description: 'Remove unauthorized lock on mud gas separator flare discharge line and restore open path to flare.',
-    priority: 'IMMEDIATE',
-    status: 'OPEN',
-    assignee: 'Rig Superintendent',
-    assignedTo: 'Rig Superintendent',
-    dueDate: '2026-09-09',
-    createdAt: '2026-09-08T10:00:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-107',
-    reportId: 18,
-    title: 'Cancel unpermitted hot work & issue formal PTW',
-    description: 'Stop all welding on crude column bypass until gas testing passes and hot work permit is signed.',
-    priority: 'IMMEDIATE',
-    status: 'OPEN',
-    assignee: 'Plant Operations Lead',
-    assignedTo: 'Plant Operations Lead',
-    dueDate: '2026-09-09',
-    createdAt: '2026-09-09T11:45:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-108',
-    reportId: 25,
-    title: 'Service automatic dock lock trailer restraint on Bay 2',
-    description: 'Repair defective hydraulic dock lock and enforce mandatory wheel chocking protocol.',
-    priority: 'IMMEDIATE',
-    status: 'IN PROGRESS',
-    assignee: 'Warehouse Manager',
-    assignedTo: 'Warehouse Manager',
-    dueDate: '2026-09-10',
-    createdAt: '2026-09-08T16:00:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-109',
-    reportId: 32,
-    title: 'Install polycarbonate ballistic shatter shield on hydro-test bench',
-    description: 'Mandate shatter shield enclosure on 10,000 PSI test cell before pressurized testing resumes.',
-    priority: 'IMMEDIATE',
-    status: 'OPEN',
-    assignee: 'Mechanical Workshop Head',
-    assignedTo: 'Mechanical Workshop Head',
-    dueDate: '2026-09-10',
-    createdAt: '2026-09-09T13:30:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-110',
-    reportId: 5,
-    title: 'Replace frayed crane hoist wire rope',
-    description: 'De-rig damaged 12-ton hoist cable with 3 broken strands and recertify with proof load test.',
-    priority: 'PRIORITY',
-    status: 'IN PROGRESS',
-    assignee: 'Lifting Specialist',
-    assignedTo: 'Lifting Specialist',
-    dueDate: '2026-09-11',
-    createdAt: '2026-09-05T11:00:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-111',
-    reportId: 27,
-    title: 'Re-rate and de-stack pallet racking Row G',
-    description: 'Unload overweight steel valves from Level 3 and reinforce vertical upright post.',
-    priority: 'PRIORITY',
-    status: 'PENDING VERIFICATION',
-    assignee: 'Logistics Supervisor',
-    assignedTo: 'Logistics Supervisor',
-    dueDate: '2026-09-07',
-    createdAt: '2026-09-03T17:00:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'act-112',
-    reportId: 28,
-    title: 'Replenish and test eyewash station fluid',
-    description: 'Flush and refill gravity-fed eyewash unit at battery charging bay.',
-    priority: 'STANDARD',
-    status: 'CLOSED',
-    assignee: 'Facility Maintenance',
-    assignedTo: 'Facility Maintenance',
-    dueDate: '2026-09-03',
-    createdAt: '2026-09-02T10:00:00Z',
-    completedAt: '2026-09-02T14:00:00Z',
-  },
-];
+const DEFAULT_ACTIONS = [];
 
 // Default saved views
 const DEFAULT_SAVED_VIEWS = [
@@ -1366,10 +1296,8 @@ export async function getReportStatus(reportId) {
   if (entry) {
     return entry;
   }
-  const found = mockReports.find((r) => String(r.id) === String(reportId));
-  const status = getDefaultReportStatus(found);
   return {
-    status,
+    status: 'NEW',
     history: [],
   };
 }
@@ -1382,7 +1310,7 @@ export async function updateReportStatus(reportId, newStatus, note = '') {
   const map = getStoredStatuses();
   const key = String(reportId);
   const current = map[key] || {
-    status: getDefaultReportStatus(mockReports.find((r) => String(r.id) === key)),
+    status: 'NEW',
     history: [],
   };
 
@@ -1454,12 +1382,11 @@ function getStoredActions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ACTIONS);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.ACTIONS, JSON.stringify(DEFAULT_ACTIONS));
-      return [...DEFAULT_ACTIONS];
+      return [];
     }
     return JSON.parse(raw);
   } catch {
-    return [...DEFAULT_ACTIONS];
+    return [];
   }
 }
 
@@ -1563,11 +1490,6 @@ export async function getActionSummary(siteId = null) {
     scoped = all.filter((a) => {
       if (a.siteId && a.siteId.toLowerCase() === norm) return true;
       if (a.site && (a.site.toLowerCase() === norm || a.site.toLowerCase().replace(/\s+/g, '-') === norm)) return true;
-      const rep = mockReports.find((r) => String(r.id) === String(a.reportId));
-      if (rep) {
-        if (rep.siteId && rep.siteId.toLowerCase() === norm) return true;
-        if (rep.site && (rep.site.toLowerCase() === norm || rep.site.toLowerCase().replace(/\s+/g, '-') === norm)) return true;
-      }
       return false;
     });
   }
@@ -1610,9 +1532,10 @@ export async function getActionSummary(siteId = null) {
 // ─── Review Queue API ────────────────────────────────────────────────
 
 export async function getReviewQueue(filters = {}) {
-  await delay(200);
+  await delay(100);
+  const reports = await getReports();
   // Get all reports decorated with their current workflow status and priority
-  const decorated = attachReportStatuses(mockReports);
+  const decorated = attachReportStatuses(reports);
 
   // Filter using filterReports
   let filtered = filterReports(decorated, {

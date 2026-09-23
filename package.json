@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node backend/server.js",
+    "backend": "node backend/server.js"
   },
   "dependencies": {
     "lucide-react": "^1.43.0",

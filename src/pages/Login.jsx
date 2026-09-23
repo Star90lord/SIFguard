@@ -18,7 +18,6 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth, useApp } from '../context/AppContext';
-import { DEMO_USERS, DEMO_PASSWORD } from '../api/authApi';
 import Button from '../components/ui/Button';
 
 export default function Login() {
@@ -47,14 +46,6 @@ export default function Login() {
   // Email format validation helper
   function isValidEmail(val) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-  }
-
-  // Pre-fill credentials from secondary demo buttons
-  function handleSelectDemoUser(demoUser) {
-    setEmail(demoUser.email);
-    setPassword(DEMO_PASSWORD);
-    setFieldErrors({});
-    setErrorMessage('');
   }
 
   async function handleSubmit(e) {
@@ -154,7 +145,7 @@ export default function Login() {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-[#E9ECEF] dark:bg-[#070B12] text-[#0F172A] dark:text-[#F8FAFC] flex flex-col justify-between p-4 sm:p-6 lg:p-10 transition-colors duration-150 selection:bg-blue-500/20">
+    <div className="min-h-screen w-full bg-white dark:bg-[#070B12] text-[#0F172A] dark:text-[#F8FAFC] flex flex-col justify-between p-4 sm:p-6 lg:p-10 transition-colors duration-150 selection:bg-blue-500/20">
       {/* Top Bar: Brand Monogram & Theme Mode Toggle */}
       <header className="max-w-6xl w-full mx-auto flex items-center justify-between py-2">
         <Link
@@ -225,7 +216,7 @@ export default function Login() {
           </div>
 
           {/* SINGLE DISTINCTIVE SAFETY INTELLIGENCE OPERATIONAL PANEL */}
-          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#CBD5E1] dark:border-[#263244] p-5 sm:p-6 shadow-xs space-y-5">
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#CBD5E1] dark:border-[#263244] p-5 sm:p-6 shadow-sm space-y-5">
             {/* Panel Top Header Strip */}
             <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0] dark:border-[#263244]">
               <div className="flex items-center gap-2">
@@ -356,7 +347,7 @@ export default function Login() {
 
         {/* RIGHT COLUMN: Secure Login Card */}
         <section className="lg:col-span-5 w-full max-w-md mx-auto">
-          <div className="bg-[#FFFFFF] dark:bg-[#111827] rounded-2xl border border-[#CBD5E1] dark:border-[#263244] p-7 sm:p-8 shadow-xs space-y-5">
+          <div className="bg-[#FFFFFF] dark:bg-[#111827] rounded-2xl border border-[#CBD5E1] dark:border-[#263244] p-7 sm:p-8 shadow-sm sm:shadow-md space-y-5">
             {/* Card Header */}
             <div className="space-y-1">
               <h2 className="text-2xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC]">
@@ -517,58 +508,6 @@ export default function Login() {
                 </button>
               </div>
             </form>
-
-            {/* Development Demo Profiles (Directly visible 3-option layout) */}
-            <div className="pt-3.5 border-t border-[#CBD5E1]/70 dark:border-[#263244] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
-                  DEVELOPMENT DEMO PROFILES
-                </span>
-                <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                  Quick Fill
-                </span>
-              </div>
-
-              {/* Compact 3-option grid: 2 on top row, 1 full-width on bottom row */}
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_USERS.map((demo, idx) => {
-                  const isSelected = email.toLowerCase() === demo.email.toLowerCase();
-                  const isFullWidth = idx === 2;
-                  return (
-                    <button
-                      key={demo.id}
-                      type="button"
-                      onClick={() => handleSelectDemoUser(demo)}
-                      className={`p-2.5 rounded-lg text-left border transition-all text-xs flex items-center justify-between cursor-pointer ${
-                        isFullWidth ? 'col-span-2' : 'col-span-1'
-                      } ${
-                        isSelected
-                          ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-600 dark:border-blue-500 text-blue-950 dark:text-blue-100 font-semibold shadow-2xs'
-                          : 'bg-slate-50/80 dark:bg-[#0E1524] border-[#CBD5E1] dark:border-[#263244] hover:border-blue-400 dark:hover:border-blue-500 text-[#334155] dark:text-[#CBD5E1]'
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold text-xs truncate leading-tight">
-                          {demo.name}
-                        </div>
-                        <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono truncate mt-0.5">
-                          {demo.email}
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/70 flex items-center justify-center shrink-0 ml-1.5 border border-blue-300 dark:border-blue-700">
-                          <Check size={11} className="text-blue-600 dark:text-blue-300 stroke-[3]" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 text-center pt-0.5">
-                Demo convenience only · Selects role credentials for evaluation
-              </p>
-            </div>
           </div>
         </section>
       </main>

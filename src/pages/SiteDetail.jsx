@@ -920,7 +920,7 @@ export default function SiteDetail() {
                 </div>
               )}
 
-              {/* History Summary KPIs (Derived from Filtered Mock Data) */}
+              {/* History Summary KPIs (Derived from Filtered Reports Data) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                 <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#172033]">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block">

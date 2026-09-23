@@ -69,16 +69,6 @@ export async function extractFileWordCount(file) {
     };
   }
 
-  // Simulated oversize files for testing
-  if (name.toLowerCase().includes('oversize') || name.toLowerCase().includes('exceed')) {
-    const simulatedWords = 12431;
-    return {
-      wordCount: simulatedWords,
-      isWithinLimit: false,
-      error: `Report exceeds the ${MAX_REPORT_WORDS.toLocaleString()}-word limit (${simulatedWords.toLocaleString()} words).`,
-    };
-  }
-
   // Plain text extraction via FileReader
   if (ext === 'txt' && typeof FileReader !== 'undefined' && file instanceof Blob) {
     return new Promise((resolve) => {

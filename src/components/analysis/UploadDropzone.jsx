@@ -43,8 +43,8 @@ export default function UploadDropzone({ onFilesSelect, className = '' }) {
       onClick={() => fileInputRef.current?.click()}
       className={`relative border-2 border-dashed rounded-xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-150 select-none ${
         isDragOver
-          ? 'border-blue-600 bg-blue-50/50 scale-[0.995]'
-          : 'border-slate-300 hover:border-slate-400 bg-white shadow-2xs'
+          ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 scale-[0.995]'
+          : 'border-slate-300 dark:border-[#263244] hover:border-slate-400 dark:hover:border-[#3B4D6B] bg-white dark:bg-[#0D1420] shadow-2xs'
       } ${className}`}
       role="button"
       tabIndex={0}
@@ -66,21 +66,21 @@ export default function UploadDropzone({ onFilesSelect, className = '' }) {
         aria-hidden="true"
       />
 
-      <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-700 mb-2.5">
-        <Upload size={20} className="text-slate-700" />
+      <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] flex items-center justify-center mx-auto text-slate-700 dark:text-[#CBD5E1] mb-2.5">
+        <Upload size={20} className="text-slate-700 dark:text-[#CBD5E1]" />
       </div>
 
-      <h4 className="text-sm font-bold text-slate-900 mb-1">
+      <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] mb-1">
         Upload safety reports
       </h4>
-      <p className="text-xs text-slate-500 max-w-sm mx-auto mb-2.5">
+      <p className="text-xs text-slate-500 dark:text-[#94A3B8] max-w-sm mx-auto mb-2.5">
         Drop multiple files here or{' '}
-        <span className="text-blue-600 font-semibold underline underline-offset-2">
+        <span className="text-blue-600 dark:text-blue-400 font-semibold underline underline-offset-2">
           browse
         </span>
       </p>
 
-      <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-mono font-medium border border-slate-200/80">
+      <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-slate-100 dark:bg-[#172033] text-slate-600 dark:text-[#CBD5E1] text-[11px] font-mono font-medium border border-slate-200/80 dark:border-[#263244]">
         <span>PDF · DOCX · TXT</span>
       </div>
     </div>

@@ -1,6 +1,5 @@
 # Enforce LF line endings for all text files
 * text=auto eol=lf
-
 # Or enforce CRLF if your team prefers Windows style
 * text=auto eol=crlf
 # Keep binary files untouched

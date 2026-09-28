@@ -8,18 +8,21 @@ export default function Input({
   error,
   helperText,
   id,
+  size = 'md',
   className = '',
   ...props
 }) {
   const LeadingIcon = PrefixIcon || Icon;
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
+  const sizePadding = size === 'sm' ? 'py-1.5 text-xs sm:text-sm' : 'py-2 text-sm';
+
   return (
     <div className="w-full">
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5"
+          className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
         >
           {label}
         </label>
@@ -32,12 +35,12 @@ export default function Input({
         )}
         <input
           id={inputId}
-          className={`w-full bg-white text-slate-900 placeholder:text-slate-400 text-sm border rounded-lg transition-colors duration-150 py-2 ${
+          className={`w-full bg-white dark:bg-[#070B12] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#94A3B8] border rounded-lg transition-colors duration-150 ${sizePadding} ${
             LeadingIcon ? 'pl-9 pr-3.5' : 'px-3.5'
           } ${
             error
-              ? 'border-red-300 focus:border-red-600 focus:ring-1 focus:ring-red-600'
-              : 'border-slate-300 hover:border-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900'
+              ? 'border-red-300 dark:border-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-600'
+              : 'border-[#D1D5DB] dark:border-[#263244] hover:border-slate-400 dark:hover:border-[#3B82F6] focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
           } outline-none ${className}`}
           {...props}
         />

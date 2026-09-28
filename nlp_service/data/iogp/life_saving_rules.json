@@ -1,0 +1,158 @@
+{
+    "rules": [
+        {
+            "id": "LSR-01",
+            "name": "Bypassing Safety Controls",
+            "key_action": "Obtain authorisation before overriding or disabling safety controls",
+            "keywords": [
+                "bypass",
+                "bypassing",
+                "override",
+                "overriding",
+                "disable safety control",
+                "safety control",
+                "interlock",
+                "alarm bypass"
+            ]
+        },
+        {
+            "id": "LSR-02",
+            "name": "Confined Space",
+            "key_action": "Obtain authorisation before entering a confined space",
+            "keywords": [
+                "confined space",
+                "tank entry",
+                "vessel entry",
+                "manhole entry",
+                "confined space entry",
+                "entry permit"
+            ]
+        },
+        {
+            "id": "LSR-03",
+            "name": "Driving",
+            "key_action": "Follow safe driving rules and journey management requirements",
+            "keywords": [
+                "driving",
+                "driver",
+                "vehicle",
+                "seatbelt",
+                "mobile phone",
+                "journey management",
+                "fatigue",
+                "rested",
+                "speeding"
+            ]
+        },
+        {
+            "id": "LSR-04",
+            "name": "Energy Isolation",
+            "key_action": "Verify isolation and zero energy before work begins",
+            "keywords": [
+                "energy isolation",
+                "isolation",
+                "lockout",
+                "tagout",
+                "loto",
+                "zero energy",
+                "de-energize",
+                "deenergize",
+                "isolated"
+            ]
+        },
+        {
+            "id": "LSR-05",
+            "name": "Hot Work",
+            "key_action": "Control flammables and ignition sources",
+            "keywords": [
+                "hot work",
+                "welding",
+                "cutting",
+                "grinding",
+                "ignition source",
+                "flammable",
+                "gas test",
+                "gas testing",
+                "spark"
+            ]
+        },
+        {
+            "id": "LSR-06",
+            "name": "Line of Fire",
+            "key_action": "Keep yourself and others out of the line of fire",
+            "keywords": [
+                "line of fire",
+                "struck by",
+                "struck-by",
+                "struck",
+                "caught between",
+                "caught-in-between",
+                "pressure release",
+                "moving equipment",
+                "suspended load",
+                "falling load",
+                "dropped object",
+                "dropped load",
+                "load path",
+                "drop zone",
+                "pinch point"
+            ]
+        },
+        {
+            "id": "LSR-07",
+            "name": "Safe Mechanical Lifting",
+            "key_action": "Plan lifting operations and control the area",
+            "keywords": [
+                "mechanical lifting",
+                "lifting operation",
+                "lifting",
+                "lifted",
+                "lift",
+                "chain hoist",
+                "hoist",
+                "crane",
+                "crane operation",
+                "suspended load",
+                "falling load",
+                "dropped load",
+                "lifting plan",
+                "lift plan",
+                "lifting area",
+                "load path"
+            ]
+        },
+        {
+            "id": "LSR-08",
+            "name": "Work Authorisation",
+            "key_action": "Work with a valid permit when required and reassess when conditions change",
+            "keywords": [
+                "work permit",
+                "permit to work",
+                "ptw",
+                "work authorisation",
+                "authorization",
+                "authorisation",
+                "permit",
+                "conditions changed",
+                "reassess"
+            ]
+        },
+        {
+            "id": "LSR-09",
+            "name": "Working at Height",
+            "key_action": "Protect yourself against a fall",
+            "keywords": [
+                "working at height",
+                "work at height",
+                "height",
+                "fall protection",
+                "fall arrest",
+                "harness",
+                "tie off",
+                "anchor point",
+                "scaffold",
+                "ladder"
+            ]
+        }
+    ]
+}

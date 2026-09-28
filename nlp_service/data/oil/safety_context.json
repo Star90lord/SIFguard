@@ -1,0 +1,55 @@
+{
+    "organization": "Oil India Limited",
+    "sector": "Oil and Gas",
+    "context_terms": {
+        "upstream": [
+            "drilling",
+            "well",
+            "workover",
+            "wellhead",
+            "rig",
+            "production well",
+            "wireline",
+            "cementing"
+        ],
+        "midstream": [
+            "pipeline",
+            "pipeline corridor",
+            "pump station",
+            "valve station",
+            "cross country pipeline"
+        ],
+        "downstream": [
+            "processing plant",
+            "gas processing",
+            "storage tank",
+            "terminal",
+            "depot",
+            "compressor station"
+        ],
+        "equipment": [
+            "pressure vessel",
+            "compressor",
+            "pump",
+            "drilling rig",
+            "wellhead",
+            "pipeline",
+            "storage tank",
+            "valve",
+            "flare",
+            "separator"
+        ],
+        "hazards": [
+            "hydrocarbon leak",
+            "gas leak",
+            "fire",
+            "explosion",
+            "high pressure",
+            "toxic gas",
+            "hydrogen sulfide",
+            "h2s",
+            "confined space",
+            "electrical energy"
+        ]
+    }
+}

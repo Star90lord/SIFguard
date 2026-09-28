@@ -84,24 +84,24 @@ export default function EditSiteModal({ isOpen, onClose, site, onUpdateSite }) {
       />
 
       <div className="min-h-full flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-xl border border-slate-200 shadow-xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="relative bg-white dark:bg-[#111827] rounded-xl border border-[#D1D5DB] dark:border-[#263244] shadow-xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
-          <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-[#263244]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                 <Pencil size={18} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 tracking-tight">Edit Operational Site</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Update configuration and facility metadata for <span className="font-semibold text-slate-700">{site.name}</span>.
+                <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">Edit Operational Site</h3>
+                <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5">
+                  Update configuration and facility metadata for <span className="font-semibold text-slate-700 dark:text-slate-200">{site.name}</span>.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] transition-colors"
               aria-label="Close dialog"
             >
               <X size={18} />
@@ -111,7 +111,7 @@ export default function EditSiteModal({ isOpen, onClose, site, onUpdateSite }) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-xs text-red-700 dark:text-red-400 font-medium">
                 {error}
               </div>
             )}
@@ -172,6 +172,7 @@ export default function EditSiteModal({ isOpen, onClose, site, onUpdateSite }) {
                   options={[
                     { value: 'Active', label: 'Active (Online)' },
                     { value: 'Maintenance', label: 'Maintenance Mode' },
+                    { value: 'Offline', label: 'Offline' },
                     { value: 'Standby', label: 'Standby / Warm Stack' },
                   ]}
                 />
@@ -179,7 +180,7 @@ export default function EditSiteModal({ isOpen, onClose, site, onUpdateSite }) {
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-[#263244]">
               <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
                 Cancel
               </Button>

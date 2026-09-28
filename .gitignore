@@ -97,3 +97,7 @@ node_modules/
 SIFvenv/
 __pycache__/
 *.pyc
+# ==============================
+# NLP Training Artifacts
+# ==============================
+nlp_service/models/training_output/

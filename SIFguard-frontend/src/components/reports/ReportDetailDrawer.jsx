@@ -22,14 +22,8 @@ import {
   AlertCircle,
   Clock,
   ArrowUpRight,
-  Cpu,
-  Zap,
-  Wrench,
-  Flame,
-  Code,
-  Copy,
 } from 'lucide-react';
-import { RiskBadge } from '../ui/Badge';
+import { RiskBadge, ReportStatusBadge, PriorityBadge } from '../ui/Badge';
 import Button from '../ui/Button';
 import {
   formatReportCode,
@@ -67,8 +61,6 @@ export default function ReportDetailDrawer({
 }) {
   const navigate = useNavigate();
   const [showOriginalNarrative, setShowOriginalNarrative] = useState(false);
-  const [showRawJson, setShowRawJson] = useState(false);
-  const [copiedJson, setCopiedJson] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFeedback, setDownloadFeedback] = useState(null);
 
@@ -115,28 +107,6 @@ export default function ReportDetailDrawer({
     }
   }
 
-  function handleCopyJson() {
-    if (!report) return;
-    const jsonPayload = report.rawJsonResponse || {
-      id: report.id,
-      filename: report.filename,
-      risk_level: report.risk_level,
-      hazard: report.hazard,
-      activity: report.activity,
-      location: report.location,
-      barrier_failure: report.barrier_failure,
-      sif_precursor: report.sif_precursor,
-      explanation: report.explanation,
-      entities: report.entities,
-      extractedEntities: report.extractedEntities,
-      risk_assessment: report.risk_assessment || report.riskAssessment,
-    };
-    navigator.clipboard.writeText(JSON.stringify(jsonPayload, null, 2)).then(() => {
-      setCopiedJson(true);
-      setTimeout(() => setCopiedJson(false), 2500);
-    });
-  }
-
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.key === 'Escape') onClose();
@@ -167,19 +137,6 @@ export default function ReportDetailDrawer({
   const { factors, whyItMatters } = getContributingFactors(report);
   const { priority, actions } = getRecommendedSafetyActions(report);
 
-  // Entities breakdown
-  const entities = report.entities || {};
-  const extractedEntities = report.extractedEntities || report.raw_ner_entities || [];
-
-  const rawHazards = entities.hazards || extractedEntities.filter((e) => e.label === 'HAZARD').map((e) => e.text);
-  const rawEnergies = entities.energies || extractedEntities.filter((e) => e.label === 'ENERGY').map((e) => e.text);
-  const rawBarriers = entities.barrier_failures || entities.barrierFailures || extractedEntities.filter((e) => e.label === 'BARRIER').map((e) => e.text);
-  const rawEquipment = entities.equipment || extractedEntities.filter((e) => e.label === 'EQUIPMENT').map((e) => e.text);
-  const rawActivities = entities.activities || extractedEntities.filter((e) => e.label === 'ACTIVITY').map((e) => e.text);
-  const rawLocations = entities.locations || extractedEntities.filter((e) => e.label === 'LOCATION').map((e) => e.text);
-
-  const riskAssessment = report.risk_assessment || report.riskAssessment || {};
-
   // Find other reports from the same site
   const relatedReports = allReports
     .filter(
@@ -188,23 +145,6 @@ export default function ReportDetailDrawer({
         String(r.id) !== String(report.id)
     )
     .slice(0, 3);
-
-  const displayJson = report.rawJsonResponse || {
-    id: report.id,
-    filename: report.filename,
-    date: report.date,
-    site: report.site,
-    risk_level: report.risk_level,
-    hazard: report.hazard,
-    activity: report.activity,
-    barrier_failure: report.barrier_failure,
-    sif_precursor: report.sif_precursor,
-    explanation: report.explanation,
-    entities,
-    extractedEntities,
-    risk_assessment: riskAssessment,
-    model: report.model || { available: true },
-  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
@@ -218,18 +158,19 @@ export default function ReportDetailDrawer({
       {/* Slide-over Drawer Panel */}
       <div className="fixed inset-y-0 right-0 max-w-full flex sm:pl-10">
         <aside
-          className="w-screen max-w-lg bg-white shadow-2xl border-l border-slate-200 flex flex-col justify-between"
+          className="w-screen max-w-lg bg-white dark:bg-[#172033] shadow-2xl border-l border-slate-300 dark:border-slate-700 flex flex-col justify-between"
           aria-label="Report Detail Drawer"
         >
           {/* Header */}
-          <div className="h-16 px-5 sm:px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/90 shrink-0">
+          <div className="h-16 px-5 sm:px-6 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between bg-slate-50/90 dark:bg-slate-800/90 shrink-0">
             <div className="flex items-center gap-2.5">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-slate-600 bg-slate-200/80 px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 px-1.5 py-0.5 rounded">
                     {reportCode}
                   </span>
                   <RiskBadge level={report.risk_level} size="sm" />
+                  <ReportStatusBadge status={report.status} size="sm" />
                 </div>
                 {/* Site Link: Clicking site navigates to /sites/:siteId */}
                 <button
@@ -238,10 +179,10 @@ export default function ReportDetailDrawer({
                     onClose();
                     navigate(`/sites/${siteId}`);
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold mt-0.5 group"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline flex items-center gap-1 font-semibold mt-0.5 group"
                   title={`Open ${siteName} facility profile`}
                 >
-                  <Building2 size={12} className="text-blue-500 group-hover:text-blue-700" />
+                  <Building2 size={12} className="text-blue-500 dark:text-blue-400 group-hover:text-blue-700" />
                   <span>{siteName}</span>
                   <ExternalLink size={10} className="opacity-70 group-hover:opacity-100" />
                 </button>
@@ -251,25 +192,25 @@ export default function ReportDetailDrawer({
             <div className="flex items-center gap-2">
               {/* Previous / Next Batch Navigation Controls */}
               {allReports.length > 1 && currentIndex !== -1 && (
-                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 text-xs shadow-2xs">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-0.5 text-xs shadow-2xs">
                   <button
                     type="button"
                     onClick={handlePrev}
                     disabled={!hasPrev}
-                    className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                     title="Previous report"
                     aria-label="Previous report"
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="px-1.5 font-mono text-[11px] text-slate-600 font-bold whitespace-nowrap">
+                  <span className="px-1.5 font-mono text-[11px] text-slate-600 dark:text-slate-300 font-bold whitespace-nowrap">
                     Report {currentIndex + 1} of {allReports.length}
                   </span>
                   <button
                     type="button"
                     onClick={handleNext}
                     disabled={!hasNext}
-                    className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                     title="Next report"
                     aria-label="Next report"
                   >
@@ -281,7 +222,7 @@ export default function ReportDetailDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 aria-label="Close drawer"
               >
                 <X size={18} />
@@ -290,10 +231,9 @@ export default function ReportDetailDrawer({
           </div>
 
           {/* Quick Action Bar: Download Report & View Full Report */}
-          <div className="px-5 sm:px-6 py-2.5 bg-slate-100/70 border-b border-slate-200/80 flex items-center justify-between gap-2.5 text-xs shrink-0">
-            <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5">
-              <Cpu size={12} className="text-blue-600" />
-              <span>DistilBERT AI Intelligence</span>
+          <div className="px-5 sm:px-6 py-2.5 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between gap-2.5 text-xs shrink-0">
+            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+              OIL HSE Intelligence
             </span>
 
             <div className="flex items-center gap-2">
@@ -326,8 +266,8 @@ export default function ReportDetailDrawer({
 
           {/* Download Feedback Toast */}
           {downloadFeedback && (
-            <div className="mx-5 sm:mx-6 mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs font-semibold text-emerald-900 animate-in fade-in">
-              <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+            <div className="mx-5 sm:mx-6 mt-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-xs font-semibold text-emerald-900 dark:text-emerald-300 animate-in fade-in">
+              <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span className="truncate">{downloadFeedback}</span>
             </div>
           )}
@@ -335,40 +275,45 @@ export default function ReportDetailDrawer({
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
             {/* 1. SAFETY ASSESSMENT SECTION (Visual Focus) */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4.5 space-y-3 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+            <div className="rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-4.5 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-2.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Safety Assessment
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 uppercase font-semibold">
+                <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase font-semibold">
                   OIL Classification
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3.5 pt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 pt-1">
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Risk Level</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">Risk Level</span>
                   <RiskBadge level={report.risk_level} size="md" />
                 </div>
 
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">SIF Precursor</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">Task Priority</span>
+                  <PriorityBadge priority={report.priority || 'STANDARD'} size="md" />
+                </div>
+
+                <div>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">SIF Precursor</span>
                   {isSifPrecursor ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
-                      <AlertOctagon size={13} className="text-rose-600" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-xs font-bold">
+                      <AlertOctagon size={13} className="text-rose-600 dark:text-rose-400" />
                       <span>Detected</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-600 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-medium">
                       <ShieldCheck size={13} className="text-slate-400" />
                       <span>None Detected</span>
                     </span>
                   )}
                 </div>
 
-                <div>
-                  <span className="text-[11px] text-slate-400 block mb-0.5">Primary Hazard</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 block">
+                <div className="sm:col-span-1">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5">Primary Hazard</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 block break-words">
                     {report.hazard || 'None Specified'}
                   </span>
                   {report.hazard && report.hazard !== 'None' && (
@@ -378,7 +323,7 @@ export default function ReportDetailDrawer({
                         onClose();
                         navigate(`/compare/hazard?hazard=${encodeURIComponent(report.hazard)}`);
                       }}
-                      className="mt-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-semibold flex items-center gap-0.5 group"
+                      className="mt-1 text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline font-semibold flex items-center gap-0.5 group"
                     >
                       <span>Compare Hazard</span>
                       <ChevronRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
@@ -386,204 +331,53 @@ export default function ReportDetailDrawer({
                   )}
                 </div>
 
-                <div>
-                  <span className="text-[11px] text-slate-400 block mb-0.5">Operational Activity</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 block">
+                <div className="sm:col-span-2">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5">Operational Activity</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 block break-words">
                     {report.activity || 'General Operations'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* 2. NLP EXTRACTED ENTITIES & NER CLOUD (Comprehensive Safety Breakdown) */}
-            <div className="p-4.5 rounded-xl border border-blue-200/90 bg-white space-y-3.5 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-                    <Cpu size={12} />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                    NLP Safety Entities (DistilBERT)
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  Model Verified
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {/* Hazards */}
-                <div>
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                    <Flame size={12} className="text-red-500" /> Hazards Identified:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {rawHazards.length > 0 ? (
-                      rawHazards.map((h, i) => (
-                        <span key={i} className="px-2.5 py-1 rounded-md bg-red-50 border border-red-200 text-red-800 text-xs font-bold">
-                          {h}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">No specific hazard tag extracted</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Energy Sources */}
-                <div>
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                    <Zap size={12} className="text-amber-500" /> High-Energy Sources:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {rawEnergies.length > 0 ? (
-                      rawEnergies.map((en, i) => (
-                        <span key={i} className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
-                          {en}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">Standard atmospheric / mechanical baseline</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Equipment / Assets */}
-                <div>
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                    <Wrench size={12} className="text-blue-500" /> Equipment & Assets Involved:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {rawEquipment.length > 0 ? (
-                      rawEquipment.map((eq, i) => (
-                        <span key={i} className="px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-900 text-xs font-semibold">
-                          {eq}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">General asset inspection</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Locations / Areas */}
-                {rawLocations.length > 0 && (
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                      <MapPin size={12} className="text-emerald-500" /> Zones & Locations:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {rawLocations.map((loc, i) => (
-                        <span key={i} className="px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
-                          {loc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 3. DETERMINISTIC RISK MATRIX CALCULATION */}
-            {riskAssessment.severity !== undefined && (
-              <div className="p-4.5 rounded-xl border border-slate-200 bg-slate-50/80 space-y-3 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Risk Matrix Calculation Engine
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-500 uppercase font-semibold">
-                    IOGP / API RP 754
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Severity</span>
-                    <span className="text-lg font-bold font-mono text-slate-900">
-                      {riskAssessment.severity}/5
-                    </span>
-                    <span className="text-[10px] text-slate-500 block truncate">
-                      {riskAssessment.severityLabel || 'Severity'}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Likelihood</span>
-                    <span className="text-lg font-bold font-mono text-slate-900">
-                      {riskAssessment.likelihood}/5
-                    </span>
-                    <span className="text-[10px] text-slate-500 block truncate">
-                      {riskAssessment.likelihoodLabel || 'Likelihood'}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-200">
-                    <span className="text-[10px] text-blue-600 uppercase font-bold block mb-0.5">Risk Score</span>
-                    <span className="text-lg font-bold font-mono text-blue-900">
-                      {riskAssessment.riskScore || (riskAssessment.severity * riskAssessment.likelihood)}
-                    </span>
-                    <span className="text-[10px] text-blue-700 font-bold block truncate">
-                      {report.risk_level}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Precursor Decision Reasons */}
-                {riskAssessment.reasons && riskAssessment.reasons.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                      Rule Engine Findings:
-                    </span>
-                    <ul className="space-y-1">
-                      {riskAssessment.reasons.map((r, i) => (
-                        <li key={i} className="text-xs text-slate-700 flex items-start gap-1.5">
-                          <span className="text-blue-500 mt-0.5 font-bold">•</span>
-                          <span>{r}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 4. BARRIER FAILURE SECTION */}
-            <div className="p-4 rounded-xl border border-rose-200/80 bg-rose-50/40 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-900">
-                <ShieldAlert size={14} className="text-rose-600" />
+            {/* 2. BARRIER FAILURE SECTION (Prominent Callout) */}
+            <div className="p-4 rounded-xl border border-rose-200/90 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-900 dark:text-rose-300">
+                <ShieldAlert size={14} className="text-rose-600 dark:text-rose-400" />
                 <span>Barrier Failure</span>
               </div>
-              <p className="text-xs sm:text-sm font-semibold text-rose-950 leading-snug">
+              <p className="text-xs sm:text-sm font-semibold text-rose-950 dark:text-rose-200 leading-snug break-words">
                 {report.barrier_failure || 'None Identified'}
               </p>
-              <p className="text-[11px] text-rose-800/80 leading-relaxed pt-0.5">
+              <p className="text-[11px] text-rose-800/80 dark:text-rose-300/70 leading-relaxed pt-0.5">
                 Physical or administrative safeguard breach recorded during task execution.
               </p>
             </div>
 
-            {/* 5. EXPLAINABLE RISK PANEL */}
-            <div className="p-4.5 rounded-xl border border-slate-200 bg-white space-y-3 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            {/* 3. EXPLAINABLE RISK PANEL */}
+            <div className="p-4.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#172033] space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-2">
                 <div className="flex items-center gap-1.5">
-                  <AlertCircle size={14} className="text-blue-600" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  <AlertCircle size={14} className="text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                     Explainable Risk Assessment
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400 uppercase font-semibold">
+                <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase font-semibold">
                   Contributing Drivers
                 </span>
               </div>
 
+              {/* Qualitative Contributing Factors */}
               <div className="space-y-2">
-                <span className="text-[11px] font-bold text-slate-600 block">
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
                   Contributing Risk Factors:
                 </span>
                 <ul className="space-y-1.5">
                   {factors.map((factor, idx) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-2 text-xs text-slate-700 leading-snug"
+                      className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300 leading-snug"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
                       <span>{factor}</span>
@@ -592,40 +386,43 @@ export default function ReportDetailDrawer({
                 </ul>
               </div>
 
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+              {/* Why This Matters Callout */}
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                   Why This Matters
                 </span>
-                <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
                   {whyItMatters}
                 </p>
               </div>
 
+              {/* Classification Explanation Context */}
               {report.explanation && (
-                <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 leading-relaxed">
-                  <span className="font-semibold text-slate-700">Classification Note: </span>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700/80 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Classification Note: </span>
                   <span>{report.explanation}</span>
                 </div>
               )}
             </div>
 
-            {/* 6. RECOMMENDED SAFETY ACTIONS */}
-            <div className="p-4.5 rounded-xl border border-blue-200/90 bg-blue-50/30 space-y-3 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+            {/* 4. RECOMMENDED SAFETY ACTIONS */}
+            <div className="p-4.5 rounded-xl border border-blue-200/90 dark:border-blue-900/50 bg-blue-50/30 dark:bg-blue-950/20 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-blue-100 dark:border-blue-900/40 pb-2">
                 <div className="flex items-center gap-1.5">
-                  <ShieldCheck size={15} className="text-blue-700" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-blue-950">
+                  <ShieldCheck size={15} className="text-blue-700 dark:text-blue-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-950 dark:text-blue-200">
                     Recommended Safety Actions
                   </span>
                 </div>
 
+                {/* Priority Badge */}
                 <span
                   className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded uppercase tracking-wider ${
                     priority === 'IMMEDIATE'
-                      ? 'bg-red-100 text-red-800 border border-red-200'
+                      ? 'bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900'
                       : priority === 'PRIORITY'
-                      ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                      : 'bg-blue-100 text-blue-800 border border-blue-200'
+                      ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-900'
+                      : 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
                   }`}
                 >
                   Priority: {priority}
@@ -636,9 +433,9 @@ export default function ReportDetailDrawer({
                 {actions.map((act, idx) => (
                   <div
                     key={idx}
-                    className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-blue-100/90 shadow-2xs text-xs text-slate-800 leading-snug"
+                    className="flex items-start gap-2.5 p-2 rounded-lg bg-white dark:bg-[#172033] border border-blue-100/90 dark:border-blue-900/40 shadow-2xs text-xs text-slate-800 dark:text-slate-200 leading-snug"
                   >
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-[11px] shrink-0 font-mono">
+                    <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 flex items-center justify-center font-bold text-[11px] shrink-0 font-mono">
                       {idx + 1}
                     </span>
                     <span className="font-medium pt-0.5">{act}</span>
@@ -647,22 +444,47 @@ export default function ReportDetailDrawer({
               </div>
             </div>
 
-            {/* 7. ORIGINAL SOURCE REPORT TEXT */}
-            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+            {/* 5. EVENT TELEMETRY & LOCATION */}
+            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-300 dark:border-slate-700 rounded-xl p-4 space-y-2.5 text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                Location & Timestamp
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-0.5">
+                    <Calendar size={12} /> Logged Date / Time
+                  </span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono text-[11px] sm:text-xs">
+                    {formatEventTimestamp(report)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-0.5">
+                    <MapPin size={12} /> Specific Location
+                  </span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] sm:text-xs">
+                    {report.location || siteName}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. ORIGINAL REPORT (Visually Secondary Expandable Section) */}
+            <div className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#172033] overflow-hidden shadow-2xs">
               <button
                 type="button"
                 onClick={() => setShowOriginalNarrative((prev) => !prev)}
-                className="w-full px-4 py-3 bg-slate-50/80 hover:bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-left transition-colors"
+                className="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100/70 dark:hover:bg-slate-800 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between text-left transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <FileText size={13} className="text-slate-400" />
-                  <span className="text-xs font-bold text-slate-700">Original Document Text</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Original Field Report</span>
                   <span className="text-[10px] font-mono text-slate-400 uppercase">
-                    (OCR / Extraction)
+                    (Source Narrative)
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-[11px] font-semibold text-blue-600">
-                  <span>{showOriginalNarrative ? 'Hide text' : 'Show extracted text'}</span>
+                <div className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                  <span>{showOriginalNarrative ? 'Hide text' : 'Show report text'}</span>
                   <ChevronDown
                     size={13}
                     className={`transition-transform duration-150 ${
@@ -673,63 +495,23 @@ export default function ReportDetailDrawer({
               </button>
 
               {showOriginalNarrative ? (
-                <div className="p-4 text-xs sm:text-[13px] text-slate-700 leading-relaxed font-mono whitespace-pre-wrap bg-slate-50/30 max-h-72 overflow-y-auto">
+                <div className="p-4 text-xs sm:text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-mono whitespace-pre-wrap bg-slate-50/30 dark:bg-slate-900/30">
                   {report.full_text || report.text_snippet || report.report_text}
                 </div>
               ) : (
-                <div className="px-4 py-2 text-xs text-slate-500 italic truncate bg-white">
+                <div className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 italic truncate bg-white dark:bg-[#172033]">
                   "{report.text_snippet || (report.full_text || '').slice(0, 100)}..."
                 </div>
               )}
             </div>
 
-            {/* 8. RAW NLP JSON PAYLOAD INSPECTOR */}
-            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-              <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Code size={13} className="text-emerald-400" />
-                  <span className="text-xs font-bold font-mono">Raw NLP Service JSON</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCopyJson}
-                    className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
-                  >
-                    {copiedJson ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                    <span>{copiedJson ? 'Copied' : 'Copy JSON'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowRawJson((prev) => !prev)}
-                    className="text-slate-400 hover:text-white"
-                  >
-                    <ChevronDown
-                      size={14}
-                      className={`transition-transform duration-150 ${
-                        showRawJson ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {showRawJson && (
-                <div className="p-3 bg-slate-950 overflow-x-auto max-h-80 border-t border-slate-800">
-                  <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed whitespace-pre">
-                    {JSON.stringify(displayJson, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-
-            {/* 9. RELATED OBSERVATIONS FROM SAME FACILITY */}
+            {/* 7. RELATED OBSERVATIONS FROM THE SAME SITE */}
             {relatedReports.length > 0 && (
-              <div className="pt-2 border-t border-slate-200">
+              <div className="pt-2 border-t border-slate-300 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
-                    <Layers size={13} className="text-slate-500" />
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    <Layers size={13} className="text-slate-500 dark:text-slate-400" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Recent Events at {siteName}
                     </h4>
                   </div>
@@ -739,7 +521,7 @@ export default function ReportDetailDrawer({
                       onClose();
                       navigate(`/sites/${siteId}?tab=reports`);
                     }}
-                    className="text-[11px] text-blue-600 hover:underline font-semibold"
+                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                   >
                     View all
                   </button>
@@ -750,15 +532,15 @@ export default function ReportDetailDrawer({
                     <div
                       key={rel.id}
                       onClick={() => onSelectReport && onSelectReport(rel)}
-                      className="p-2.5 rounded-lg border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                      className="p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group"
                     >
                       <div className="flex items-center justify-between text-xs mb-0.5">
-                        <span className="font-mono text-[11px] text-slate-500 font-medium">
+                        <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                           {rel.date} {rel.time ? `· ${rel.time}` : ''}
                         </span>
                         <RiskBadge level={rel.risk_level} size="sm" />
                       </div>
-                      <p className="text-xs text-slate-700 line-clamp-1 group-hover:text-slate-900">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-1 group-hover:text-slate-900 dark:group-hover:text-slate-100">
                         {rel.text_snippet || rel.full_text || rel.report_text}
                       </p>
                     </div>
@@ -769,14 +551,14 @@ export default function ReportDetailDrawer({
           </div>
 
           {/* Drawer Footer */}
-          <div className="h-16 px-5 sm:px-6 border-t border-slate-200 bg-slate-50/60 flex items-center justify-between shrink-0">
+          <div className="h-16 px-5 sm:px-6 border-t border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 flex items-center justify-between shrink-0">
             <button
               type="button"
               onClick={() => {
                 onClose();
                 navigate(`/sites/${siteId}`);
               }}
-              className="text-xs text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1"
+              className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium flex items-center gap-1"
             >
               <Building2 size={13} />
               <span>Go to {siteName} History</span>

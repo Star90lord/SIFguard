@@ -3,7 +3,7 @@ import React from 'react';
 export default function Skeleton({ className = '', ...props }) {
   return (
     <div
-      className={`animate-pulse bg-slate-200/80 rounded ${className}`}
+      className={`animate-pulse bg-slate-200/80 dark:bg-slate-700/60 rounded ${className}`}
       aria-hidden="true"
       {...props}
     />
@@ -16,7 +16,7 @@ export function KpiSkeleton({ count = 1 }) {
       {[...Array(count)].map((_, i) => (
         <div
           key={i}
-          className="p-4 sm:p-4.5 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-2xs"
+          className="p-4 sm:p-4.5 bg-white dark:bg-[#172033] border border-slate-300 dark:border-slate-700 rounded-xl space-y-2.5 shadow-2xs"
         >
           <div className="flex items-center justify-between">
             <Skeleton className="h-3 w-20" />
@@ -32,8 +32,8 @@ export function KpiSkeleton({ count = 1 }) {
 
 export function CardSkeleton({ lines = 3, className = '' }) {
   return (
-    <div className={`p-5 bg-white border border-slate-200 rounded-xl space-y-3.5 shadow-2xs ${className}`}>
-      <div className="space-y-1.5 border-b border-slate-100 pb-3">
+    <div className={`p-5 bg-white dark:bg-[#172033] border border-slate-300 dark:border-slate-700 rounded-xl space-y-3.5 shadow-2xs ${className}`}>
+      <div className="space-y-1.5 border-b border-slate-100 dark:border-slate-700/80 pb-3">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-3 w-60" />
       </div>
@@ -48,7 +48,7 @@ export function CardSkeleton({ lines = 3, className = '' }) {
 
 export function ChartSkeleton({ className = '' }) {
   return (
-    <div className={`p-5 bg-white border border-slate-200 rounded-xl space-y-4 shadow-2xs ${className}`}>
+    <div className={`p-5 bg-white dark:bg-[#172033] border border-slate-300 dark:border-slate-700 rounded-xl space-y-4 shadow-2xs ${className}`}>
       <div className="space-y-1">
         <Skeleton className="h-4 w-36" />
         <Skeleton className="h-3 w-56" />
@@ -73,7 +73,7 @@ export function DashboardSkeleton() {
       </div>
 
       {/* Attention panel skeleton */}
-      <div className="h-20 bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between">
+      <div className="h-20 bg-white dark:bg-[#172033] border border-slate-300 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-4 w-48" />
           <Skeleton className="h-3 w-80" />
@@ -93,12 +93,12 @@ export function DashboardSkeleton() {
 
 export function TableSkeleton({ rows = 6 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="bg-white dark:bg-[#172033] border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden shadow-2xs">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-4 w-24" />
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-slate-100 dark:divide-slate-800">
         {[...Array(rows)].map((_, i) => (
           <div key={i} className="px-5 py-4 flex items-center gap-6">
             <Skeleton className="h-4 w-24 shrink-0" />
@@ -116,12 +116,12 @@ export function TableSkeleton({ rows = 6 }) {
 
 export function AnalysisSkeleton() {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-2xs">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+    <div className="bg-white dark:bg-[#172033] border border-slate-300 dark:border-slate-700 rounded-xl p-6 space-y-6 shadow-2xs">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-4">
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-7 w-28 rounded-md" />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2 border-b border-slate-100 pb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2 border-b border-slate-100 dark:border-slate-700/80 pb-6">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="space-y-2">
             <Skeleton className="h-3 w-16" />

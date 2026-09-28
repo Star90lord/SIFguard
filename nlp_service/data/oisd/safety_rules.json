@@ -1,0 +1,202 @@
+{
+    "standards": [
+        {
+            "number": "OISD-STD-105",
+            "name": "Work Permit System",
+            "category": "Work Authorisation",
+            "keywords": [
+                "work permit",
+                "hot work",
+                "hot work permit",
+                "gas testing",
+                "gas test",
+                "permit to work",
+                "permit",
+                "ptw",
+                "job safety analysis",
+                "jsa",
+                "hira"
+            ]
+        },
+        {
+            "number": "OISD-STD-106",
+            "name": "Pressure Relief & Disposal System",
+            "category": "Pressure Safety",
+            "keywords": [
+                "pressure relief",
+                "relief valve",
+                "pressure release",
+                "overpressure",
+                "disposal system",
+                "pressure release",
+                "pressure leak",
+                "high pressure",
+                "overpressure"
+            ]
+        },
+        {
+            "number": "OISD-STD-108",
+            "name": "Oil Storage and Handling",
+            "category": "Storage and Handling",
+            "keywords": [
+                "oil storage",
+                "oil handling",
+                "storage tank",
+                "petroleum storage",
+                "petroleum handling",
+                "pipeline",
+                "hydrocarbon",
+                "hydrocarbon leak",
+                "oil leak",
+                "petroleum leak"
+            ]
+        },
+        {
+            "number": "OISD-STD-113",
+            "name": "Classification of Area for Electrical Installations at Hydrocarbon Processing & Handling Facilities",
+            "category": "Electrical Safety",
+            "keywords": [
+                "electrical installation",
+                "hazardous area",
+                "electrical equipment",
+                "hydrocarbon facility",
+                "area classification"
+            ]
+        },
+        {
+            "number": "OISD-STD-114",
+            "name": "Safe Handling of Hazardous Chemicals",
+            "category": "Chemical Safety",
+            "keywords": [
+                "hazardous chemical",
+                "chemical handling",
+                "toxic chemical",
+                "chemical exposure",
+                "chemical leak"
+            ]
+        },
+        {
+            "number": "OISD-STD-116",
+            "name": "Fire Protection Facilities for Petroleum Refineries, Petrochemical Complexes & Oil/Gas Processing Plants",
+            "category": "Fire Safety",
+            "keywords": [
+                "fire protection",
+                "fire fighting",
+                "fire water",
+                "refinery fire",
+                "fire facility",
+                "fire",
+                "flammable",
+                "ignition",
+                "gas leak",
+                "explosion"
+            ]
+        },
+        {
+            "number": "OISD-STD-128",
+            "name": "Inspection of Unfired Pressure Vessels",
+            "category": "Pressure Equipment",
+            "keywords": [
+                "pressure vessel",
+                "unfired pressure vessel",
+                "vessel inspection",
+                "pressure equipment"
+            ]
+        },
+        {
+            "number": "OISD-STD-137",
+            "name": "Inspection of Electrical Equipment",
+            "category": "Electrical Safety",
+            "keywords": [
+                "electrical equipment",
+                "electrical inspection",
+                "electrical failure",
+                "electrical maintenance"
+            ]
+        },
+        {
+            "number": "OISD-STD-145",
+            "name": "Internal Safety Audits",
+            "category": "Safety Management",
+            "keywords": [
+                "safety audit",
+                "internal audit",
+                "safety inspection",
+                "audit finding"
+            ]
+        },
+        {
+            "number": "OISD-STD-152",
+            "name": "Safety Instrumentation for Process System in Hydrocarbon Industry",
+            "category": "Safety Instrumentation",
+            "keywords": [
+                "safety instrumentation",
+                "process safety",
+                "safety instrumented system",
+                "sis",
+                "interlock"
+            ]
+        },
+        {
+            "number": "OISD-STD-155",
+            "name": "Personal Protective Equipment",
+            "category": "PPE",
+            "keywords": [
+                "personal protective equipment",
+                "ppe",
+                "safety helmet",
+                "safety gloves",
+                "respiratory protection",
+                "protective equipment"
+            ]
+        },
+        {
+            "number": "OISD-STD-178",
+            "name": "Management of Change",
+            "category": "Process Safety Management",
+            "keywords": [
+                "management of change",
+                "moc",
+                "process change",
+                "equipment modification",
+                "change management"
+            ]
+        },
+        {
+            "number": "OISD-GDN-206",
+            "name": "Guidelines on Safety Management System in Oil And Gas Industry",
+            "category": "Safety Management",
+            "keywords": [
+                "safety management system",
+                "sms",
+                "safety management",
+                "risk management",
+                "incident prevention"
+            ]
+        },
+        {
+            "number": "OISD-STD-227",
+            "name": "Emergency Response and Preparedness in Oil & Gas Industry",
+            "category": "Emergency Response",
+            "keywords": [
+                "emergency response",
+                "emergency preparedness",
+                "emergency plan",
+                "evacuation",
+                "emergency"
+            ]
+        },
+        {
+            "number": "OISD-STD-234",
+            "name": "Electrical Safety in Onshore Production Installations in E&P Sector",
+            "category": "Electrical Safety",
+            "keywords": [
+                "electrical safety",
+                "electrical isolation",
+                "energization",
+                "de-energization",
+                "electrical installation"
+            ]
+        }
+    ]
+}

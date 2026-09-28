@@ -375,23 +375,29 @@ export function downloadIndividualReport(report) {
   doc.drawText(`INVESTIGATION RECORD: ${reportCode}  ·  FACILITY: ${siteName}`, 55, 768, 'F1', 8, 0.7, 0.75, 0.85);
 
   // Recommended Safety Actions (Section E)
-  const { priority, actions } = getRecommendedSafetyActions(report);
+  const { priority: recPriority, actions } = getRecommendedSafetyActions(report);
+  const actionPriority = (report.priority || recPriority || 'STANDARD').toUpperCase();
+  const actionStatus = (report.status || 'NEW').toUpperCase();
+  const actionAssignee = report.actionAssignee || report.assignee || 'HSE Operational Team';
+  const actionDueDate = report.actionDueDate || report.dueDate || 'Standard Cadence';
+
   doc.setFillColor(0.96, 0.98, 1.0);
   doc.setStrokeColor(0.78, 0.85, 0.95);
   doc.drawRect(40, 615, 515.28, 125, true, true);
 
-  doc.drawText('SECTION E — RECOMMENDED SAFETY ACTIONS', 55, 722, 'F2', 9, 0.1, 0.25, 0.55);
-  doc.drawText(`[ PRIORITY: ${priority} ]`, 425, 722, 'F2', 8, 0.85, 0.2, 0.1);
+  doc.drawText('SECTION E — RECOMMENDED SAFETY ACTIONS & HSE DIRECTIVES', 55, 722, 'F2', 8, 0.1, 0.25, 0.55);
+  doc.drawText(`[ PRIORITY: ${actionPriority} · STATUS: ${actionStatus} ]`, 340, 722, 'F2', 7.5, 0.85, 0.2, 0.1);
+  doc.drawText(`Action Tracking: Assignee: ${actionAssignee}  ·  Due Date: ${actionDueDate}`, 55, 709, 'F1', 7.5, 0.35, 0.4, 0.5);
 
-  let actionY = 704;
+  let actionY = 695;
   actions.forEach((act, idx) => {
     doc.drawText(`${idx + 1}.`, 55, actionY, 'F2', 8.5, 0.15, 0.3, 0.6);
     const wrappedAct = wrapText(act, 74);
     wrappedAct.forEach((line, lineIdx) => {
-      doc.drawText(line, 70, actionY, 'F1', 8.5, 0.15, 0.2, 0.3);
+      doc.drawText(line, 70, actionY, 'F1', 8, 0.15, 0.2, 0.3);
       if (lineIdx < wrappedAct.length - 1) actionY -= 11;
     });
-    actionY -= 13;
+    actionY -= 12;
   });
 
   // Section F: Corrective Action (Fix Current Condition)

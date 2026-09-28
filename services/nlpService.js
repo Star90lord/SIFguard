@@ -1,124 +1,172 @@
-// services/nlpService.js
-//
-// Backend integration layer for the existing (external) NLP service.
-// The Python/FastAPI service itself is NOT modified here — this module
-// only adapts the Node.js backend to the request format the NLP service
-// already expects:
-//
-//   POST {NLP_SERVICE_URL}/process-document
-//   Content-Type: multipart/form-data
-//   Field: `document` (file)  — matches FastAPI param `document: UploadFile`
-//   Optional field: `report_text` (string)
-//
-// NLP service reference: nlp_service/main.py -> process_document()
-
 const fs = require("fs");
+const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
 
+const NLP_BASE_URL =
+    process.env.NLP_SERVICE_BASE_URL ||
+    "http://127.0.0.1:8000";
+
+const NLP_SERVICE_URL =
+    process.env.NLP_SERVICE_URL ||
+    `${NLP_BASE_URL}/process-document`;
+
+
+/**
+ * Return the base URL of the Python NLP service.
+ *
+ * Example:
+ * http://127.0.0.1:8000
+ */
 const getNlpServiceUrl = () => {
-    return (
-        process.env.NLP_SERVICE_URL ||
-        "http://127.0.0.1:8000"
-    ).replace(/\/+$/, "");
+    return NLP_BASE_URL;
 };
 
-const getNlpTimeout = () => {
-    const parsed = Number(process.env.NLP_SERVICE_TIMEOUT_MS);
-    if (Number.isFinite(parsed) && parsed > 0) {
-        return parsed;
+
+/**
+ * Check whether the uploaded file can be processed
+ * by the Python NLP service.
+ */
+const isNlpSupportedExtension = (filename) => {
+    if (!filename) {
+        return false;
     }
-    // DistilBERT NER + OCR can be slow on first run.
-    return 120000;
+
+    const supportedExtensions = [
+        ".pdf",
+        ".docx",
+        ".txt",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+    ];
+
+    const extension = path.extname(filename).toLowerCase();
+
+    return supportedExtensions.includes(extension);
 };
 
-// The backend accepts .doc uploads but the NLP service only supports
-// pdf/docx/txt/images. Forward everything and let the NLP service decide,
-// but flag .doc so the controller can report a clear nlpStatus.
-const isNlpSupportedExtension = (filename = "") => {
-    const lower = String(filename).toLowerCase();
-    return (
-        lower.endsWith(".pdf") ||
-        lower.endsWith(".docx") ||
-        lower.endsWith(".txt") ||
-        lower.endsWith(".jpg") ||
-        lower.endsWith(".jpeg") ||
-        lower.endsWith(".png") ||
-        lower.endsWith(".webp")
+
+/**
+ * Forward uploaded document from Node.js to Python NLP service.
+ */
+const forwardDocumentToNlp = async ({
+    filePath,
+    originalName,
+    mimeType,
+}) => {
+    if (!filePath) {
+        throw new Error("File path is required.");
+    }
+
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+    }
+
+    const formData = new FormData();
+
+    formData.append(
+        "document",
+        fs.createReadStream(filePath),
+        {
+            filename: originalName,
+            contentType: mimeType,
+        }
     );
-};
-
-const forwardDocumentToNlp = async ({ filePath, originalName, mimeType }) => {
-    const baseUrl = getNlpServiceUrl();
-    const url = `${baseUrl}/process-document`;
-
-    const form = new FormData();
-    form.append("document", fs.createReadStream(filePath), {
-        filename: originalName,
-        contentType: mimeType,
-    });
 
     try {
-        const response = await axios.post(url, form, {
-          headers: {
-            ...form.getHeaders(),
-            ...(process.env.SIFGUARD_API_KEY ? { Authorization: `Bearer ${process.env.SIFGUARD_API_KEY}` } : {}),
-          },
-          timeout: getNlpTimeout(),
-          maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-        });
+        const response = await axios.post(
+            NLP_SERVICE_URL,
+            formData,
+            {
+                headers: {
+                    ...formData.getHeaders(),
+                },
+
+                maxContentLength: Infinity,
+
+                maxBodyLength: Infinity,
+
+                timeout: 120000,
+            }
+        );
 
         return {
             ok: true,
             status: response.status,
             data: response.data,
         };
+
     } catch (error) {
+
+        // Python service responded with an HTTP error
         if (error.response) {
-            // Preserve backend error details without throwing
             return {
                 ok: false,
                 status: error.response.status,
-                data: error.response.data
+                data: error.response.data,
             };
         }
-        if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND" || error.code === "EHOSTUNREACH") {
-            return {
-                ok: false,
-                status: 503,
-                data: {
-                    detail: `NLP service unavailable at ${baseUrl}.`,
-                    error: error.message
-                }
-            };
+
+        // Python service is not reachable
+        if (
+            error.code === "ECONNREFUSED" ||
+            error.code === "ENOTFOUND"
+        ) {
+            const unavailableError = new Error(
+                "NLP service is unavailable."
+            );
+
+            unavailableError.isNlpUnavailable = true;
+
+            throw unavailableError;
         }
-        if (error.code === "ECONNABORTED") {
-            return {
-                ok: false,
-                status: 504,
-                data: {
-                    detail: "NLP service timed out while analyzing the document."
-                }
-            };
+
+        // Request timed out
+        if (
+            error.code === "ECONNABORTED" ||
+            error.code === "ETIMEDOUT"
+        ) {
+            const timeoutError = new Error(
+                "NLP service request timed out."
+            );
+
+            timeoutError.isNlpTimeout = true;
+
+            throw timeoutError;
         }
-        // Unexpected error – propagate
+
+        // Unknown error
         throw error;
     }
 };
 
-const checkNlpHealth = async () => {
-    const baseUrl = getNlpServiceUrl();
-    const response = await axios.get(`${baseUrl}/health`, {
-        timeout: 10000,
+
+/**
+ * Backward-compatible function.
+ *
+ * This allows any older code using:
+ *
+ * analyzeDocument(filePath, originalName)
+ *
+ * to continue working.
+ */
+const analyzeDocument = async (
+    filePath,
+    originalName
+) => {
+    return forwardDocumentToNlp({
+        filePath,
+        originalName,
+        mimeType: "application/octet-stream",
     });
-    return response.data;
 };
 
+
 module.exports = {
-    getNlpServiceUrl,
-    getNlpTimeout,
-    isNlpSupportedExtension,
     forwardDocumentToNlp,
-    checkNlpHealth,
+    isNlpSupportedExtension,
+    analyzeDocument,
+    getNlpServiceUrl,
 };
